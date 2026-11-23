@@ -145,3 +145,9 @@ fixture 来源、操作/期望/实际状态、测试及脱敏日志/trace/截图
 本规划工单和地图关闭只确认开发方向、验收与交接依据。最终组合已冻结、验证并录入身份
 （`docs/release-final.md`、`docs/evidence/ticket-61-freeze.json`）；不可变公开发布仍被
 `packages/delivery/gate.ts` 阻断，维护者操作验收尚未执行，见 `docs/evidence/ticket-61-acceptance.md`。
+Windows 最终 head `c5949a6` 的真实 OS 输入已部分复测：真实 Ctrl+C 复制、外部剪贴板粘贴、真实 Enter
+发送与 Explorer 拖入 `drop.txt` 和可见的 `pixel.png` 均观察到；但该附件发送丢失 worker
+（`SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED`，提交结果未确认），随后 Host 以
+`SESSION_WORKER_DRAINING` 拒绝新会话/重开会话，因此附件回合的 fileMention/provider 未获确认，
+Windows 附件路径不能记为通过，需重启 Host 后干净重跑；证据见
+`docs/evidence/ticket-63-windows-input.json`。

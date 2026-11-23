@@ -98,4 +98,9 @@ Product-flow harness: `tests/product/product-flow.py` (real Chromium, controlled
 runbook: `docs/operations.md`. Stock product-flow and performance evidence:
 `docs/evidence/ticket-63-product-flow.json` and `tests/product/evidence/performance-2026-11-23-product.json`.
 Platform and native-data evidence from the superseded custom-shell tuple remains under
-`docs/evidence/ticket-61-*.json`; the #63 Windows stock-shell rerun is still outstanding.
+`docs/evidence/ticket-61-*.json`. The #63 Windows stock-shell rerun against the final head is
+recorded in `docs/evidence/ticket-63-windows-input.json`: real Win32 Ctrl+C copy, external
+clipboard paste, real Enter send and Explorer drops of `drop.txt` plus the visible
+`C:\t63-drop\pixel.png` were observed, while the attachment send failed with a lost worker
+(`SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED`) and left the Host refusing further explicit session
+actions (`SESSION_WORKER_DRAINING`); maintainer manual acceptance is still NOT RUN.

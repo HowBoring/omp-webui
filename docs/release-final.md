@@ -18,7 +18,7 @@ keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a
 | DSH base / source tree | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` / `f5cc084f803a001930f8d1c6fa1abba5bd78e08f`, 11 pinned patches (includes `0013` checkout-relative CSS-module hashing) |
 | DSH client | Stock DSH release `0.1.0` @ `f5cc084f…` served from `vendor/dsh-product`; boot graph rev `1d19a9695e2d`, roster 34 entries (33 DSH packages + `@omp-webui/product-enrollment`), 136 assets sha256 `efae7cbebff1b1e7aa010325e099a481812d5243dcb3bfd146ad320383b46908`; `index.html` `0aa1ab0f1bab550a2d730b9d85401a361a19efab508c1c9664d8cf45f244fb7e`; no `/client.js` |
 | Installation manifest | `vendor/product/installation.json`; the gate compares the checkout-canonical digest `aae65242822552be450d340acaf0e6e2bc9bc67f1f7b3690f8b18f17e9113da8` (the raw file also carries this checkout's paths, so its own sha256 is per-checkout and not a release identity) |
-| Platform | Linux (WSL2) x64 `127.0.0.1` loopback, Linux Chromium 157.0.8103.38; Windows Chrome Dev 160.0.8171.0 is available but the #63 stock-shell browser rerun is not in this record |
+| Platform | Linux (WSL2) x64 `127.0.0.1` loopback, Linux Chromium 157.0.8103.38; Windows Chrome Dev 160.0.8171.0 final-head rerun is partially recorded (real Win32 copy/paste/Enter and Explorer drop staging pass; the attachment send failed with a lost worker — see `docs/evidence/ticket-63-windows-input.json`) |
 | Previous build (rollback) | `@oh-my-pi/pi-coding-agent@18.20.2`, `dist/cli.js` sha256 `648be0034d37318687525546dcbef0bd1596dda87d008cc14fecc801c821ac76` |
 
 The performance corpus is frozen separately: `tests/product/evidence/performance-corpus-2026-11-22.json`
@@ -57,7 +57,7 @@ or claiming tuple reproduction, which remains local.
 | Frozen stock-shell composition | PASS: 10/10 freeze tests, roster 34, stock assets 136, no custom `/client.js` | `tests/product/freeze.test.ts`; `ticket-63-freeze.json` |
 | Linux product flow on the stock DSH shell: model/thinking, preferences reload, explicit continue, new native Session, Stop, send after Stop, Enter/New Session, draft reload, unsupported attachment refusal, PNG+TXT send, byte-exact Originals, and the retained 200×200 image rendered as a stock `<img>` after reload | PASS: 10 scenarios, 25 s, zero console errors | `docs/evidence/ticket-63-product-flow.json`; `tests/product/product-flow.py` |
 | Linux Host start, bootstrap admission, assets, revoke-all | PASS | `docs/evidence/ticket-59-platforms.json` `linux` |
-| Windows Chrome (real Win32 browser) stock-shell shell/admission/input | NOT RERUN for #63; the recorded Windows evidence belongs to the superseded #61 custom-shell tuple and is not a claim about this composition | `ticket-61-windows-chrome.json`, `ticket-61-windows-input.json` |
+| Windows Chrome (real Win32 browser) stock-shell shell/admission/input | PARTIAL at the final head `c5949a6`: one-use bootstrap admission, real Ctrl+C selection/copy, external clipboard paste, real Enter send and Explorer-originated drops of `drop.txt`/`pixel.png` were observed; sending the attachments failed with a lost worker and the Host then refused further sessions (`SESSION_WORKER_DRAINING`), so no fileMention/provider outcome was recorded for that turn | `ticket-63-windows-input.json`; earlier custom-shell evidence remains in `ticket-61-windows-chrome.json`, `ticket-61-windows-input.json` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS on the same OMP base (shell-independent); not rerun in this session because `vendor/omp-previous` is not provisioned in this worktree | `docs/evidence/ticket-61-native-data.json` |
 | Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on the restart-auth tuple — first page P95 996.0 ms, old page P95 357.5 ms, Host peak RSS 248.4 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
@@ -79,7 +79,11 @@ different machine, and it is only valid for the recorded corpus identity in
 * The controlled provider (`compatibility/omp/fixtures/live-provider.ts`) is not real inference.
 * Native data evidence uses synthetic isolated Sessions; real user history is never migrated or
   rewritten by tests.
-* The recorded Windows browser evidence predates the #63 stock shell: it is real Win32 Chrome over CDP
-  against the superseded custom-shell tuple. The stock-shell Windows shell/admission/keyboard rerun is
-  still required before #63 acceptance; OS clipboard paste and Explorer-originated drag need a visible
-  Windows desktop and are not claimed.
+* The Windows evidence in `ticket-61-windows-*.json` predates the #63 stock shell: it is real Win32
+  Chrome over CDP against the superseded custom-shell tuple. The final-head rerun is in
+  `ticket-63-windows-input.json`: real OS clipboard copy/paste, real Enter and Explorer-originated drags
+  of `drop.txt` and `pixel.png` were observed, but the attachment send lost its worker
+  (`SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED`, unresolved submission) and the Host then rejected new or
+  reopened sessions with `SESSION_WORKER_DRAINING`. That turn has no confirmed fileMention/provider
+  outcome, so #63 acceptance cannot treat the Windows attachment path as passed; a Host restart and a
+  clean rerun are required, and maintainer manual acceptance remains NOT RUN.
