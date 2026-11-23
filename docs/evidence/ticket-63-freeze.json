@@ -2,12 +2,12 @@
   "ticket": 63,
   "kind": "final-combination-freeze",
   "spec": 29,
-  "recordedAt": "2026-11-23T17:01:56.404Z",
+  "recordedAt": "2026-11-23T17:47:23.509Z",
   "host": {
     "repository": "HowBoring/omp-webui",
     "worktree": "/home/howboring/Projects/omp-webui-review-stock",
     "branch": "mvp/spec-29-review-stock",
-    "commit": "b69d21cff4a4173bc9f770b2f864457fb25abe37",
+    "commit": "c5949a6882e94c718bbb60392623af0b33ed0fae",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
