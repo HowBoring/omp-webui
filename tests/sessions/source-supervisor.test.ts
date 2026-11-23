@@ -891,6 +891,10 @@ test("a worker settle closes the followed journal only and stops at retirement",
     const renewed = (await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId))!;
     const initialCursor = initial.cursor, renewedCursor = renewed.cursor;
     f.emit({ type: "session_settled" });
+    // Native's quiet frame can lead the observation cursor, so the close lands on the next quiet
+    // observation instead of ahead of an assistant settlement the Worker has not handed over yet.
+    expect(renewed.cursor).toBe(renewedCursor);
+    renewed.accept({ cut: renewed.opened.cut, after: renewed.after, through: renewed.after, events: [], hasMore: false });
     expect(renewed.cursor).toBe(renewedCursor + 1);
     expect((await renewed.page({ maxMessages: 8 })).records.at(-1)?.event)
       .toMatchObject({ type: "turn/end", data: { turn: 1, reason: { kind: "aborted", reason: { kind: "legacy" } } } });
@@ -902,6 +906,8 @@ test("a worker settle closes the followed journal only and stops at retirement",
     const again = (await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId))!;
     const againCursor = again.cursor;
     f.emit({ type: "prompt_result", agentInvoked: false, status: "completed", sessionSettled: true });
+    expect(again.cursor).toBe(againCursor);
+    again.accept({ cut: again.opened.cut, after: again.after, through: again.after, events: [], hasMore: false });
     expect(again.cursor).toBe(againCursor + 1);
     // Retirement releases the hook: a further notification cannot append to a dead generation.
     f.supervisor.invalidatePresentation(f.identity, opened.workerId, sessionId);
