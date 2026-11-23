@@ -47,12 +47,13 @@ async function fixture() {
     async close() { await client.fiber.dispose(); await peer.dispose(); await host.fiber.dispose(); await f.close(); } };
 }
 
-test("the stock commands face lists the exact Native catalog without worker-only fields", async () => {
+test("the stock commands face lists the Native catalog minus the stock client's own slash names", async () => {
   const f = await fixture();
   try {
     const listed = await f.remote.list(f.session);
-    expect(listed.ok && listed.value).toEqual([{ name: "model",
-      description: "Show current model selection", input: { hint: "model" } }]);
+    // `model` is a stock client contribution in this frozen DSH shell; repeating it in the host
+    // catalog makes the stock command menu throw, so the face omits it.
+    expect(listed.ok && listed.value).toEqual([{ name: "context", description: "Show context usage" }]);
   } finally { await f.close(); }
 });
 
@@ -72,15 +73,15 @@ test("a known command is submitted as the exact Native prompt and an unknown lin
         relations: [{ relationId: "entry:consumed", role: "input", status: "no_entry",
           persistence: "committed", reason: "native_builtin_consumed" }] } };
     };
-    for (const line of ["/missing", "model", " / "]) {
+    for (const line of ["/missing", "/model", "model", " / "]) {
       const missed = await f.remote.execute(f.session, line, []);
       expect(missed.ok && missed.value).toBeUndefined();
     }
     expect(submitted).toBeUndefined();
-    const executed = await f.remote.execute(f.session, "/model", []);
+    const executed = await f.remote.execute(f.session, "/context", []);
     expect(executed.ok && executed.value?.result).toEqual({ kind: "success" });
     expect(submitted).toMatchObject({ type: "submission_submit", inputType: "prompt", idleOnly: true,
-      message: "/model", sourceId: "source", instanceId: "instance", nativeSessionId: "native-session" });
+      message: "/context", sourceId: "source", instanceId: "instance", nativeSessionId: "native-session" });
   } finally { await f.close(); }
 });
 
@@ -88,10 +89,10 @@ test("a busy Native reservation and revoked browser authority report no success"
   const f = await fixture();
   try {
     f.controls.submissionReply = command => ({ type: "response", id: command.id, command: command.type, success: false, code: "SUBMISSION_BUSY" });
-    const busy = await f.remote.execute(f.session, "/model", []);
+    const busy = await f.remote.execute(f.session, "/context", []);
     expect(busy.ok && busy.value?.result).toEqual({ kind: "error", text: "The session is busy; the command was not run." });
     f.revoke();
     expect((await f.remote.list(f.session)).ok).toBe(false);
-    expect((await f.remote.execute(f.session, "/model", [])).ok).toBe(false);
+    expect((await f.remote.execute(f.session, "/context", [])).ok).toBe(false);
   } finally { await f.close(); }
 });

@@ -80,8 +80,9 @@ export async function sourceFixture(now: () => number = Date.now,
       if (controls.submissionReply) return controls.submissionReply(command);
       throw new Error("SYNTHETIC_SUBMISSION_UNUSED");
     },
-    async availableCommands() { return [{ name: "model", description: "Show current model selection",
-      input: { hint: "model" }, source: "builtin" }]; },
+    async availableCommands() { return [
+      { name: "model", description: "Show current model selection", input: { hint: "model" }, source: "builtin" },
+      { name: "context", description: "Show context usage", source: "builtin" }]; },
     async command() { return { status: "answered" }; }, async control() { return {}; },
     async steer() { throw new Error("UNUSED"); }, async followUp() { throw new Error("UNUSED"); },
     async setAskDialog() { return { enabled: true }; }, get readyPolicy(): unknown { return undefined; },

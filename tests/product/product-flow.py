@@ -128,6 +128,28 @@ async def new_session(page, previous=""):
     return await native_session(page)
 
 
+async def stock_command(page, checks):
+    """Type the stock slash menu, pick a Native command, and let Native consume the bare line."""
+    box = await wait_composer(page)
+    await box.click()
+    await box.type("/")
+    await expect(page.get_by_role("listbox")).to_be_visible(timeout=60000)
+    await expect(page.get_by_role("option", name=re.compile(r"^context\b")).first).to_be_visible(timeout=60000)
+    names = [text.split("\n", 1)[0].strip() for text in await page.get_by_role("option").all_inner_texts()]
+    checks["slashCatalog"] = names
+    assert "context" in names, "the Native catalog left the stock slash menu"
+    assert "Model" in names, "the stock /model contribution left the menu"
+    await box.type("cont")
+    option = page.get_by_role("option", name=re.compile(r"^context\b"))
+    await expect(option.first).to_be_visible(timeout=60000)
+    await option.first.click()
+    await page.wait_for_function(
+        "selector => { const nodes = document.querySelectorAll(selector); const node = nodes[nodes.length - 1];"
+        " return node !== undefined && node.innerText.trim() === ''; }",
+        arg=COMPOSER, timeout=60000)
+    checks["slashCommand"] = "/context"
+
+
 async def composer(page):
     return page.locator(COMPOSER).last
 
@@ -213,6 +235,7 @@ async def phase_linux(browser, errors, scenarios, checks, link):
     checks["grantAdmitted"] = True
     native = await new_session(page)
     checks["newSession"] = native
+    await stock_command(page, checks)
     await send(page, "final tuple turn one")
     await wait_final(page)
     checks["liveAttachSession"] = await page.locator(SESSION).first.get_attribute("data-conversation-session")
@@ -384,6 +407,11 @@ async def main():
     assert FINAL in texts, "native JSONL keeps the assistant visible text"
     assert any(message.get("stopReason") == "aborted" and message.get("errorMessage") == "Interrupted by user"
                for message in messages), "native JSONL records the stopped attempt"
+    assert any(record.get("type") == "custom"
+               and record.get("customType") == "omp.native-control/submission-v1"
+               and str(record.get("data", {}).get("submission", {}).get("preparationId", "")).startswith("command-v1:")
+               and record["data"]["submission"].get("inputOutcome") == "no_input"
+               for record in records), "native JSONL records the stock slash command Native consumed"
     assert any(record.get("type") == "model_change" for record in records), "native JSONL keeps the model identity"
     assert any(record.get("type") == "thinking_level_change" for record in records), "native JSONL keeps the thinking level"
     chosen_level = checks.get("thinkingLevel")

@@ -33,6 +33,13 @@ export interface CommandsAccess {
 const commandNamePattern = /^\s*\/(\S+)/u;
 
 /**
+ * Slash names this frozen stock client contributes itself (`ui-model-selection` registers `/model`).
+ * The stock command menu throws when the host catalog repeats one, so the face omits them; the stock
+ * contribution owns the name and handles it before any line is sent to Native.
+ */
+const clientOwnedCommands: Record<string, true> = { model: true };
+
+/**
  * Host-owned commands face for one browser credential. `resolve` must synchronously recheck the
  * browser, the exact live worker and its Native Session before either the catalog or a send.
  */
@@ -59,10 +66,12 @@ export class CommandsService extends TypertRemoteService {
     return access;
   }
   @Remote("list") async list(agent: { readonly id: string }): Promise<readonly CommandDescriptor[]> {
-    return (await this.access(agent).worker.availableCommands()).map(command => ({
-      name: command.name, description: command.description ?? "",
-      ...(command.input?.hint ? { input: { hint: command.input.hint } } : {}),
-    }));
+    return (await this.access(agent).worker.availableCommands())
+      .filter(command => !Object.hasOwn(clientOwnedCommands, command.name))
+      .map(command => ({
+        name: command.name, description: command.description ?? "",
+        ...(command.input?.hint ? { input: { hint: command.input.hint } } : {}),
+      }));
   }
   @Remote("execute") async execute(agent: { readonly id: string }, line: string,
     submittedAttachments: readonly CommandSubmitAttachment[]): Promise<CommandExecution | undefined> {
@@ -73,7 +82,8 @@ export class CommandsService extends TypertRemoteService {
       return { commandId: CommandId(randomUUID()),
         result: { kind: "error", text: "Native commands do not accept submitted attachments." } };
     }
-    const catalog = await access.worker.availableCommands();
+    const catalog = (await access.worker.availableCommands())
+      .filter(command => !Object.hasOwn(clientOwnedCommands, command.name));
     if (!catalog.some(command => command.name === name)) return undefined;
     const id = CommandId(randomUUID());
     // The line is submitted as a Native prompt, exactly like the stock Agent Hub: the worker resolves
