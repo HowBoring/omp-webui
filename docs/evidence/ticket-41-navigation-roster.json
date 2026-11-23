@@ -67,15 +67,21 @@
         "bytes": 1517,
         "sha256": "81208a578e4e7b04a4812889a0c58d5312ad5c158705b899b48f0b252e7abedf",
         "treeAfter": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
+      },
+      {
+        "path": "compatibility/dsh/patches/0013-css-module-relative-hash.patch",
+        "bytes": 1957,
+        "sha256": "754ea9266e5ad4ba4be317c494465a4bfe2df893d5bf288b21d32acac88e1b2b",
+        "treeAfter": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f"
       }
     ],
-    "declaredTree": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
+    "declaredTree": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f"
   },
   "page": {
     "kind": "isolated-navigation-fixture",
     "lockSha256": "9bf7a9ee0e6c446d82e6f21677009fa65cb2593b3460cff00abb9d65a17b8d54",
     "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
-    "sourceTree": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c",
+    "sourceTree": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f",
     "contractSha256": "05e15e264ac1c7d77cb31a23ecdd4248c4edddd4afc5172f356db0cc96389a99",
     "assets": {
       "client.js": "f8a138b74aabfc6a0a2faa19aae20070a0c11ea7dd43ede3e15262f777bec46d",
@@ -1176,10 +1182,10 @@
       },
       {
         "path": "compatibility/omp/0009-attachment-preparation.patch",
-        "bytes": 164209,
-        "sha256": "98a6a929769f5165b070a695fcb5f9660d0f10432b144ffec5f6697590f39608",
-        "actual": "98a6a929769f5165b070a695fcb5f9660d0f10432b144ffec5f6697590f39608",
-        "actualBytes": 164209
+        "bytes": 165337,
+        "sha256": "d2431f588e16d796e9e62bf6b14ee95c08b87ad4f5530fc26a418b432e259c38",
+        "actual": "d2431f588e16d796e9e62bf6b14ee95c08b87ad4f5530fc26a418b432e259c38",
+        "actualBytes": 165337
       },
       {
         "path": "compatibility/omp/0010-image-original-budget.patch",

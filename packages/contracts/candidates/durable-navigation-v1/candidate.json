@@ -60,8 +60,8 @@
       },
       {
         "path": "compatibility/omp/0009-attachment-preparation.patch",
-        "bytes": 164209,
-        "sha256": "98a6a929769f5165b070a695fcb5f9660d0f10432b144ffec5f6697590f39608"
+        "bytes": 165337,
+        "sha256": "d2431f588e16d796e9e62bf6b14ee95c08b87ad4f5530fc26a418b432e259c38"
       },
       {
         "path": "compatibility/omp/0010-image-original-budget.patch",
