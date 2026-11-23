@@ -1,7 +1,7 @@
 # Final release record — validated combination
 
-Status of this record: **combination validated for build/verify/enroll and the Linux product flow;
-the final-tuple performance rerun is pending; installation reproducible; no public distribution.** Decision 4's auditable deltas plus immutable build/schema/asset identities are
+Status of this record: **combination validated for build/verify/enroll, the Linux product flow
+and the final-tuple performance gate; installation reproducible; no public distribution.** Decision 4's auditable deltas plus immutable build/schema/asset identities are
 recorded and drift-tested here; the automatic update/distribution framework is out of MVP scope, so
 the unused inventory module `packages/delivery/gate.ts` (only caller `scripts/inspect-delivery.ts`)
 keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a released package.
@@ -59,15 +59,14 @@ or claiming tuple reproduction, which remains local.
 | Linux Host start, bootstrap admission, assets, revoke-all | PASS | `docs/evidence/ticket-59-platforms.json` `linux` |
 | Windows Chrome (real Win32 browser) stock-shell shell/admission/input | NOT RERUN for #63; the recorded Windows evidence belongs to the superseded #61 custom-shell tuple and is not a claim about this composition | `ticket-61-windows-chrome.json`, `ticket-61-windows-input.json` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS on the same OMP base (shell-independent); not rerun in this session because `vendor/omp-previous` is not provisioned in this worktree | `docs/evidence/ticket-61-native-data.json` |
-| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on this build — first page P95 949.0 ms, old page P95 364.4 ms, Host peak RSS 243.9 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
+| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on the final review tuple — first page P95 1062.2 ms, old page P95 394.9 ms, Host peak RSS 248.8 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
-The recorded performance artifact was produced by the pre-review build of the recorded combination; the
-rerun on the final review tuple was OOM-killed at 6.6 GiB inside the 8 GiB scope before completion and is
-not claimed here: 4 of 20 processors by
+The performance artifact was produced on the final review tuple (installation manifest
+`7c1554fd…ce1f`, source tree `f5cc084…e08f`) by the unchanged gate: 30 samples, 4 of 20 processors by
 affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page values — the 30 measured reloads plus
-the cold open (17838.2 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
+the cold open (17024.7 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
 `allNativeReachable: true` and the duplicate-preserving reset check intact, and
 `BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
 different machine, and it is only valid for the recorded corpus identity in
