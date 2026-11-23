@@ -34,10 +34,14 @@ The harness opens the enrolled installation and a real browser. Set `OMP_PERF_DE
 console diagnostics. It also enables `OMP_CHAT` Session lifecycle records and projection-generation records.
 The product-flow counterpart, `tests/product/product-flow.py`, writes its browser/native checks to
 `vendor/product-flow/evidence.json` (override with `OMP_PRODUCT_FLOW_EVIDENCE`).
-The product shell is `apps/chat/src/client.tsx`, loaded by `apps/chat/src/product-entry.tsx`; it composes
-the pinned DSH Conversation and the OMP attachment/draft/tree contributions. `tests/product/product-flow.py`
-walks upload, draft reload, unsupported-file refusal, native attachment submission, history reopen and
-Original byte checks against the enrolled product.
+The product shell is the pinned stock DSH Web Client distribution served from `vendor/dsh-product`
+(built by `scripts/build-product.ts`; boot graph + routes). It is not `apps/chat/src/client.tsx`:
+that file is the isolated component fixture used by the component browser tests through
+`vendor/host-chat`, and it is not served as the product. The only authored OMP client plugin is
+`apps/chat/src/product-enrollment.js`, mounted in the stock graph as `@omp-webui/product-enrollment`.
+`tests/product/product-flow.py` walks stock model/thinking and preferences, attachment upload, draft
+reload, unsupported-file refusal, native attachment submission, history reopen and Original byte
+checks against the enrolled stock product.
 
 Useful commands:
 
@@ -56,9 +60,9 @@ systemd-run --user --scope -p MemoryMax=8G --quiet \
 sample. Admission failures are blocked preconditions, not performance results. `apps/host/src/main.ts
 --print-bootstrap` exits nonzero with `PRODUCT_BOOTSTRAP_BLOCKED` instead of waiting on a blocked server.
 
-## Final combination (ticket 61)
+## Final combination (ticket 63)
 
-The validated combination is frozen in `docs/evidence/ticket-61-freeze.json` and summarised in
+The validated stock-shell combination is frozen in `docs/evidence/ticket-63-freeze.json` and summarised in
 `docs/release-final.md`. Rebuild and enroll before touching runtime code:
 
 ```bash
@@ -70,7 +74,7 @@ bun test tests/product/freeze.test.ts      # fails when the enrolled installatio
 The freeze gate hashes the enrolled manifest with checkout-relative asset paths and a tokenized runtime
 path. System dependency paths are reduced to their basename, but each dependency keeps its content
 identity and size, so a foreign glibc with the same library names cannot pass. The canonical digest is
-`9b02a0297f62fd2d2ebb953a0a218411e5481ded18282eabca4c5606696e402a`; every checkout that enrolls the
+`a0a06db5b1f02f1822f42b62b687bad07ddd535bf01d9310ad515597f7a4c040`; every checkout that enrolls the
 same closure produces it, while source/patch/schema and each asset identity stay pinned individually.
 The raw `vendor/product/installation.json` bytes still contain the concrete checkout paths that
 admission executes.
@@ -91,4 +95,7 @@ Host environment: `OMP_WEB_MANIFEST`, `OMP_WEB_LAUNCHER`, `OMP_WEB_MANIFEST_SHA2
 `sigUSR1` revokes all browser authorizations.
 
 Product-flow harness: `tests/product/product-flow.py` (real Chromium, controlled provider). Operator
-runbook: `docs/operations.md`. Platform and native-data evidence: `docs/evidence/ticket-61-*.json`.
+runbook: `docs/operations.md`. Stock product-flow and performance evidence:
+`docs/evidence/ticket-63-product-flow.json` and `tests/product/evidence/performance-2026-11-23-product.json`.
+Platform and native-data evidence from the superseded custom-shell tuple remains under
+`docs/evidence/ticket-61-*.json`; the #63 Windows stock-shell rerun is still outstanding.

@@ -2,12 +2,15 @@
 
 Status: 用户已确认组合方向和产品范围；公开接缝隔离实验已通过。stock 产品外壳已服务并由真实浏览器验证
 （grant/New Session/发送/停止/继续/历史恢复/多视图/model+thinking/偏好/stock 斜杠菜单，见
-`docs/evidence/ticket-63-freeze.json` 与 `vendor/performance-evidence/performance.json`）。
+`docs/evidence/ticket-63-freeze.json`、`docs/evidence/ticket-63-product-flow.json` 与
+`tests/product/evidence/performance-2026-11-23-product.json`）。
 stock 斜杠菜单直接读取 Native command catalog；冻结客户端自身拥有的 `/model` 从 Host face
 排除，其余 Native 命令（例如 `/context`）按 `command-v1`/`no_input` 由 Native 执行，
 未知命令和非斜杠文本不提交。
-产品入口是 `apps/chat/src/product-entry.tsx`，它加载 DSH 组合外壳 `apps/chat/src/client.tsx`
-（`UiConversation`/`createProviderRuntime`，不是独立 legacy 应用）。该外壳已服务 Tree 查看/历史导航、
+产品入口是 stock DSH Web Client 构建产物 `vendor/dsh-product`（`scripts/build-product.ts` 组合 boot graph/route），
+不是 `apps/chat/src/product-entry.tsx`/`client.tsx`；后者仍是组件 browser tests 使用的隔离 fixture
+（`vendor/host-chat`），不随产品服务。唯一 OMP 客户端插件是 `apps/chat/src/product-enrollment.js`，
+在 stock graph 中挂载为 `@omp-webui/product-enrollment`。产品已验证 Tree 查看/历史导航、
 浏览器附件上传、provider 草稿恢复和 Original 重开；`tests/product/product-flow.py` 的最终组合
 场景覆盖 200×200 PNG 与文本附件发送、native `fileMention`/inline image、草稿 reload、拒绝不可用
 附件后继续发送，以及历史重开后经 `/api/ompOriginals/history|original` 按字节核对两个 Original。
@@ -138,8 +141,11 @@ resolveDraftSubmission 仅接受显式权威结果，先持久化再原子解锁
   实际启动 UI、busy 输入门禁、取消/重投与原生静止仍需真实验证；投影算法由对应工单细化。
   完整 OMP/DSH 端到端仍是验收门禁。
 
-已有 28 插件空数据启动与公开策略补丁的隔离对照证据；后者包含两个 fixture 插件，不是最终产品 roster。
-产品运行时仍未接入 DSH、上传存储或真实 OMP。官方基线仍为 DSH dsh-v0.2.2-rc.3 / 38a6a5c965aa99ab525161efb7cc5cf1fe62fced。
+最终 stock 产品 roster 为 33 个 DSH package + `@omp-webui/product-enrollment`（34 entries），
+10 个公开策略/组合 patch，136 个 assets；身份、构建期资产摘要和漂移/拒斥门禁见
+`docs/evidence/ticket-63-freeze.json`。产品运行时已接入真实 DSH product、上传存储和真实 OMP；
+上游基线仍是 DSH `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`，实际构建 source tree 为
+`8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c`。
 
 ## 固定一手证据
 
