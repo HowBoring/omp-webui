@@ -26,6 +26,7 @@ Rows citing `ticket-61-platforms.json` were recorded on the earlier custom-shell
 | Stop to `cancelled`, recovery send | HISTORICAL (superseded custom shell only) | `linux.productFlow.stop` and `recovery` in `ticket-61-platforms.json`; the final stock tuple settles Stop to `Stopped` (`ticket-63-product-flow.json` `stop`) and was not rerun on this custom-shell scenario |
 | Explicit confirmed retry | PASS | `linux.productFlow.retry` (`succeeded`) |
 | Revoke-all | PASS | `linux.revokeAll` |
+| Host restart: no automatic reopen or replay, typed manual-open marker, explicit Open loads the retained history | PASS (controlled provider) | `ticket-63-restart-auth.json` (`restartAttempt` = `SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED`, `recovery` = `in-place`, provider calls unchanged, one turn in the native JSONL); the real-provider restart stays in the maintainer checklist above |
 | Windows Chrome shell, admission, console clean | NOT RERUN | `windowsChrome` is superseded custom-shell evidence, not this tuple |
 | Windows keyboard, menus and file input | NOT RERUN | `windowsChrome.inputInjection` is superseded custom-shell evidence; drop and OS clipboard remain limitations |
 

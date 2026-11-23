@@ -1,7 +1,7 @@
 {
   "kind": "product-flow",
-  "recordedAt": "2026-11-23T10:39:46Z",
-  "native": "01a207fd-4563-76b6-95ea-138a8c07e301",
+  "recordedAt": "2026-11-23T13:46:43Z",
+  "native": "01a208a8-6573-750c-b6fa-7ff09bebccff",
   "scenarios": [
     "stock-model-thinking",
     "stock-preferences-reload",
@@ -16,7 +16,7 @@
   ],
   "checks": {
     "grantAdmitted": true,
-    "newSession": "01a207fd-7799-7163-bfc0-cc93d2230281",
+    "newSession": "01a208a8-9e5c-7714-84af-07ee0e0e5391",
     "slashCatalog": [
       "File",
       "compact",
@@ -140,7 +140,7 @@
       "init"
     ],
     "slashCommand": "/context",
-    "liveAttachSession": "01a207fd-4563-76b6-95ea-138a8c07e301",
+    "liveAttachSession": "01a208a8-6573-750c-b6fa-7ff09bebccff",
     "liveAttachRenderedText": true,
     "liveAttachNodes": 1,
     "historyReopen": true,
@@ -151,7 +151,7 @@
     "thinkingLevel": "minimal",
     "preferenceTheme": "dark",
     "preferencePersisted": true,
-    "multiViewSession": "01a207fd-4563-76b6-95ea-138a8c07e301",
+    "multiViewSession": "01a208a8-6573-750c-b6fa-7ff09bebccff",
     "multiViewLive": true,
     "retryOffer": true,
     "retry": 1,
@@ -167,23 +167,23 @@
       "file/drop.txt"
     ],
     "attachmentPrepared": {
-      "mention": "attachment-prepared://11051faf-0048-4251-8dba-dafa2740213c",
-      "textOriginal": "be2b76fa-2d4c-47fd-9204-96cdc0188286",
-      "imageOriginal": "62c77aa5-9693-4dfa-a9d6-c503a1a97661"
+      "mention": "attachment-prepared://431a3279-67f2-4393-a851-c37ac2f2f0cd",
+      "textOriginal": "033f75f3-6d44-4618-8656-7a9045064d7d",
+      "imageOriginal": "b4735235-3cc6-4310-ac8d-7b87d3d1d5d7"
     },
     "attachmentHistoryImage": "stock <img> 200x200 after reload",
     "attachmentOriginals": {
       "text": "a327c3e84b7a32a07b8c1cf3c1ab7437abae08b191b4ad54265fff88b5a88dc9",
       "image": "233460d9ceabd422e2ac1b974e6ed9fef756e7a9f344e4fa83c596f9f283c86a"
     },
-    "nativeFile": "vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-review-stock-vendor-product-flow-project--/2026-11-23T10-39-28-611Z_01a207fd-4563-76b6-95ea-138a8c07e301.jsonl",
+    "nativeFile": "vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-restart-auth-vendor-product-flow-project--/2026-11-23T13-46-23-475Z_01a208a8-6573-750c-b6fa-7ff09bebccff.jsonl",
     "nativeRecords": 57,
     "nativeMessages": 13,
     "nativeSessions": 2,
     "providerCalls": 1,
     "consoleErrors": []
   },
-  "installationManifestSha256": "7c1554fd5cc5ff1f8776cf34c7a0d58a688bac7e80eb6d2f4e8a4962dc90ce1f",
+  "installationManifestSha256": "b3aaa942709dcad1c2f0ff77fd547c9dcd71bc4b20b4710d8537deeed6285155",
   "freeze": "docs/evidence/ticket-63-freeze.json",
   "provider": "compatibility/omp/fixtures/live-provider.ts s0-controlled/deterministic-live (controlled, not real inference)"
 }
