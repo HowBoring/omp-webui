@@ -24,6 +24,19 @@ async def attempt(page, native):
     return await row.get_attribute("data-product-session-attempt"), row
 
 
+def seed_older_sessions(directory, count):
+    """Native Session headers that sort before the admitted Session, so the stock catalog lists it
+    past its first 32-choice page. Same authorized directory, distinct native identities."""
+    seeded = []
+    for index in range(count):
+        native = f"00000000-0000-4000-8000-{index:012d}"
+        stamp = f"2026-01-01T00:00:{index:02d}.000Z"
+        (directory / f"{stamp.replace(':', '-').replace('.', '-')}_{native}.jsonl").write_text(
+            json.dumps({"type": "session", "id": native, "timestamp": stamp, "cwd": str(flow.PROJECT)}) + "\n")
+        seeded.append(native)
+    return seeded
+
+
 async def main():
     shutil.rmtree(flow.WORK, ignore_errors=True)
     flow.PROJECT.mkdir(parents=True)
@@ -52,8 +65,13 @@ async def main():
                 await flow.wait_final(page, previous=0)
                 checks["beforeRestart"] = {"finals": await flow.body_final_count(page),
                                             "providerCalls": flow.provider_calls()}
+                native_file = next(path for path in flow.native_session_files() if native in path.name)
+                checks["nativeFile"] = str(native_file)
                 # The browser keeps its credential; the Host is what restarts (real SIGTERM, same data dir).
                 await flow.stop_host(host)
+                seeded = seed_older_sessions(native_file.parent, 40)
+                checks["seededSessions"] = len(seeded)
+                assert all(native > seeded_id for seeded_id in seeded), "admitted Session must sort past page one"
                 host = await flow.start_host(delay=2000)
                 link = flow.bootstrap(delay=2000)
                 await page.goto(link, wait_until="domcontentloaded")
@@ -69,7 +87,15 @@ async def main():
                 checks["restartAttempt"] = state
                 assert state == MARKER, state
                 assert await page.get_by_text("Nothing is replayed", exact=False).count() >= 1
-                await row.locator("button[data-product-open-session]").click()
+                # More than one catalog page exists; the row is openable only because the walk took
+                # its choice from a later page, and only an explicit click opens it.
+                rows = await page.locator("li[data-product-session]").count()
+                checks["catalogRows"] = rows
+                assert rows >= 41, rows
+                assert "not discovered now" not in await row.inner_text()
+                button = row.locator("button[data-product-open-session]")
+                await expect(button).to_be_enabled(timeout=60000)
+                await button.click()
                 try:
                     await expect(page.locator("body")).to_contain_text(flow.FINAL, timeout=90000)
                     checks["recovery"] = "in-place"
@@ -111,7 +137,8 @@ async def main():
     assert not checks["consoleErrors"], checks["consoleErrors"]
     evidence = {"kind": "product-restart-flow", "recordedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "checks": checks, "nativeFile": str(target),
-                "scenarios": ["stock-restart-no-auto-open", "stock-restart-manual-open-retained-history"],
+                "scenarios": ["stock-restart-no-auto-open", "stock-restart-manual-open-retained-history",
+                              "stock-sessions-past-first-catalog-page"],
                 "provider": "compatibility/omp/fixtures/live-provider.ts s0-controlled/deterministic-live (controlled, not real inference)"}
     out = Path(os.environ.get("OMP_PRODUCT_RESTART_EVIDENCE", str(flow.WORK / "restart-evidence.json")))
     out.parent.mkdir(parents=True, exist_ok=True)
