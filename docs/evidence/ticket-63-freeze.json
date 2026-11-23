@@ -2,12 +2,12 @@
   "ticket": 63,
   "kind": "final-combination-freeze",
   "spec": 29,
-  "recordedAt": "2026-11-23T08:54:48.291Z",
+  "recordedAt": "2026-11-23T09:09:33.117Z",
   "host": {
     "repository": "HowBoring/omp-webui",
     "worktree": "/home/howboring/Projects/omp-webui-review-stock",
     "branch": "mvp/spec-29-review-stock",
-    "commit": "0249c991cdf31fb39efafa1957a5672a9efe336f",
+    "commit": "1aa8fb847e0b52669659cd5c247da18a42b67caf",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
@@ -31,8 +31,8 @@
   "omp": {
     "source": {
       "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
-      "sourceSha256": "0706f095cf2d02dde65a7e37c8feb0ba9a7d5c3aa866df319264b7822f867ed4",
-      "patchSha256": "b29ddb4a5faa5d2ee0913d93dd2c9399c78fd9a164108a0a6388a5d424f39519",
+      "sourceSha256": "fbe8188cb6d7fc55680dd7c41f3f456122169d7c7a652df335cb11c14dcd86ae",
+      "patchSha256": "ec7bb9c8b255725fbc628664f807376dfd3c172bd75fa515928f9e1c817f83d1",
       "schemaSha256": "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2"
     },
     "launcher": "vendor/omp-candidate/omp",
@@ -45,26 +45,26 @@
     },
     "installationManifest": {
       "path": "vendor/product/installation.json",
-      "sha256": "22136709c1476bbf5112750b8f8827670ba5f62d495389421f199c2e02c0a972",
+      "sha256": "aae65242822552be450d340acaf0e6e2bc9bc67f1f7b3690f8b18f17e9113da8",
       "canonicalization": "checkout-relative asset paths; runtime path tokenized; system dependency paths reduced to basename with content identity and bytes retained"
     },
     "installationAssets": [
       {
         "path": "vendor/omp-candidate",
         "kind": "directory",
-        "identity": "8f742f0cbac7531e65fd443c48132abf7d4d1af7f41f0109904b226c13ca32cf",
+        "identity": "f1add6400c4a27e6ec787a7558158c8deb02e895e3856a3e1deefaf8ca0be9b6",
         "mode": 493
       },
       {
-        "path": "vendor/omp-candidate/chunk-031j9ysd.js",
+        "path": "vendor/omp-candidate/chunk-t0tbxthm.js",
         "kind": "file",
-        "identity": "a430c74c3fa188e9c16259fc8185d0eef40dec8de11741ab7bc6db9f7eff498c",
+        "identity": "a6f05baba23170d1b3c3259c98165d8057a268e988be1bc74e5c0dfa0315d087",
         "mode": 420
       },
       {
         "path": "vendor/omp-candidate/cli.js",
         "kind": "file",
-        "identity": "2ee0fd05f3e165a5f91c641d079a1c2e7c84282ae44310ff9a124370480bbb08",
+        "identity": "4b20dd09cbd4be0e82d21c7e081e626a44814007cdde4cd5268c9947807f5bde",
         "mode": 493
       },
       {
@@ -1889,7 +1889,7 @@
     "docs/evidence/ticket-61-windows-chrome.png": "0a35b3910fe998db8ce004941f72c1e93192a8392e6d13d6b594e15d07f763f6",
     "docs/evidence/ticket-61-windows-input.json": "7155af9bee9a90a9df57258c81a78fb9101bf509f32d025d5bf2dc979a7bfc84",
     "docs/evidence/ticket-61-windows-input.png": "246ea246e9853c5465a394457deba2c32f9894bd05b0c5220d1183adc53afe40",
-    "docs/evidence/ticket-63-product-flow.json": "a6803381c9802d79537c66b77ce68a3a8daca392e6e6d7de0e23e7920acaaea2",
+    "docs/evidence/ticket-63-product-flow.json": "ff6b55825979285cd329595bf4f5c026b209f55d19ee257a7bd6ca2eaa4934bd",
     "tests/product/evidence/performance-2026-11-22-product.json": "e0e71f465aed39179dc26b3b764c0ea1100b144e2d048c38d37e2370c1258652",
     "tests/product/evidence/performance-2026-11-23-product.json": "59707cde30264a9a8a6f003204aaa41835a302815ffbd757c06c777b391258ab"
   },
