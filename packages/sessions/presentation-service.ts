@@ -2,13 +2,17 @@ import { Remote, TypertRemoteService, RemoteError } from "@deepseek-ai/dsh-typer
 import type { Context } from "@deepseek-ai/cordis";
 import type { SessionFollowRequest, SessionPageRequest, SessionControlFrame, SessionFollowFrame,
   SessionListRequest, SessionProjectionsRequest, SessionProjectionBinding, SessionCreateRequest,
-  SessionCreateValue, ModelCatalog, SessionSelectModelRequest, SessionSelectModelValue } from "@deepseek-ai/dsh-api-session-controller/types";
+  SessionCreateValue, ModelCatalog, SessionProjectionValues, SessionSelectModelRequest,
+  SessionSelectModelValue } from "@deepseek-ai/dsh-api-session-controller/types";
 import { sameProjection } from "@deepseek-ai/dsh-api-session-controller/projection";
+import { ReasoningEffortId } from "@deepseek-ai/dsh-llm/brand";
 import { SessionId } from "@deepseek-ai/dsh-session/types";
 import type { BrowserAccess } from "../access/index.ts";
 import type { LiveJournal } from "../projection/live-journal.ts";
 import type { SessionSupervisor } from "./supervisor.ts";
 import { sessionCaller, type SessionsService } from "./service.ts";
+/** Wire shape of a model-selection face value; an alias (not interface) so JSON carriers accept it too. */
+type SelectionJson = { provider: string; model: string; reasoningEffort?: ReasoningEffortId };
 export class SessionPresentationService extends TypertRemoteService {
   constructor(ctx: Context, readonly supervisor: SessionSupervisor,
     private readonly sessions: SessionsService, private readonly changed?: () => void) {
@@ -75,7 +79,18 @@ export class SessionPresentationService extends TypertRemoteService {
   @Remote("projections") async projections(request: SessionProjectionsRequest) {
     const journal = await this.supervisor.presentation(this.identity(), request.sessionId);
     return { kind: "sequenced" as const, projection: journal.projection, asOfSeq: journal.cursor,
-      values: { conversationContinuation: journal.continuation } };
+      values: { conversationContinuation: journal.continuation,
+        modelSelection: await this.modelSelection() } };
+  }
+  /** The stock model picker reads this face; synthesize it from the one native worker selection. */
+  private async modelSelection(): Promise<{ lastUsed: SelectionJson | null; next: SelectionJson | null }> {
+    try {
+      const catalog = await this.sessions.stockModelCatalog() as ModelCatalog;
+      const selected = catalog.default;
+      const next: SelectionJson = { provider: selected.provider, model: selected.model,
+        ...(selected.reasoningEffort === undefined ? {} : { reasoningEffort: ReasoningEffortId(selected.reasoningEffort) }) };
+      return { lastUsed: next, next };
+    } catch { return { lastUsed: null, next: null }; }
   }
   @Remote("page") async page(request: SessionPageRequest) {
     const journal = await this.presented(this.addressId(request.address));
@@ -93,8 +108,10 @@ export class SessionPresentationService extends TypertRemoteService {
       try { live = await this.supervisor.presentation(identity, presented.sessionId); } catch { live = undefined; }
     }
     let continuation = live?.continuation ?? null;
+    const selection = live === undefined ? null : await this.modelSelection();
     yield { type: "baseline", value: { projections: live ? { [live.sessionId]: {
-      projection: live.projection, asOfSeq: live.cursor, values: { conversationContinuation: live.continuation },
+      projection: live.projection, asOfSeq: live.cursor, values: { conversationContinuation: live.continuation,
+        ...(selection === null ? {} : { modelSelection: selection }) },
     } } : {} } };
     while (!signal.aborted) {
       await Bun.sleep(100);
@@ -133,7 +150,13 @@ export class SessionPresentationService extends TypertRemoteService {
       else { queue.push(frame); bytes += size; }
     });
     try {
-      yield journal.snapshot();
+      // A projection rebuild (a model or effort switch refreshes the journal) withdraws every face; the
+      // reopened follow must carry the native selection again or the stock model seat falls back to a
+      // catalog loaded before the switch.
+      const snapshot = journal.snapshot();
+      const values: SessionProjectionValues = { ...snapshot.projections.values };
+      values.modelSelection = await this.modelSelection();
+      yield { ...snapshot, projections: { ...snapshot.projections, values } };
       while (!signal.aborted) {
         this.supervisor.requirePresentation(identity, id, journal);
         if (journal.failure) throw new RemoteError("gateway/bad-request", "Session history changed; manually reopen the full view.", {});

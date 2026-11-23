@@ -5,9 +5,11 @@ product admission path.
 
 ## Build and enrollment chain
 
-`apps/chat/src/product-entry.tsx` and `apps/chat/src/client.tsx`
-→ `bun run product:build` (`scripts/build-product.ts`)
-→ `vendor/dsh-product/client.js` and `index.html`
+`apps/chat/src/product-enrollment.js` (the one authored OMP client plugin)
+→ `bun run product:build` (`scripts/build-product.ts` / `scripts/build-product-client.ts`)
+→ the pinned stock DSH shell plus the audited roster in `baselineRoster`, including
+`dsh-client-ui-model-selection`
+→ `vendor/dsh-product/index.html` and its hashed assets
 → `bun run product:enroll` (`scripts/enroll-product.ts`)
 → `vendor/product/installation.json`
 → `apps/host/src/main.ts` product admission.
@@ -30,6 +32,10 @@ The real product Host is `apps/host/src/main.ts`; its startup log is
 `vendor/performance-evidence/product-host.log` when launched by `tests/product/performance.py`.
 The harness opens the enrolled installation and a real browser. Set `OMP_PERF_DEBUG=1` to collect browser
 console diagnostics. It also enables `OMP_CHAT` Session lifecycle records and projection-generation records.
+The product-flow counterpart, `tests/product/product-flow.py`, writes its browser/native checks to
+`vendor/product-flow/evidence.json` (override with `OMP_PRODUCT_FLOW_EVIDENCE`).
+The legacy `apps/chat/src/client.tsx` isolated component fixture is not the product shell; it remains
+only for the attachment/original/draft evidence the stock product does not yet expose.
 
 Useful commands:
 

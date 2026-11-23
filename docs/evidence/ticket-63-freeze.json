@@ -2,12 +2,12 @@
   "ticket": 63,
   "kind": "final-combination-freeze",
   "spec": 29,
-  "recordedAt": "2026-11-23T01:58:31.108Z",
+  "recordedAt": "2026-11-23T03:07:24.022Z",
   "host": {
     "repository": "HowBoring/omp-webui",
     "worktree": "/home/howboring/Projects/omp-webui-ticket-63",
     "branch": "mvp/ticket-63-dsh-ui",
-    "commit": "d7fa33cf03a86797b7a9f18a7e19497a1153522a",
+    "commit": "e7fc470ed003352376a0d6959b659cb290ef8813",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
@@ -45,7 +45,7 @@
     },
     "installationManifest": {
       "path": "vendor/product/installation.json",
-      "sha256": "b80a3f95a36e73ac4ab2c18ab1db2b84507ac4ce1ad7f2261201866f2ff58241",
+      "sha256": "6d97190154b69e3f340b756c3474141baede1b68dc444b1e2ec00bf6d13911b3",
       "canonicalization": "checkout-relative asset paths; runtime path tokenized; system dependency paths reduced to basename with content identity and bytes retained"
     },
     "installationAssets": [
@@ -634,7 +634,7 @@
       {
         "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
         "kind": "file",
-        "identity": "121616fb0dcb1077dd31f110392d26fa0b5e84248bf5426cad22ce291c3a7630",
+        "identity": "09fbf8f3124bdf8328da2a84dded7a7b76f63a483491e87845141001b41dab0b",
         "mode": 420
       },
       {
@@ -688,7 +688,7 @@
       {
         "path": "vendor/dsh-product/index.html",
         "kind": "file",
-        "identity": "13ca8ce515ab9958aee072fdb5bfb414e1d14de19078ffc554bdc2a8bd3b64f2",
+        "identity": "35af7d44bc97ff41930382df28cbd026b419038bcb685867d8044f4d8123e27a",
         "mode": 420
       },
       {
@@ -742,19 +742,19 @@
       {
         "path": "vendor/dsh-product/plugins/batches/1.js",
         "kind": "file",
-        "identity": "35f2ecf7592dada3591ab83658495d0637f59f49f252b50194351c7e39fb0dc2",
+        "identity": "7fbefcd47f03849d47622a9b37e24cca090ffe28b0c694d8085602d967bc1a0a",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/routes.json",
         "kind": "file",
-        "identity": "4883fb871c1f5ef80b75ba490ea4376d7c242c9e24849767ce386a56059fecf4",
+        "identity": "a678798fe7ae8890c3db6dd14abd1aac41d24b84331aaa633073de8ce993361e",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles",
         "kind": "directory",
-        "identity": "36ef0d6ca5af38ac9ec4987c2a28bce3204a59f679e55e7e11755e2f34bf4176",
+        "identity": "ec46880767c758f5ce6a3147736f8fc81b7238d181cde78e0d4796577b373d33",
         "mode": 493
       },
       {
@@ -808,25 +808,25 @@
       {
         "path": "vendor/dsh-product/plugins/singles/16.js",
         "kind": "file",
-        "identity": "9c31af176894010a705049f5f4c7a1ea1fbce56da04bd78c9402db6d6ce50d22",
+        "identity": "1e257e9f25051788a9e101306af1e003cbb9426e08b3c272ef91c21680016050",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/17.js",
         "kind": "file",
-        "identity": "eced06617a1bcb8ef0422e064753fbcf775020d7f02d4d79da6fd4418cd68bf8",
+        "identity": "95bbbaa1bb9ea55eda008afb56db9f4b098d804426e5ef7e4b906a91eb119293",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/18.js",
         "kind": "file",
-        "identity": "8e0af56cba1dec0354bc20d3c8b3efe41486b1cf357fb18740489a62db7c22bd",
+        "identity": "9c31af176894010a705049f5f4c7a1ea1fbce56da04bd78c9402db6d6ce50d22",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/19.js",
         "kind": "file",
-        "identity": "56fbe9a599f29cbedaa0c8e01bc775557c504a67d7d72c5d8822924b38c245eb",
+        "identity": "eced06617a1bcb8ef0422e064753fbcf775020d7f02d4d79da6fd4418cd68bf8",
         "mode": 420
       },
       {
@@ -838,61 +838,73 @@
       {
         "path": "vendor/dsh-product/plugins/singles/20.js",
         "kind": "file",
-        "identity": "b6262de0e9484ccda43bbbc1d3daac532a59899dbd94b4463ca7b2fd5b109bbc",
+        "identity": "8e0af56cba1dec0354bc20d3c8b3efe41486b1cf357fb18740489a62db7c22bd",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/21.js",
         "kind": "file",
-        "identity": "edab15d1d684eedb7ca2d5d06b9735848a47845083fe1baa52ca27498ec5257e",
+        "identity": "56fbe9a599f29cbedaa0c8e01bc775557c504a67d7d72c5d8822924b38c245eb",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/22.js",
         "kind": "file",
-        "identity": "ee7590cc3f86beba937618d6e928e6da9ab652744c7f5e45d9aa5c07d48ec7e5",
+        "identity": "b6262de0e9484ccda43bbbc1d3daac532a59899dbd94b4463ca7b2fd5b109bbc",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/23.js",
         "kind": "file",
-        "identity": "b0d979334ceaec30d35c259dc3e693b8f00ad356fb2a0300696d24c15a3378cf",
+        "identity": "edab15d1d684eedb7ca2d5d06b9735848a47845083fe1baa52ca27498ec5257e",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/24.js",
         "kind": "file",
-        "identity": "2ce112704783cbe33b1beaaa036157c6b43587eb0149e6068fe3ea8ba9b3b7b5",
+        "identity": "ee7590cc3f86beba937618d6e928e6da9ab652744c7f5e45d9aa5c07d48ec7e5",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/25.js",
         "kind": "file",
-        "identity": "3c59761e324de0f9895796d5a3e1e675da4e46706525a2124e96b75b9c432549",
+        "identity": "b0d979334ceaec30d35c259dc3e693b8f00ad356fb2a0300696d24c15a3378cf",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/26.js",
         "kind": "file",
-        "identity": "db50b2fc80ac54a744ed5b9a32e0d58d10f3baa79ee793fe72cd317df3cf4a64",
+        "identity": "2ce112704783cbe33b1beaaa036157c6b43587eb0149e6068fe3ea8ba9b3b7b5",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/27.js",
         "kind": "file",
-        "identity": "60a113e99e66f36c0c15202faeeb2fc7395f85726abc60f7031a6118ae99a294",
+        "identity": "3c59761e324de0f9895796d5a3e1e675da4e46706525a2124e96b75b9c432549",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/28.js",
         "kind": "file",
-        "identity": "ec7ca34330536166745ae1b3e2dee97207e84957851cbcb07eae90a44073ade3",
+        "identity": "db50b2fc80ac54a744ed5b9a32e0d58d10f3baa79ee793fe72cd317df3cf4a64",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/29.js",
+        "kind": "file",
+        "identity": "60a113e99e66f36c0c15202faeeb2fc7395f85726abc60f7031a6118ae99a294",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/singles/3.js",
         "kind": "file",
         "identity": "d0ab20024c0fe9af308830825d1988d45a0885ebf42789338081e7e3b9776f46",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/30.js",
+        "kind": "file",
+        "identity": "ec7ca34330536166745ae1b3e2dee97207e84957851cbcb07eae90a44073ade3",
         "mode": 420
       },
       {
@@ -1025,7 +1037,7 @@
     "contractSha256": "908da595283046b7ccea89426a7f7a28814d5d2b35ae5644eca046d821e8752c",
     "sourceSha256": "834269164acb23d46a6c1d1028765cb66523670700c5fd2b2aa4da728682b352",
     "roster": {
-      "packages": 29,
+      "packages": 31,
       "ids": [
         "@deepseek-ai/dsh-client-modules",
         "@deepseek-ai/dsh-client-connection",
@@ -1043,6 +1055,8 @@
         "@deepseek-ai/dsh-client-shortcuts",
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-commands",
+        "@deepseek-ai/dsh-client-ui-model-selection",
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-chat",
         "@deepseek-ai/dsh-client-ui-tool",
@@ -1115,6 +1129,18 @@
           "@deepseek-ai/dsh-api-remotes",
           "@deepseek-ai/dsh-api-session-controller",
           "@deepseek-ai/dsh-client-ui-renderer"
+        ],
+        "@deepseek-ai/dsh-client-ui-commands": [
+          "@deepseek-ai/dsh-api-remotes",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-input-trigger",
+          "@deepseek-ai/dsh-client-ui-conversation"
+        ],
+        "@deepseek-ai/dsh-client-ui-model-selection": [
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-commands",
+          "@deepseek-ai/dsh-api-remotes"
         ],
         "@deepseek-ai/dsh-client-ui-conversation": [
           "@deepseek-ai/dsh-api-session-controller",
@@ -1222,17 +1248,17 @@
     },
     "product": {
       "path": "vendor/dsh-product",
-      "files": 131,
-      "sha256": "1f733415a02138265beb18745fdfaa135091f4bfda061f62de26faaf49a22771"
+      "files": 133,
+      "sha256": "6dca16f0f0838faf6eca1108b569df9397a0deac0c66b73bb2d014bc78f08ba3"
     },
     "routes": {
       "path": "vendor/dsh-product/plugins/routes.json",
-      "sha256": "4883fb871c1f5ef80b75ba490ea4376d7c242c9e24849767ce386a56059fecf4"
+      "sha256": "a678798fe7ae8890c3db6dd14abd1aac41d24b84331aaa633073de8ce993361e"
     },
     "graph": {
       "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
-      "sha256": "121616fb0dcb1077dd31f110392d26fa0b5e84248bf5426cad22ce291c3a7630",
-      "rev": "0a4be967fb72",
+      "sha256": "09fbf8f3124bdf8328da2a84dded7a7b76f63a483491e87845141001b41dab0b",
+      "rev": "50b09a4e1d19",
       "release": {
         "version": "0.1.0",
         "commit": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
@@ -1589,7 +1615,7 @@
       },
       {
         "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
-        "sha256": "121616fb0dcb1077dd31f110392d26fa0b5e84248bf5426cad22ce291c3a7630"
+        "sha256": "09fbf8f3124bdf8328da2a84dded7a7b76f63a483491e87845141001b41dab0b"
       },
       {
         "path": "vendor/dsh-product/boot/injection-0.js",
@@ -1625,7 +1651,7 @@
       },
       {
         "path": "vendor/dsh-product/index.html",
-        "sha256": "13ca8ce515ab9958aee072fdb5bfb414e1d14de19078ffc554bdc2a8bd3b64f2"
+        "sha256": "35af7d44bc97ff41930382df28cbd026b419038bcb685867d8044f4d8123e27a"
       },
       {
         "path": "vendor/dsh-product/manifest.webmanifest",
@@ -1641,11 +1667,11 @@
       },
       {
         "path": "vendor/dsh-product/plugins/batches/1.js",
-        "sha256": "35f2ecf7592dada3591ab83658495d0637f59f49f252b50194351c7e39fb0dc2"
+        "sha256": "7fbefcd47f03849d47622a9b37e24cca090ffe28b0c694d8085602d967bc1a0a"
       },
       {
         "path": "vendor/dsh-product/plugins/routes.json",
-        "sha256": "4883fb871c1f5ef80b75ba490ea4376d7c242c9e24849767ce386a56059fecf4"
+        "sha256": "a678798fe7ae8890c3db6dd14abd1aac41d24b84331aaa633073de8ce993361e"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/0.js",
@@ -1681,19 +1707,19 @@
       },
       {
         "path": "vendor/dsh-product/plugins/singles/16.js",
-        "sha256": "9c31af176894010a705049f5f4c7a1ea1fbce56da04bd78c9402db6d6ce50d22"
+        "sha256": "1e257e9f25051788a9e101306af1e003cbb9426e08b3c272ef91c21680016050"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/17.js",
-        "sha256": "eced06617a1bcb8ef0422e064753fbcf775020d7f02d4d79da6fd4418cd68bf8"
+        "sha256": "95bbbaa1bb9ea55eda008afb56db9f4b098d804426e5ef7e4b906a91eb119293"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/18.js",
-        "sha256": "8e0af56cba1dec0354bc20d3c8b3efe41486b1cf357fb18740489a62db7c22bd"
+        "sha256": "9c31af176894010a705049f5f4c7a1ea1fbce56da04bd78c9402db6d6ce50d22"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/19.js",
-        "sha256": "56fbe9a599f29cbedaa0c8e01bc775557c504a67d7d72c5d8822924b38c245eb"
+        "sha256": "eced06617a1bcb8ef0422e064753fbcf775020d7f02d4d79da6fd4418cd68bf8"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/2.js",
@@ -1701,43 +1727,51 @@
       },
       {
         "path": "vendor/dsh-product/plugins/singles/20.js",
-        "sha256": "b6262de0e9484ccda43bbbc1d3daac532a59899dbd94b4463ca7b2fd5b109bbc"
+        "sha256": "8e0af56cba1dec0354bc20d3c8b3efe41486b1cf357fb18740489a62db7c22bd"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/21.js",
-        "sha256": "edab15d1d684eedb7ca2d5d06b9735848a47845083fe1baa52ca27498ec5257e"
+        "sha256": "56fbe9a599f29cbedaa0c8e01bc775557c504a67d7d72c5d8822924b38c245eb"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/22.js",
-        "sha256": "ee7590cc3f86beba937618d6e928e6da9ab652744c7f5e45d9aa5c07d48ec7e5"
+        "sha256": "b6262de0e9484ccda43bbbc1d3daac532a59899dbd94b4463ca7b2fd5b109bbc"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/23.js",
-        "sha256": "b0d979334ceaec30d35c259dc3e693b8f00ad356fb2a0300696d24c15a3378cf"
+        "sha256": "edab15d1d684eedb7ca2d5d06b9735848a47845083fe1baa52ca27498ec5257e"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/24.js",
-        "sha256": "2ce112704783cbe33b1beaaa036157c6b43587eb0149e6068fe3ea8ba9b3b7b5"
+        "sha256": "ee7590cc3f86beba937618d6e928e6da9ab652744c7f5e45d9aa5c07d48ec7e5"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/25.js",
-        "sha256": "3c59761e324de0f9895796d5a3e1e675da4e46706525a2124e96b75b9c432549"
+        "sha256": "b0d979334ceaec30d35c259dc3e693b8f00ad356fb2a0300696d24c15a3378cf"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/26.js",
-        "sha256": "db50b2fc80ac54a744ed5b9a32e0d58d10f3baa79ee793fe72cd317df3cf4a64"
+        "sha256": "2ce112704783cbe33b1beaaa036157c6b43587eb0149e6068fe3ea8ba9b3b7b5"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/27.js",
-        "sha256": "60a113e99e66f36c0c15202faeeb2fc7395f85726abc60f7031a6118ae99a294"
+        "sha256": "3c59761e324de0f9895796d5a3e1e675da4e46706525a2124e96b75b9c432549"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/28.js",
-        "sha256": "ec7ca34330536166745ae1b3e2dee97207e84957851cbcb07eae90a44073ade3"
+        "sha256": "db50b2fc80ac54a744ed5b9a32e0d58d10f3baa79ee793fe72cd317df3cf4a64"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/29.js",
+        "sha256": "60a113e99e66f36c0c15202faeeb2fc7395f85726abc60f7031a6118ae99a294"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/3.js",
         "sha256": "d0ab20024c0fe9af308830825d1988d45a0885ebf42789338081e7e3b9776f46"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/30.js",
+        "sha256": "ec7ca34330536166745ae1b3e2dee97207e84957851cbcb07eae90a44073ade3"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/4.js",
@@ -1776,7 +1810,7 @@
     },
     "productFlow": {
       "path": "tests/product/product-flow.py",
-      "sha256": "20626c1ffa65b2425d25bb07ebd245b0b0cd83297e6ee2789671c03c5c562eb4"
+      "sha256": "c4b3a4dd0fadd48af5a754ea9beed25f3998a0eac9018b515791a2102435053e"
     },
     "windowsInput": {
       "path": "tests/product/windows-input.ts",

@@ -42,6 +42,8 @@ export class SessionsService extends TypertRemoteService {
   private catalogSnapshot: { status: CatalogStatus; items: CatalogDescriptor[] } | undefined;
   private catalogScan: Promise<{ status: CatalogStatus; items: CatalogDescriptor[] }> | undefined;
   private readonly settingsRevisions = new Map<string, number>();
+  /** Native `get_state` lags `set_thinking_level` until the next model request; keep the confirmed choice visible. */
+  private readonly thinkingChoices = new Map<string, string>();
   private readonly settingsQueue = new Map<string, Promise<unknown>>();
   constructor(ctx: Context, readonly options: Options) { super(ctx, "ompSessions"); }
   private identity(): BrowserAccess {
@@ -274,6 +276,7 @@ export class SessionsService extends TypertRemoteService {
     const levels = await runtime.worker.thinkingLevels(); this.identity();
     const current = state.model;
     if (!current) throw new RemoteError("session/provider-models-unavailable", "The native Session reports no active model.", { provider: "native" });
+    const thinkingLevel = this.thinkingChoices.get(listed.view.workerId) ?? state.thinkingLevel;
     const efforts = levels.filter(level => level !== "off" && level !== "inherit")
       .map(level => ({ id: level, name: level }));
     const byProvider = new Map<string, { provider: string; id: string; name: string; reasoning: boolean;
@@ -287,7 +290,7 @@ export class SessionsService extends TypertRemoteService {
     }
     return {
       default: { provider: current.provider, model: current.id,
-        ...(state.thinkingLevel === undefined ? {} : { reasoningEffort: state.thinkingLevel }) },
+        ...(thinkingLevel === undefined ? {} : { reasoningEffort: thinkingLevel }) },
       routableProviders: [...byProvider.keys()],
       groups: [...byProvider].map(([id, group]) => ({ id, name: id, models: group.map(model => ({
         id: model.id, name: model.name, ...(model.efforts.length === 0 ? {} : { reasoning: { efforts: model.efforts } }),
@@ -309,6 +312,7 @@ export class SessionsService extends TypertRemoteService {
     if (!selected) throw new RemoteError("session/model-unavailable",
       "This provider model is not available in the native Session.", { provider: request.provider, model: request.model });
     await runtime.worker.selectModel(selected.provider, selected.id); this.identity();
+    if (request.reasoningEffort === undefined) this.thinkingChoices.delete(view.workerId);
     if (request.reasoningEffort !== undefined) {
       const levels = await runtime.worker.thinkingLevels(); this.identity();
       if (!levels.includes(request.reasoningEffort as (typeof levels)[number])) {
@@ -316,6 +320,7 @@ export class SessionsService extends TypertRemoteService {
           { provider: request.provider, model: request.model });
       }
       await runtime.worker.setThinkingLevel(request.reasoningEffort as (typeof levels)[number]); this.identity();
+      this.thinkingChoices.set(view.workerId, request.reasoningEffort);
     }
     try { await this.options.supervisor.refreshPresentation(identity, view.workerId, view.registration.nativeSessionId); } catch { /* next open rebuilds */ }
     return { selected: { provider: selected.provider, model: selected.id,

@@ -4,7 +4,7 @@ Controlled provider only (`compatibility/omp/fixtures/live-provider.ts`); never 
 Drives the stock DSH shell (no custom full-page client): directory grant, New Session, composer,
 Send, Stop, Continue, history reopen, a second view and the native JSONL identity behind them.
 """
-import asyncio, json, os, shutil, signal, subprocess, sys, time, urllib.request
+import asyncio, json, os, re, shutil, signal, subprocess, sys, time, urllib.request
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -192,6 +192,16 @@ async def wait_stopped(page, timeout=180000):
     await wait_composer(page, timeout=timeout)
 
 
+async def open_settings(page):
+    """Open stock Settings: the shell's own trigger, or the account menu when it owns that slot."""
+    direct = page.get_by_role("button", name="Settings", exact=True)
+    if await direct.count() > 0:
+        await direct.first.click()
+        return
+    await page.get_by_role("button", name="Account menu", exact=True).first.click()
+    await page.get_by_role("menuitem", name="Settings", exact=True).click()
+
+
 async def phase_linux(browser, errors, scenarios, checks, link):
     context = await browser.new_context()
     page = await context.new_page()
@@ -226,6 +236,47 @@ async def phase_linux(browser, errors, scenarios, checks, link):
     await expect(page.locator("body")).to_contain_text(FINAL, timeout=180000)
     checks["historyRenderedText"] = FINAL in await page.locator("body").inner_text()
     checks["historyNodes"] = await page.locator(SESSION).count()
+    checks["sessionTree"] = await page.get_by_role("tree").count()
+    assert checks["sessionTree"] > 0, "the stock shell renders the Session tree"
+
+    # Model and thinking travel the stock model-picker menu; the effort choice must reach the native worker.
+    model_trigger = page.get_by_role("button", name=re.compile(r"^Select model, current "))
+    await expect(model_trigger).to_be_visible(timeout=120000)
+    checks["modelTrigger"] = await model_trigger.get_attribute("aria-label")
+    await model_trigger.click()
+    menu = page.get_by_role("menu", name="Model and reasoning effort")
+    await expect(menu).to_be_visible(timeout=60000)
+    effort_row = menu.get_by_role("menuitem", name=re.compile(r"^Effort"))
+    await expect(effort_row).to_be_visible(timeout=60000)
+    await effort_row.click()
+    labels = [label.strip() for label in await page.get_by_role("menuitemradio").all_inner_texts()]
+    current_effort = (checks["modelTrigger"] or "").rsplit("reasoning effort ", 1)[-1]
+    target_effort = next((label for label in labels if label not in ("Default", current_effort)), None)
+    assert target_effort, f"the stock model picker exposes no alternate reasoning effort: {labels}"
+    await page.get_by_role("menuitemradio", name=target_effort, exact=True).click()
+    await expect(model_trigger).to_have_attribute(
+        "aria-label", re.compile(rf"reasoning effort {re.escape(target_effort)}$"), timeout=120000)
+    checks["thinkingLevel"] = target_effort
+    scenarios.append("stock-model-thinking")
+
+    # Appearance is a stock Settings surface; the Host must persist the preference across reloads.
+    await open_settings(page)
+    dark = page.get_by_role("button", name="Dark", exact=True)
+    await expect(dark).to_be_visible(timeout=60000)
+    await dark.click()
+    await expect(dark).to_have_attribute("aria-pressed", "true", timeout=60000)
+    await page.keyboard.press("Escape")
+    checks["preferenceTheme"] = "dark"
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
+    await page.wait_for_function(
+        "text => document.body.innerText.includes(text)", arg=FINAL, timeout=180000)
+    await open_settings(page)
+    await expect(page.get_by_role("button", name="Dark", exact=True)).to_have_attribute(
+        "aria-pressed", "true", timeout=60000)
+    await page.keyboard.press("Escape")
+    checks["preferencePersisted"] = True
+    scenarios.append("stock-preferences-reload")
 
     # A second view of the same stock Session must converge on the same native projection.
     view = await context.new_page()
@@ -335,6 +386,9 @@ async def main():
                for message in messages), "native JSONL records the stopped attempt"
     assert any(record.get("type") == "model_change" for record in records), "native JSONL keeps the model identity"
     assert any(record.get("type") == "thinking_level_change" for record in records), "native JSONL keeps the thinking level"
+    chosen_level = checks.get("thinkingLevel")
+    assert any(record.get("type") == "thinking_level_change" and record.get("thinkingLevel") == chosen_level
+               for record in records), f"native JSONL records the stock thinking level {chosen_level}"
     checks["nativeFile"] = str(target.relative_to(ROOT))
     checks["nativeRecords"] = len(records)
     checks["nativeMessages"] = len(messages)
@@ -343,7 +397,21 @@ async def main():
     checks["consoleErrors"] = errors
     assert checks["newSession"] != native, "the stock new-Session control switched to a new native Session"
     assert not errors, errors
-    print(json.dumps({"status": "PASS", "native": native, "scenarios": scenarios, "checks": checks}, indent=2))
+    evidence = {
+        "kind": "product-flow",
+        "recordedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "native": native,
+        "scenarios": scenarios,
+        "checks": checks,
+        "installationManifestSha256": hashlib_file(ROOT / "vendor/product/installation.json"),
+        "freeze": "docs/evidence/ticket-63-freeze.json",
+        "provider": "compatibility/omp/fixtures/live-provider.ts s0-controlled/deterministic-live (controlled, not real inference)",
+    }
+    out = Path(os.environ.get("OMP_PRODUCT_FLOW_EVIDENCE", str(WORK / "evidence.json")))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(evidence, indent=2) + "\n")
+    print(json.dumps({"status": "PASS", "native": native, "scenarios": scenarios, "checks": checks,
+                      "evidence": str(out)}, indent=2))
 
 
 if __name__ == "__main__":
