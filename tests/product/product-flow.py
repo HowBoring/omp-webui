@@ -4,7 +4,7 @@ Controlled provider only (`compatibility/omp/fixtures/live-provider.ts`); never 
 Drives the stock DSH shell (no custom full-page client): directory grant, New Session, composer,
 Send, Stop, Continue, history reopen, a second view and the native JSONL identity behind them.
 """
-import asyncio, json, os, re, shutil, signal, subprocess, sys, time, urllib.request
+import asyncio, base64, hashlib, json, os, re, shutil, signal, subprocess, sys, time, urllib.request
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -20,6 +20,11 @@ PROJECT = WORK / "project"
 FINAL = "authoritative controlled final"
 SESSION = "[data-conversation-session]"
 COMPOSER = '[contenteditable="true"][data-phase]'
+# 200x200 white PNG: the native image policy leaves it untouched (a smaller image is scaled and
+# reports an image_transformed degradation the stock composer cannot consent to).
+PNG_200 = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAIAAAAiOjnJAAABcUlEQVR42u3SMQ0AAAzDsPIn3aKYtMOGECWFA5EAY2EsjAXGwlgYC4yFsTAWGAtjYSwwFsbCWGAsjIWxwFgYC2OBsTAWxgJjYSyMBcbCWBgLjIWxMBYYC2NhLDAWxsJYYCyMhbHAWBgLY4GxMBbGAmNhLIwFxsJYGAuMhbEwFhgLY2EsMBbGwlhgLIyFscBYGAtjgbEwFsYCY2EsjAXGwlgYC4yFsTAWGAtjYSwwFsbCWBgLjIWxMBYYC2NhLDAWxsJYYCyMhbHAWBgLY4GxMBbGAmNhLIwFxsJYGAuMhbEwFhgLY2EsMBbGwlhgLIyFscBYGAtjgbEwFsYCY2EsjAXGwlgYC4yFsTAWGAtjYSwwFsbCWGAsjIWxwFgYC2OBsTAWxgJjYSyMBcbCWBgLjIWxMBYYC2NhLDAWxsJYYCyMhbEwFhgLY2EsMBbGwlhgLIyFscBYGAtjgbEwFsYCY2EsjAXGwlgYC4yFsTAWGItvBsLKBp6arxoqAAAAAElFTkSuQmCC"
+)
 
 CONFIG = """extensions:
   - %s
@@ -224,6 +229,41 @@ async def open_settings(page):
     await page.get_by_role("menuitem", name="Settings", exact=True).click()
 
 
+async def drop_files(page, files):
+    payload = [{"name": name, "mime": mime, "b64": base64.b64encode(data).decode()} for name, mime, data in files]
+    await page.evaluate("""files => {
+      const transfer = new DataTransfer();
+      for (const file of files) transfer.items.add(new File(
+        [Uint8Array.from(atob(file.b64), character => character.charCodeAt(0))], file.name, {type: file.mime}));
+      const card = document.querySelector('[data-composer-card]') ?? document.body;
+      for (const type of ['dragenter', 'dragover', 'drop'])
+        card.dispatchEvent(new DragEvent(type, {bubbles: true, cancelable: true, dataTransfer: transfer}));
+    }""", payload)
+
+
+async def originals(page, session, entry):
+    listing = await page.evaluate("""async ([session, entry]) => {
+      const response = await fetch('/api/ompOriginals/history?' + new URLSearchParams({sessionId: session, entryId: entry}),
+        {credentials: 'same-origin', headers: {accept: 'application/json'}});
+      return {status: response.status, body: await response.text()};
+    }""", [session, entry])
+    assert listing["status"] == 200, f"originals listing for {entry} answered {listing['status']}: {listing['body']}"
+    return json.loads(listing["body"]).get("items") or []
+
+
+async def original_sha256(page, session, entry, object_id):
+    got = await page.evaluate("""async ([session, entry, objectId]) => {
+      const response = await fetch('/api/ompOriginals/original?' + new URLSearchParams(
+        {sessionId: session, entryId: entry, objectId, disposition: 'inline'}), {credentials: 'same-origin'});
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let raw = '';
+      for (const byte of bytes) raw += String.fromCharCode(byte);
+      return {status: response.status, type: response.headers.get('content-type'), b64: btoa(raw)};
+    }""", [session, entry, object_id])
+    assert got["status"] == 200, f"original {object_id} answered {got['status']}"
+    return got["type"], hashlib.sha256(base64.b64decode(got["b64"])).hexdigest()
+
+
 async def phase_linux(browser, errors, scenarios, checks, link):
     context = await browser.new_context()
     page = await context.new_page()
@@ -361,6 +401,93 @@ async def phase_linux(browser, errors, scenarios, checks, link):
         arg=previous, timeout=180000)
     checks["newSession"] = await native_session(page)
     scenarios.append("stock-enter-and-new-session-control")
+
+    # A typed draft is tab-scoped and survives reload without being submitted.
+    await (await wait_composer(page)).fill("draft survives reload")
+    await page.wait_for_timeout(500)
+    for attempt in range(3):
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
+        try:
+            await page.wait_for_function(
+                "id => document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') === id",
+                arg=checks["newSession"], timeout=40000)
+            break
+        except PlaywrightTimeoutError:
+            await page.wait_for_timeout(3000)
+    await wait_composer(page)
+    assert (await page.locator(COMPOSER).last.inner_text()).strip() == "draft survives reload", \
+        "the stock draft did not survive reload"
+    checks["attachmentDraft"] = "restored after reload"
+    await (await wait_composer(page)).fill("")
+    await page.wait_for_timeout(500)
+    scenarios.append("stock-draft-reload")
+
+    # An unsupported upload is refused in the rail and removable without blocking a valid send.
+    await drop_files(page, [("opaque.bin", "application/octet-stream", b"\xff\xfe\x00")])
+    await expect(page.get_by_role("button", name="Retry uploading opaque.bin", exact=True)).to_be_visible(timeout=60000)
+    await expect(page.get_by_role("button", name="Send message", exact=True)).to_be_disabled(timeout=60000)
+    checks["attachmentUnsupported"] = "refused and blocked send"
+    await page.get_by_role("button", name="Remove file opaque.bin", exact=True).click()
+    await expect(page.get_by_role("button", name="Retry uploading opaque.bin", exact=True)).to_have_count(0, timeout=60000)
+    scenarios.append("stock-unsupported-attachment-refused")
+
+    await drop_files(page, [("pixel.png", "image/png", PNG_200),
+                            ("drop.txt", "text/plain", b"hello attachment drop\n")])
+    await expect(page.get_by_role("button", name="Remove image pixel.png", exact=True)).to_be_visible(timeout=60000)
+    await expect(page.get_by_role("button", name="Remove file drop.txt", exact=True)).to_be_visible(timeout=60000)
+    checks["attachmentRail"] = ["image/pixel.png", "file/drop.txt"]
+    previous_final = await body_final_count(page)
+    await send(page, "attachment png turn")
+    await wait_final(page, previous=previous_final)
+    attachment_session = await native_session(page)
+
+    _, records, _ = read_native(native_session_files(), attachment_session)
+    mention = next((record for record in records
+                    if (record.get("message") or {}).get("role") == "fileMention"), None)
+    assert mention is not None, "native JSONL keeps the prepared fileMention"
+    files = mention["message"].get("files") or []
+    assert any(str(item.get("path", "")).startswith("attachment-prepared://")
+               and item.get("content") == "hello attachment drop\n" for item in files), \
+        "the fileMention points at the prepared attachment and keeps its text"
+    user = next((record for record in records
+                 if (record.get("message") or {}).get("role") == "user"
+                 and any(block.get("type") == "image" for block in (record["message"].get("content") or []))), None)
+    assert user is not None, "native JSONL keeps the inline image prompt"
+    image_block = next(block for block in user["message"]["content"] if block.get("type") == "image")
+    assert image_block.get("data"), "the inline image carries its prepared bytes"
+    text_attachment = next((item for item in ((mention.get("submission") or {}).get("attachments") or [])
+                            if item.get("representationKind") == "text"), None)
+    image_attachment = next((item for item in ((user.get("submission") or {}).get("attachments") or [])
+                             if item.get("representationKind") == "image"), None)
+    assert text_attachment is not None and image_attachment is not None, "both originals stay associated"
+    checks["attachmentPrepared"] = {"mention": files[0]["path"],
+                                    "textOriginal": text_attachment["originalId"],
+                                    "imageOriginal": image_attachment["originalId"]}
+
+    for attempt in range(3):
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
+        try:
+            await page.wait_for_function(
+                "id => document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') === id",
+                arg=attachment_session, timeout=40000)
+            break
+        except PlaywrightTimeoutError:
+            await page.wait_for_timeout(3000)
+    await expect(page.locator("body")).to_contain_text(FINAL, timeout=180000)
+    await expect(page.locator("body")).to_contain_text("attachment-prepared://", timeout=60000)
+    file_items = await originals(page, attachment_session, mention["id"])
+    image_items = await originals(page, attachment_session, user["id"])
+    assert file_items and image_items, "history reopen lists both retained Originals"
+    file_type, file_sha = await original_sha256(page, attachment_session, mention["id"], file_items[0]["objectId"])
+    image_type, image_sha = await original_sha256(page, attachment_session, user["id"], image_items[0]["objectId"])
+    assert file_type == "text/plain" and file_sha == hashlib.sha256(b"hello attachment drop\n").hexdigest(), \
+        "the reopened text Original is byte-exact"
+    assert image_type == "image/png" and image_sha == hashlib.sha256(PNG_200).hexdigest(), \
+        "the reopened image Original is byte-exact"
+    checks["attachmentOriginals"] = {"text": file_sha, "image": image_sha}
+    scenarios.append("stock-attachment-send-and-originals")
     await context.close()
     return native
 
@@ -417,7 +544,10 @@ async def main():
     chosen_level = checks.get("thinkingLevel")
     assert any(record.get("type") == "thinking_level_change" and record.get("thinkingLevel") == chosen_level
                for record in records), f"native JSONL records the stock thinking level {chosen_level}"
-    checks["nativeFile"] = str(target.relative_to(ROOT))
+    try:
+        checks["nativeFile"] = str(target.relative_to(ROOT))
+    except ValueError:
+        checks["nativeFile"] = str(target)
     checks["nativeRecords"] = len(records)
     checks["nativeMessages"] = len(messages)
     checks["nativeSessions"] = len(files)
