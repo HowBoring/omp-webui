@@ -79,6 +79,20 @@ export class ReadonlyTree extends TypertRemoteService {
     super(ctx, "ompTree");
     ctx.effect(() => async () => { await Promise.all([...this.snapshots.keys()].map(id => this.drop(id))); });
   }
+  /**
+   * Confirm a retained entry from an already complete Tree index instead of opening a second Native
+   * history snapshot. Native caches two, so a reader next to the stock Chat view cannot open another.
+   */
+  retains(sessionId: string, entryId: string): boolean | undefined {
+    let saw = false, complete = true;
+    for (const snapshot of this.snapshots.values()) {
+      if (snapshot.access.sessionId !== sessionId || Date.now() >= snapshot.opened.expiresAt) continue;
+      saw = true;
+      if (snapshot.nodes.has(entryId)) return true;
+      if (!snapshot.complete) complete = false;
+    }
+    return saw && complete ? false : undefined;
+  }
   private access(sessionId: string): { owner: PeerScope; access: TreeAccess } {
     const invocation = this.ctx.invocation;
     if (!invocation || invocation.signal.aborted || invocation.peer.signal.aborted) fail("tree_authority_unavailable");

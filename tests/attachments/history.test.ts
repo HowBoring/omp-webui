@@ -77,10 +77,12 @@ function history(entryIds: string[], retained = entryIds): TreeHistory {
   } as unknown as TreeHistory;
 }
 
-function route(store: OriginalStore, options: { retained?: string[]; revoke?: () => boolean } = {}) {
+function route(store: OriginalStore, options: { retained?: string[]; revoke?: () => boolean;
+  retains?: (sessionId: string, entryId: string) => boolean | undefined } = {}) {
   return (request: Request) => originalHistoryResponse(request, {
     admit: () => options.revoke?.() ? new Response("denied", { status: 403 }) : { hostId: "host", credentialId: "browser", expiresAt: 1 },
     session: () => ({ scope: { ...scope, sourceId: "c".repeat(64) }, history: history(["user"], options.retained ?? ["user"]) }),
+    ...(options.retains === undefined ? {} : { retains: options.retains }),
     store,
   });
 }
@@ -147,4 +149,25 @@ test("the public route rechecks admission, retention and representation on every
 
 test("retention scanning is bounded and reports only entries this exact Native history contains", async () => {
   expect([...await retainedEntries(history(["user"]), ["user", "other"])]).toEqual(["user"]);
+});
+
+test("a complete Tree index confirms retention without a second Native history snapshot", async () => {
+  const { open } = fixture();
+  const store = open();
+  const original = await committed(store);
+  const query = "sessionId=native&entryId=user";
+  const closed = history([], []);
+  const inline = await originalHistoryResponse(new Request(`http://127.0.0.1/api/ompOriginals/original?${query}&objectId=${original.objectId}&disposition=inline`), {
+    admit: () => ({ hostId: "host", credentialId: "browser", expiresAt: 1 }),
+    session: () => ({ scope: { ...scope, sourceId: "c".repeat(64) }, history: {
+      open: async () => { throw new Error("history_cache_full"); },
+      page: closed.page, close: closed.close,
+    } }),
+    retains: () => true,
+    store,
+  });
+  expect(inline.status).toBe(200);
+  expect(Buffer.from(await inline.arrayBuffer())).toEqual(Buffer.from(image));
+  const absent = await route(store, { retains: () => false })(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}`));
+  expect(absent.status).toBe(404);
 });

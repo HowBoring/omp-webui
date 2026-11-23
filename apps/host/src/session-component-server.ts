@@ -134,6 +134,7 @@ export async function startSessionComponentServer(options: Options) {
   let supervisor: SessionSupervisor;
   let chatComposition: { runtime: ChatComponentRuntime; dispatch: ChatSessionDispatch } | undefined;
   let attachmentStore: OriginalStore | undefined;
+  let readonlyTree: ReadonlyTree | undefined;
   let expirySweep: Timer | undefined;
   const stockUnary = ["session/create", "session/modelCatalog", "session/selectModel"];
   let unaryMethods = new Set([...unary, ...stockUnary]);
@@ -182,6 +183,7 @@ export async function startSessionComponentServer(options: Options) {
               pageId: identity.credentialId, profileId: access.hostId, sourceId: tree.sourceId,
               instanceId: tree.instanceId, sessionId, canonicalCwd: tree.cwd, authorityEpoch: tree.epoch } };
           },
+          retains: (sessionId, entryId) => readonlyTree?.retains(sessionId, entryId),
           store: attachmentStore,
         });
       }
@@ -319,7 +321,7 @@ export async function startSessionComponentServer(options: Options) {
     new StopService(ctx);
     ctx.typert.register(retryHostContribution);
     new RetryService(ctx);
-    new ReadonlyTree(ctx, (_peer, sessionId) => {
+    readonlyTree = new ReadonlyTree(ctx, (_peer, sessionId) => {
       const identity = sessionCaller.getStore();
       if (!identity || !access.revalidate(identity)) throw new Error("TREE_AUTHORITY_UNAVAILABLE");
       return supervisor.treeAccess(identity, sessionId);
