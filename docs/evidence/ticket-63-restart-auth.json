@@ -58,7 +58,7 @@
     "productBuild": "bun run product:build + bun run product:verify -> 136 files verified; bun run product:enroll -> 152 assets; installation manifest sha256 289e94d2542f47f493e806288351626814f4f60b31bc10257ebe3e8162f649d4",
     "productTuple": "tests/product/restart-flow.py PASS (2026-11-23T15:03Z run, marker SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED, recovery in-place, afterReopenAttempt open, 3 expected mux resets, zero console errors) and tests/product/product-flow.py PASS 10/10 (2026-11-23T15:04:51Z, providerCalls 1, zero console errors)",
     "performance": "tests/product/performance.py --class product --samples 30 under systemd-run -p MemoryMax=8G + taskset -c 0-3 (2026-11-23T15:07:07Z): first-page P95 996.0 ms (limit 3000), old-page P95 357.5 ms (limit 1000), Host peak RSS 248.4 MiB (limit 512), reachability 49 steps / 12783 nodes, BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]",
-    "fullCheck": "bun run check on 9b75c3f789: 1119 pass / 2 skip / 0 fail, 7745 expect() calls, 1121 tests across 167 files (733.3 s), including tests/product/freeze.test.ts 10 pass; bun build apps/host/src/main.ts bundled 391 modules (main.js 5.48 MB); performance exit self-check ok"
+    "fullCheck": "bun run check on 0280e0a038: 1119 pass / 2 skip / 0 fail, 7753 expect() calls, 1121 tests across 167 files (739.3 s), including tests/product/freeze.test.ts 10 pass; bun build apps/host/src/main.ts bundled 391 modules (main.js 5.48 MB); performance exit self-check ok"
   },
   "notClaimed": [
     "real-provider inference (the stock product flow uses the controlled provider compatibility/omp/fixtures/live-provider.ts; the real-provider SIGTERM scenario was not re-run in this worktree)",
