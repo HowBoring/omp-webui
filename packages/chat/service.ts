@@ -39,6 +39,11 @@ function publicError(error: unknown): never {
   if (code === "cancelled") {
     throw new ChatRemoteError("gateway/bad-request", "Send attempt was cancelled before Native dispatch. Your draft is retained.", {});
   }
+  if (code === "refused") {
+    const detail = error instanceof ChatError ? error.detail : undefined;
+    throw new ChatRemoteError("gateway/bad-request",
+      `Send was refused before Native dispatch${detail ? ` (${detail})` : ""}. Your draft and files are retained; nothing was sent.`, {});
+  }
   throw new ChatRemoteError("gateway/bad-request", "Chat request is unavailable for this Session view.", {});
 }
 

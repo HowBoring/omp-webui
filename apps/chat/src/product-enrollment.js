@@ -12,6 +12,8 @@ import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
 import { chatComponentContribution } from "../../../packages/contracts/chat-component.ts";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { historyNavigationSourceContribution } from "../../../packages/contracts/history-navigation-source.ts";
+import { attachmentsContribution } from "../../../packages/contracts/attachment-remote.ts";
+import { attachmentDegradationLabels } from "../../../packages/client-extensions/attachment-labels.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { readSessionCatalog } from "./session-catalog.js";
 
@@ -131,11 +133,11 @@ function apply(ctx, require) {
       onClick: () => openHistory(),
     }, h("span", { "aria-hidden": "true" }, "\u{1F333}"), h("span", {}, "History"));
   }
-  const modal = (label, children, onClose) => h("div", {
+  const modal = (label, children, onClose, marker = "data-product-history") => h("div", {
     style: { position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center",
       justifyContent: "center", background: "rgba(0,0,0,.45)" } },
     h("aside", { role: "dialog", "aria-modal": "true", "aria-label": label,
-      "data-product-history": "", style: { width: "min(760px, 94vw)", maxHeight: "88vh", overflow: "auto",
+      [marker]: "", style: { width: "min(760px, 94vw)", maxHeight: "88vh", overflow: "auto",
         background: "Canvas", color: "CanvasText", borderRadius: 12, padding: 20,
         boxShadow: "0 18px 60px rgba(0,0,0,.35)" } },
       h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
@@ -407,6 +409,55 @@ function apply(ctx, require) {
       : view === undefined ? h("p", { role: "status" }, "Reading the native Session\u2026")
       : h(TreeSurface, { view, onClose }), onClose);
   }
+  /**
+   * The stock composer shows only its own chips, so a Native receipt with a content-affecting
+   * change is reviewed here before that frozen Send attempt continues. Nothing is sent while it is open.
+   */
+  function AttachmentConsent() {
+    const [pending, setPending] = useState();
+    const [note, setNote] = useState("");
+    const [busy, setBusy] = useState(false);
+    useEffect(() => {
+      let live = true;
+      const tick = async () => {
+        if (!remote?.ompAttachments || selected === undefined) return;
+        try {
+          const value = unwrap(await remote.ompAttachments.pending());
+          const next = value?.pending && value.pending.selection.session === selected ? value.pending : undefined;
+          if (live) setPending(current => current?.requestId === next?.requestId ? current : next);
+        } catch { if (live) setPending(undefined); }
+      };
+      const timer = setInterval(tick, 500);
+      void tick();
+      return () => { live = false; clearInterval(timer); };
+    }, []);
+    const decide = action => {
+      setBusy(true); setNote("");
+      void action().then(() => { setPending(undefined); }, error => setNote(failureText(error)))
+        .finally(() => setBusy(false));
+    };
+    if (!pending) return null;
+    const codes = [...new Set(pending.receipt.items.flatMap(item => item.status === "ready" ? item.degradations : []))];
+    const cancel = () => decide(() => remote.ompAttachments.cancel({ requestId: pending.requestId }).then(unwrap));
+    return modal("Review attachments before sending", h("div", { "data-product-attachment-consent": pending.requestId },
+      h("p", {}, "Native preparation changed the files below. Review exactly what the model will receive; nothing has been sent yet."),
+      h("ol", { "data-product-attachment-items": "" }, pending.receipt.items.map((item, index) => h("li", {
+        key: item.preparedId, "data-product-attachment-degradations": item.status === "ready" ? item.degradations.join(",") : "failed" },
+      h("strong", {}, `Attachment ${index + 1}`),
+      item.status === "failed" ? h("p", { role: "alert" }, "This attachment cannot be sent.")
+        : h("ul", {}, item.degradations.length === 0 ? h("li", {}, "No content-affecting change.")
+          : item.degradations.map(code => h("li", { key: code }, attachmentDegradationLabels[code] ?? code)))))),
+      pending.prompt !== undefined && h("details", {}, h("summary", {}, "Exact prepared prompt"),
+        h("pre", { style: { whiteSpace: "pre-wrap" } }, pending.prompt)),
+      h("button", { type: "button", disabled: busy, "data-product-attachment-accept": "",
+        onClick: () => decide(() => remote.ompAttachments.consent({ requestId: pending.requestId,
+          selection: pending.selection, receiptId: pending.receipt.receiptId, resultDigest: pending.receipt.resultDigest,
+          acceptedDegradations: codes }).then(unwrap)) },
+      codes.length ? "Accept these changes and send" : "Send this prepared input"),
+      h("button", { type: "button", disabled: busy, "data-product-attachment-refuse": "", onClick: cancel }, "Do not send"),
+      note === "" ? null : h("p", { role: "alert", "data-product-attachment-note": "" }, note)),
+    cancel, "data-product-attachment-consent-modal");
+  }
 
   const draftId = (() => {
     const key = "omp-product-draft";
@@ -513,19 +564,20 @@ function apply(ctx, require) {
   ctx.slots.inject("shell.overlay", () => ctx.slots.register({ name: "shell.overlay", id: "omp.directories" }, Directories));
   ctx.slots.inject("shell.overlay", () => ctx.slots.register({ name: "shell.overlay", id: "omp.history" }, HistoryOverlay));
   ctx.slots.inject("shell.overlay", () => ctx.slots.register({ name: "shell.overlay", id: "omp.sessions" }, SessionsOverlay));
+  ctx.slots.inject("shell.overlay", () => ctx.slots.register({ name: "shell.overlay", id: "omp.attachment-consent" }, AttachmentConsent));
 
   remote = ctx.remote;
   sessions = ctx.sessions;
   uiWorkspace = ctx.uiWorkspace;
   void Promise.all([remote.$mount(sessionsContribution), remote.$mount(chatComponentContribution),
-    remote.$mount(treeContribution), remote.$mount(historyNavigationSourceContribution)])
+    remote.$mount(treeContribution), remote.$mount(historyNavigationSourceContribution), remote.$mount(attachmentsContribution)])
     .then(() => debug("mounted"))
     .catch(error => debug("mount-failed", { error: failureText(error) }));
   // A mounted Remote namespace is the sibling service `remote.<namespace>`; a plugin fiber may only
   // read that name from its inject, and the namespaces do not exist until `$mount` above. This child
   // scope is the public seam that waits for both and gives every namespace call the right lifetime.
   ctx.inject(["remote", "remote.ompSessions", "remote.ompChatComponent", "remote.ompTree",
-    "remote.ompHistoryNavigationSource", "conversation", "uiWorkspace"], scoped => {
+    "remote.ompHistoryNavigationSource", "remote.ompAttachments", "conversation", "uiWorkspace"], scoped => {
     remote = scoped.remote;
     conversation = scoped.conversation;
     uiWorkspace = scoped.uiWorkspace;

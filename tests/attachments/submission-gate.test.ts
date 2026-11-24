@@ -261,3 +261,61 @@ test("degradation-free stock receipt accepts and submits the same exact message 
   expect(f.messages()).toEqual({ preparedMessage: prompt, submittedMessage: prompt });
   expect(await f.gate.status("request")).toMatchObject({ phase: "submitted", recovery: "accepted" });
 });
+
+test("a stock receipt awaiting consent is read-only and continues only after its exact acceptance", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const signal = new AbortController().signal, prompt = "attached scan";
+  expect(await f.gate.pending()).toBeNull();
+  await f.gate.stockPrepare("request", prompt, signal);
+  const waiting = await f.gate.pending();
+  expect(waiting).toMatchObject({ requestId: "request", submissionId: "attempt", prompt });
+  expect(waiting!.receipt.items[0]).toMatchObject({ degradations: ["text_truncated"] });
+  expect(f.counts()).toEqual({ prepares: 1, submits: 0 });
+  expect((await f.gate.status("request")).nativeState).toBe("not-dispatched");
+  const continued = f.gate.stockAwaitConsent("request", signal);
+  await f.gate.consent({ selection, requestId: "request", receiptId: waiting!.receipt.receiptId,
+    resultDigest: waiting!.receipt.resultDigest, acceptedDegradations: ["text_truncated"] });
+  await continued;
+  await f.gate.submit("request", prompt, signal);
+  expect(f.counts()).toEqual({ prepares: 1, submits: 1 });
+  expect(await f.gate.pending()).toBeNull();
+});
+
+test("declining a stock receipt cancels the waiting consent before any native dispatch", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const signal = new AbortController().signal;
+  await f.gate.stockPrepare("request", "attached", signal);
+  const waiting = f.gate.stockAwaitConsent("request", signal); void waiting.catch(() => {});
+  await f.gate.cancel("request");
+  await expect(waiting).rejects.toThrow("ATTACHMENT_CANCELLED");
+  expect(f.counts().submits).toBe(0);
+  expect(await f.gate.pending()).toBeNull();
+});
+
+test("settled stock attempts release the two-attempt ceiling for the next send", async () => {
+  const f = fixture();
+  await f.gate.begin(attempt);
+  await f.gate.stockPrepare("request", "one", new AbortController().signal);
+  await f.gate.abort("request");
+  await f.gate.begin({ ...attempt, requestId: "request-2", submissionId: "attempt-2" });
+  f.noDegradations();
+  await f.gate.stockPrepare("request-2", "two", new AbortController().signal);
+  await f.gate.stockAccept("request-2");
+  await f.gate.submit("request-2", "two", new AbortController().signal);
+  await f.gate.stockRelease("request-2");
+  await f.gate.begin({ ...attempt, requestId: "request-3", submissionId: "attempt-3" });
+  await f.gate.stockPrepare("request-3", "three", new AbortController().signal);
+  expect((await f.gate.pending())?.requestId).toBe("request-3");
+});
+
+test("stockRelease keeps an unresolved native attempt queryable for manual recovery", async () => {
+  const f = fixture(); f.noDegradations(); f.loseReply(); await f.gate.begin(attempt);
+  const signal = new AbortController().signal;
+  await f.gate.stockPrepare("request", "uncertain", signal);
+  await f.gate.stockAccept("request");
+  const pending = f.gate.submit("request", "uncertain", signal); void pending.catch(() => {});
+  await expect(pending).rejects.toThrow("ATTACHMENT_SEND_FAILED");
+  expect((await f.gate.status("request")).recovery).toBe("unresolved");
+  await f.gate.stockRelease("request");
+  expect((await f.gate.status("request")).recovery).toBe("unresolved");
+});

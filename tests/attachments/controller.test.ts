@@ -12,6 +12,7 @@ test("registering Send exposes pending local input and never prepares from a pre
   const remote: TypertRemoteNamespaceMap["ompAttachments"] = {
     async begin(value) { expect(value).toEqual(attempt); return { ok: true, value: { registered: true } }; },
     async status() { return { ok: true, value: state }; },
+    async pending() { return { ok: true, value: { pending: null } }; },
     async consent() { throw Error("not awaiting consent"); },
     async cancel() { state = { ...state, phase: "cancelled", recovery: "not-submitted" }; return { ok: true, value: { cancelled: true } }; },
     async finish() { return { ok: true, value: { finished: true } }; },
@@ -34,6 +35,7 @@ test("aborting the DSH Send after registration cancels that attempt without star
     async begin() { return { ok: true, value: { registered: true } }; },
     async status() { return { ok: true, value: { phase: cancelled ? "cancelled" : "registered", requestId: "request", submissionId: "attempt",
       nativeState: "not-dispatched", recovery: cancelled ? "not-submitted" : "unresolved" } }; },
+    async pending() { return { ok: true, value: { pending: null } }; },
     async consent() { throw Error("not awaiting consent"); },
     async cancel() { cancelled = true; return { ok: true, value: { cancelled: true } }; },
     async finish() { return { ok: true, value: { finished: true } }; },

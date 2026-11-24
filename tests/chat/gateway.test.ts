@@ -10,7 +10,7 @@ import { parseProjectionBinding } from "@deepseek-ai/dsh-api-session-controller/
 import type { SessionPromptRequest } from "@deepseek-ai/dsh-api-session-controller/types";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
 import { SessionId } from "@deepseek-ai/dsh-session/types";
-import { ChatGateway, type ChatCaller, type ChatWorkerPort } from "../../packages/chat/gateway.ts";
+import { ChatError, ChatGateway, type ChatCaller, type ChatWorkerPort } from "../../packages/chat/gateway.ts";
 import type { SubmissionClientCommand } from "../../packages/contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SubmissionResult } from "../../packages/contracts/candidates/durable-submission-v1/omp-wire.ts";
 import type { StopSnapshot } from "../../packages/contracts/stop.ts";
@@ -558,8 +558,9 @@ test("after a terminal conflict a fresh Gateway request still needs current Nati
   ]);
 });
 
-function stockFixture() {
+function stockFixture(options: { consent?: "required" | "not-required"; refuse?: string } = {}) {
   const f = fixture(), events: string[] = [];
+  const decided = Promise.withResolvers<void>();
   Object.defineProperty(f.ports, "attachments", { configurable: true, value: {
     has: () => true,
     async submit(_requestId: string, message: string) { events.push(`submit:${message}`); },
@@ -568,13 +569,17 @@ function stockFixture() {
   Object.defineProperty(f.ports, "stock", { configurable: true, value: {
     async prepare(_caller: ChatCaller, _requestId: string, request: SessionPromptRequest) {
       events.push(`prepare:${request.content.map(part => part.type).join(",")}`);
-      return { message: request.content.flatMap(part => part.type === "text" ? [part.text] : []).join("") };
+      if (options.refuse) throw Error(options.refuse);
+      return { message: request.content.flatMap(part => part.type === "text" ? [part.text] : []).join(""),
+        consent: options.consent ?? "not-required" };
     },
     async accept() { events.push("accept"); },
+    async awaitConsent() { events.push("awaitConsent"); await decided.promise; },
     async abort() { events.push("abort"); },
+    async release() { events.push("release"); },
   } });
   f.state(async () => { events.push("state"); return idle; });
-  return { f, events };
+  return { f, events, accept: () => decided.resolve(), refuse: () => decided.reject(Error("ATTACHMENT_CANCELLED")) };
 }
 
 const filePart = (receiptId: string) => ({ type: "file" as const,
@@ -589,7 +594,7 @@ test("a stock file prompt prepares first, then crosses the idle gate and submits
   const content = [{ type: "text" as const, text: "see " }, filePart("receipt-1")];
   expect(await f.gateway.prompt(f.peer, attachedPrompt("request-file", content), new AbortController().signal))
     .toEqual({ accepted: true });
-  expect(events).toEqual(["prepare:text,file", "state", "accept", "submit:see "]);
+  expect(events).toEqual(["prepare:text,file", "state", "accept", "submit:see ", "release"]);
   expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
 });
 
@@ -598,7 +603,8 @@ test("empty stock text with a file is a real send while empty text alone stays a
   expect(await f.gateway.prompt(f.peer, attachedPrompt("request-empty",
     [filePart("receipt-2")]), new AbortController().signal))
     .toEqual({ accepted: true });
-  expect(events.at(-1)).toBe("submit:");
+  expect(events.filter(event => event.startsWith("submit:"))).toEqual(["submit:"]);
+  expect(events.at(-1)).toBe("release");
   const retried = stockFixture();
   let retries = 0;
   retried.f.ports.retry = async () => { retries++; };
@@ -623,4 +629,49 @@ test("the stock fingerprint covers receipt ids so a changed attachment cannot re
   const second = attachedPrompt("request-print", [filePart("receipt-5")]);
   await f.gateway.prompt(f.peer, first, new AbortController().signal);
   await expect(f.gateway.prompt(f.peer, second, new AbortController().signal)).rejects.toThrow("chat_conflict");
+});
+
+test("a lossy stock receipt waits for explicit consent, then submits the prepared message", async () => {
+  const { f, events, accept } = stockFixture({ consent: "required" });
+  const signal = new AbortController().signal;
+  const send = f.gateway.prompt(f.peer, attachedPrompt("request-lossy", [filePart("receipt-6")]), signal);
+  for (let tick = 0; tick < 50 && !events.includes("awaitConsent"); ++tick) await Promise.resolve();
+  expect(events).toEqual(["prepare:file", "state", "awaitConsent"]);
+  expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+  accept();
+  expect(await send).toEqual({ accepted: true });
+  expect(events).toEqual(["prepare:file", "state", "awaitConsent", "submit:", "release"]);
+  expect(events).not.toContain("accept");
+});
+
+test("declining stock consent is a typed pre-dispatch cancellation, never an unknown outcome", async () => {
+  const { f, events, refuse } = stockFixture({ consent: "required" });
+  const send = f.gateway.prompt(f.peer, attachedPrompt("request-decline", [filePart("receipt-7")]),
+    new AbortController().signal);
+  for (let tick = 0; tick < 50 && !events.includes("awaitConsent"); ++tick) await Promise.resolve();
+  refuse();
+  await expect(send).rejects.toThrow("chat_cancelled");
+  expect(events.at(-1)).toBe("abort");
+  expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+});
+
+test("a stock preparation refusal keeps its fixed code and is not reported as unresolved", async () => {
+  const { f } = stockFixture({ refuse: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+  const error = await f.gateway.prompt(f.peer, attachedPrompt("request-refused",
+    [filePart("receipt-8")]), new AbortController().signal).catch(value => value);
+  expect(error).toBeInstanceOf(ChatError);
+  expect(error.code).toBe("refused");
+  expect(error.detail).toBe("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
+  expect(error.message).not.toContain("unknown");
+});
+
+test("the public prompt RPC reports a refused stock Send without claiming an unresolved outcome", async () => {
+  const { f } = stockFixture({ refuse: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+  const remote = await mountGateway(f);
+  const error = await remote.prompt(f.peer, attachedPrompt("request-public-refused",
+    [filePart("receipt-9")])).catch(value => value) as { code: string; message: string };
+  expect(error.code).toBe("gateway/bad-request");
+  expect(error.message).toContain("refused before Native dispatch");
+  expect(error.message).toContain("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
+  expect(error.message).not.toContain("unresolved");
 });

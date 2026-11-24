@@ -383,7 +383,8 @@ export class ChatComponentRuntime {
         recovery: (requestId: string) => this.gate!.recovery(requestId),
       } } : {}),
       ...(this.gate && this.uploads ? { stock: {
-        // The stock composer has no attachment consent UI; a lossy receipt is refused before any native dispatch.
+        // The stock shell shows the exact receipt through the consent overlay; a lossy receipt is
+        // never transformed silently, and a refusal before dispatch is not an unknown outcome.
         prepare: async (caller, requestId, request, signal) => {
           const credential = this.admission.retryView(caller);
           const held = credential && this.#views.get(credential.credentialId);
@@ -394,11 +395,14 @@ export class ChatComponentRuntime {
             originalIds: prepared.originalIds }, submissionId: requestId, requestId });
           const receipt = await this.gate.stockPrepare(requestId, prepared.message, signal);
           const degradations = receipt.items.flatMap(item => item.status === "ready" ? item.degradations : []);
-          if (degradations.length) throw Error("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
-          return { message: prepared.message };
+          return { message: prepared.message, consent: degradations.length ? "required" as const : "not-required" as const };
         },
         accept: async (requestId: string) => { await this.gate!.stockAccept(requestId); },
+        awaitConsent: async (requestId: string, signal: AbortSignal) => {
+          await this.gate!.stockAwaitConsent(requestId, signal);
+        },
         abort: (requestId: string) => this.gate!.abort(requestId),
+        release: (requestId: string) => this.gate!.stockRelease(requestId),
       } } : {}),
     });
     const unsubscribe = worker.subscribe(frame => {

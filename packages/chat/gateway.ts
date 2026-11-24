@@ -54,11 +54,14 @@ export interface ChatWorkerPort {
     submit(requestId: string, message: string, signal: AbortSignal): Promise<unknown>;
     recovery(requestId: string): "accepted" | "not-submitted" | "completed-without-input" | "unresolved";
   };
-  /** Stock file/image receipts: prepare first, idle-check, then accept the degradation-free receipt. */
+  /** Stock file/image receipts: prepare, idle-check, then continue only after explicit consent. */
   readonly stock?: {
-    prepare(caller: ChatCaller, requestId: string, request: SessionPromptRequest, signal: AbortSignal): Promise<{ message: string }>;
+    prepare(caller: ChatCaller, requestId: string, request: SessionPromptRequest, signal: AbortSignal):
+      Promise<{ message: string; consent: "required" | "not-required" }>;
     accept(requestId: string): Promise<void>;
+    awaitConsent(requestId: string, signal: AbortSignal): Promise<void>;
     abort(requestId: string): Promise<void>;
+    release(requestId: string): Promise<void>;
   };
 }
 
@@ -74,7 +77,9 @@ interface Attempt {
 }
 
 export class ChatError extends Error {
-  constructor(readonly code: "invalid" | "authority" | "busy" | "conflict" | "limit" | "unknown" | "cancelled") {
+  constructor(readonly code: "invalid" | "authority" | "busy" | "conflict" | "limit" | "unknown" | "cancelled" | "refused",
+    /** Fixed Host attachment vocabulary only; never prose. */
+    readonly detail?: string) {
     super(`chat_${code}`);
   }
 }
@@ -82,6 +87,14 @@ export class ChatError extends Error {
 const unknown = { outcome: "unknown" } as const;
 const limit = 1024;
 const waitAttempts = 40;
+
+/** A refused Send never reached Native: keep the fixed attachment code, never claim an unknown outcome. */
+function refusal(error: unknown, cancelled: boolean): ChatError {
+  if (cancelled) return new ChatError("cancelled");
+  if (error instanceof ChatError) return error;
+  const detail = error instanceof Error && /^ATTACHMENT_[A-Z_]+$/.test(error.message) ? error.message : undefined;
+  return new ChatError("refused", detail);
+}
 
 function isNativeIdle(state: Partial<SessionState>, nativeSessionId: string): boolean {
   return state.sessionId === nativeSessionId && state.isSettled === true && state.isStreaming === false && state.isCompacting === false
@@ -247,20 +260,23 @@ export class ChatGateway {
     return this.#accept(attempt, current, signal);
   }
 
-  /** Native preparation first, then the same idle gate as text; no degradation is ever accepted silently. */
+  /** Native preparation first, then the same idle gate as text; a lossy receipt waits for explicit consent. */
   async #stock(attempt: Attempt, caller: ChatCaller, request: SessionPromptRequest, text: string,
     current: () => void, signal: AbortSignal) {
     const stock = this.port.stock!;
     const attachments = this.port.attachments!;
     let message = text;
     try {
-      ({ message } = await stock.prepare(caller, attempt.id, request, signal));
+      let consent: "required" | "not-required";
+      ({ message, consent } = await stock.prepare(caller, attempt.id, request, signal));
       current();
       const snapshot = await this.port.state();
       current();
       if (!isNativeIdle(snapshot, this.#target.nativeSessionId) || !this.#idle()) throw new ChatError("busy");
       attempt.phase = "dispatching";
-      await stock.accept(attempt.id);
+      // A lossy receipt is never transformed silently: the stock consent overlay resolves this exact
+      // receipt through the same attempt gate before anything reaches Native.
+      await (consent === "required" ? stock.awaitConsent(attempt.id, signal) : stock.accept(attempt.id));
       const reply = await attachments.submit(attempt.id, message, signal) as SubmissionResult | undefined;
       current();
       if (reply && reply.terminal && reply.operationOutcome !== "unknown") {
@@ -270,6 +286,8 @@ export class ChatGateway {
           status: reply.operationOutcome === "succeeded" ? "completed" : reply.operationOutcome === "cancelled" ? "aborted" : "error" };
       }
       attempt.phase = "admitted";
+      // The stock shell never queries a finished attempt, so release its gate slot now.
+      await stock.release(attempt.id);
       return this.#accept(attempt, current, signal);
     } catch (error) {
       const cancelled = error instanceof Error && error.message === "ATTACHMENT_CANCELLED";
@@ -283,7 +301,7 @@ export class ChatGateway {
       delete attempt.result;
       current();
       if (cancelled || local) await stock.abort(attempt.id).catch(() => {});
-      throw error instanceof ChatError ? error : new ChatError(cancelled ? "cancelled" : "unknown");
+      throw cancelled || local ? refusal(error, cancelled) : new ChatError("unknown");
     }
   }
 

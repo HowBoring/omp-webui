@@ -11,6 +11,7 @@ export class AttachmentRemoteService extends TypertRemoteService {
   @Remote("status") status(request: { requestId: string; knownDigest?: string }) {
     return this.gate.status(request.requestId, request.knownDigest);
   }
+  @Remote("pending") async pending() { return { pending: await this.gate.pending() }; }
   @Remote("consent") consent(request: AttachmentContinueRequest) { return this.gate.consent(request); }
   @Remote("cancel") cancel(request: { requestId: string }) { return this.gate.cancel(request.requestId); }
   @Remote("finish") finish(request: { requestId: string; outcome: AttachmentFinishOutcome }) {

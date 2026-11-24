@@ -36,6 +36,9 @@ const statusSchema = z.strictObject({ phase: phaseSchema, requestId: token, subm
   recovery: z.enum(["accepted", "not-submitted", "completed-without-input", "unresolved"]), receipt: receiptSchema.optional(),
   prompt: z.string().max(128 * 1024).optional(), code: z.string().max(96).optional(), result: resultSchema.optional() });
 export type AttachmentGateStatus = z.infer<typeof statusSchema>;
+const pendingSchema = z.strictObject({ requestId: token, submissionId: token, selection: attachmentSelectionSchema,
+  receipt: receiptSchema, prompt: z.string().max(128 * 1024).optional() });
+export type AttachmentGatePending = z.infer<typeof pendingSchema>;
 const statusRequest = z.strictObject({ requestId: token, knownDigest: digest.optional() });
 const consentRequest = attachmentConsentRequestSchema.extend({ requestId: token });
 export type AttachmentContinueRequest = z.infer<typeof consentRequest>;
@@ -50,6 +53,8 @@ export const attachmentsContribution = createTypertRemoteInfo({ package: "@omp-w
     parameters: [parameter(attemptSchema, "AttachmentAttempt")], result: codec(z.strictObject({ registered: z.literal(true) }), "AttachmentRegistered") },
   "ompAttachments/status": { service: "ompAttachments", invocation: { kind: "direct" },
     parameters: [parameter(statusRequest, "AttachmentStatusRequest")], result: codec(statusSchema, "AttachmentGateStatus") },
+  "ompAttachments/pending": { service: "ompAttachments", invocation: { kind: "direct" },
+    parameters: [], result: codec(z.strictObject({ pending: pendingSchema.nullable() }), "AttachmentPending") },
   "ompAttachments/consent": { service: "ompAttachments", invocation: { kind: "direct" },
     parameters: [parameter(consentRequest, "AttachmentContinueRequest")], result: codec(z.strictObject({ continuing: z.literal(true) }), "AttachmentContinuing") },
   "ompAttachments/cancel": { service: "ompAttachments", invocation: { kind: "direct" },
@@ -65,6 +70,7 @@ declare module "@deepseek-ai/dsh-typert-protocol" {
     ompAttachments: {
       begin(request: AttachmentAttempt): Promise<RemoteResult<{ registered: true }>>;
       status(request: z.infer<typeof statusRequest>): Promise<RemoteResult<AttachmentGateStatus>>;
+      pending(): Promise<RemoteResult<{ pending: AttachmentGatePending | null }>>;
       consent(request: AttachmentContinueRequest): Promise<RemoteResult<{ continuing: true }>>;
       cancel(request: z.infer<typeof requestKey>): Promise<RemoteResult<{ cancelled: boolean }>>;
       finish(request: z.infer<typeof finishRequest>): Promise<RemoteResult<{ finished: true }>>;

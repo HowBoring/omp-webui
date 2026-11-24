@@ -1,7 +1,8 @@
 /** Exact-content gate inside the existing typed DSH Session prompt Remote, before native admission. */
 import type { AttachmentBridge } from "./bridge.ts";
 import type { OriginalProtection } from "./store.ts";
-import type { AttachmentConsentRequest, AttachmentAttempt, AttachmentFinishOutcome, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
+import type { AttachmentConsentRequest, AttachmentAttempt, AttachmentFinishOutcome, AttachmentGatePending,
+  AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
 export type { AttachmentAttempt, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
 import type { AttachmentReceipt } from "../contracts/attachment-preparation.ts";
 import { isSubmissionResult } from "../contracts/submissions.ts";
@@ -88,6 +89,33 @@ export class AttachmentSubmissionGate {
     return flow.operation;
   }
 
+  /** Read-only exact receipt awaiting explicit user consent for this authorized View; never dispatches. */
+  async pending(): Promise<AttachmentGatePending | null> {
+    for (const flow of this.#flows.values()) {
+      if (flow.phase !== "awaiting-consent" || !flow.receipt) continue;
+      try { await this.authorizeAttempt(flow.attempt); } catch { continue; }
+      return { requestId: flow.attempt.requestId, submissionId: flow.attempt.submissionId,
+        selection: structuredClone(flow.attempt.selection), receipt: structuredClone(flow.receipt),
+        ...(flow.message !== undefined ? { prompt: flow.message } : {}) };
+    }
+    return null;
+  }
+
+  /** Wait for the user's explicit acceptance of this exact stock receipt; cancellation rejects. */
+  async stockAwaitConsent(requestId: string, signal: AbortSignal): Promise<{ continuing: true }> {
+    const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
+    if (!flow.receipt) throw Error("ATTACHMENT_NOT_READY");
+    if (flow.phase !== "awaiting-consent" && flow.phase !== "submitting" && flow.phase !== "submitted")
+      throw Error("ATTACHMENT_CONSENT_STALE");
+    if (flow.phase === "awaiting-consent") {
+      const abort = () => { void this.#cancel(flow); };
+      signal.addEventListener("abort", abort, { once: true });
+      try { await flow.consent.promise; } finally { signal.removeEventListener("abort", abort); }
+    }
+    flow.abort.signal.throwIfAborted();
+    return { continuing: true };
+  }
+
   async status(requestId: string, knownDigest?: string): Promise<AttachmentGateStatus> {
     const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
     return { phase: flow.phase, requestId, submissionId: flow.attempt.submissionId,
@@ -142,11 +170,21 @@ export class AttachmentSubmissionGate {
       resultDigest: receipt.resultDigest, acceptedDegradations: [] });
   }
 
-  /** Release a prepared stock attempt that never reached consent (busy, degradation refusal). */
-  async abort(requestId: string): Promise<void> {
+  /** Release a settled stock attempt so it never occupies the two-attempt ceiling. */
+  async stockRelease(requestId: string): Promise<void> {
     const flow = this.#flows.get(requestId);
-    if (flow) await this.#cancel(flow);
+    if (!flow) return;
+    if (flow.nativeStarted) {
+      // Only a matched terminal reservation is safe to forget; unresolved Native work stays queryable.
+      if (flow.phase === "submitted") this.#flows.delete(requestId);
+      return;
+    }
+    await this.#cancel(flow);
+    this.#flows.delete(requestId);
   }
+
+  /** Release a prepared stock attempt that never reached consent (busy, degradation refusal). */
+  async abort(requestId: string): Promise<void> { await this.stockRelease(requestId); }
 
   async cancel(requestId: string): Promise<{ cancelled: boolean }> {
     const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
