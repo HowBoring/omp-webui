@@ -180,9 +180,12 @@ export class AttachmentSubmissionGate {
     const flow = this.#flows.get(requestId);
     if (!flow) return;
     if (flow.nativeStarted) {
-      // A matched reservation is not a settled outcome. Forget only a flow whose public recovery is
-      // terminal success; unresolved Native work stays queryable and keeps consuming the ceiling.
-      if (this.#recovery(flow) === "unresolved") return;
+      // A matched reservation is not a settled outcome, and a 200-poll cap can return a committed,
+      // matched result whose operation is still running. Only a terminal publication may be forgotten;
+      // anything else stays queryable and keeps consuming the ceiling.
+      if (flow.result?.terminal !== true) return;
+      const recovery = this.#recovery(flow);
+      if (recovery !== "accepted" && recovery !== "completed-without-input") return;
       this.#epoch++;
       this.#flows.delete(requestId);
       return;
@@ -239,7 +242,9 @@ export class AttachmentSubmissionGate {
     const committed = result.relations.filter(relation => relation.status === "observed" && relation.persistence === "committed"
       && relation.entryId !== undefined && (relation.role === "input" || relation.role === "prepared"));
     const links = committed.flatMap(relation => relation.attachments ?? []);
-    return result.inputOutcome === "generated" && committed.some(relation => relation.role === "input")
+    // Accepted means the whole input is publicly committed *and* the operation is terminal; an
+    // accepted-but-running operation can still fail, so it is not a resolvable checkpoint yet.
+    return result.terminal && result.inputOutcome === "generated" && committed.some(relation => relation.role === "input")
       && flow.receipt!.items.every(item => item.status === "ready" && links.some(link => savedAttachmentMatches(link, item)))
       ? "accepted" : "unresolved";
   }

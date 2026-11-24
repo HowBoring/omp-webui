@@ -11,7 +11,6 @@ function fixture() {
   let revision = "1", owner = true, prepares = 0, submits = 0;
   let preparedMessage = "", submittedMessage = "";
   let failSubmit = false, noInput = false, mismatchOrigin = false, mismatchTarget = false, missingPart = false, unavailablePart = false;
-  let pendingPersistence = false;
   let degraded = true;
   let terminal = true; let deferred: PromiseWithResolvers<void> | undefined;
   let operationOutcome: "succeeded" | "failed" | "cancelled" | "unknown" = "unknown";
@@ -34,7 +33,7 @@ function fixture() {
     return { version: "durable-submission-v1", clientSubmissionId: input.clientSubmissionId,
       target: mismatchTarget ? { ...target, nativeSessionId: "another-session" } : target, found: true, duplicate: false,
       admission: "local", reservation: "committed", inputOutcome: noInput ? "no_input" : "generated", operationOutcome,
-      persistence: pendingPersistence ? "pending" : "committed", terminal, nextOffset: null,
+      persistence: "committed", terminal, nextOffset: null,
       origin: { ...target, clientSubmissionId: mismatchOrigin ? "another-attempt" : input.clientSubmissionId },
       relations: [...(noInput ? [] : [{ relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" }]),
         { relationId: "entry:prepared", role: "prepared", status: "observed", persistence: "committed", entryId: "prepared", attachments: [{
@@ -48,7 +47,7 @@ function fixture() {
     handledWithoutInput: (outcome: typeof operationOutcome = "unknown", settled = true) => { noInput = true; operationOutcome = outcome; terminal = settled; },
     mismatchOrigin: () => { mismatchOrigin = true; }, mismatchTarget: () => { mismatchTarget = true; }, missingPart: () => { missingPart = true; },
     unavailablePart: () => { unavailablePart = true; }, noDegradations: () => { degraded = false; },
-    pendingPersistence: () => { pendingPersistence = true; },
+    nonTerminal: () => { terminal = false; },
     deferSubmit: () => { deferred = Promise.withResolvers<void>(); return () => { deferred?.resolve(); deferred = undefined; }; } };
 }
 async function awaiting(gate: AttachmentSubmissionGate) {
@@ -308,6 +307,23 @@ test("settled stock attempts release the two-attempt ceiling for the next send",
   await f.gate.begin({ ...attempt, requestId: "request-3", submissionId: "attempt-3" });
   await f.gate.stockPrepare("request-3", "three", new AbortController().signal);
   expect((await f.gate.pending())?.requestId).toBe("request-3");
+});
+
+test("a matched committed result that is not terminal keeps the attempt and its ceiling", async () => {
+  const f = fixture(); f.noDegradations(); f.nonTerminal();
+  await f.gate.begin(attempt);
+  const signal = new AbortController().signal, prompt = "attached late";
+  await f.gate.stockPrepare("request", prompt, signal);
+  await f.gate.stockAccept("request");
+  await f.gate.submit("request", prompt, signal);
+  // Reservation, origin and relations match, but the operation has not published a terminal outcome.
+  expect(await f.gate.status("request")).toMatchObject({ phase: "submitted", recovery: "unresolved" });
+  await f.gate.stockRelease("request");
+  expect(f.gate.has("request")).toBe(true);
+  expect(await f.gate.status("request")).toMatchObject({ phase: "submitted", recovery: "unresolved" });
+  await f.gate.begin({ ...attempt, requestId: "request-2", submissionId: "attempt-2" });
+  await expect(f.gate.begin({ ...attempt, requestId: "request-3", submissionId: "attempt-3" }))
+    .rejects.toThrow("ATTACHMENT_ATTEMPT_LIMIT");
 });
 
 test("a request id cannot authorize another attempt's receipt for the same Selection", async () => {
