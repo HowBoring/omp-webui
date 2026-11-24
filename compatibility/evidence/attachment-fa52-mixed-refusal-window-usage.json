@@ -1,0 +1,55 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "7c59d8a30a06e6c6608de80b78782866ff52f12c",
+  "batch": "TWO pre-existing cases authorized SERIAL, stop first failure; both passed and original window released before evidence recovery.",
+  "batchOrder": 2,
+  "case": "actual public failed mixed preparation refuses all input before reservation or effects",
+  "attempts": 1,
+  "frozenInputs": {
+    "path": "/tmp/ticket38-webp-source/final-inputs.json",
+    "bytes": 135450,
+    "sha256": "da6142d51d7b93091544f4b41dc4bac6c543decc5b602252a6de6bd91bfb4274"
+  },
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-mixed-refusal-runtime-success.json",
+    "bytes": 18176,
+    "sha256": "9df1958eceb6e742110a119612465a205514e15a439e2acb32e022e1430a9303"
+  },
+  "originalTool": {
+    "provenance": "Root-transcribed prior agent report supplied to this evidence finisher; not an independent tool archive. Original-handle wait and streams facts independently read from retained runner.json; tool chunk/session IDs are transcription only.",
+    "initialChunkId": "7e0d8d",
+    "sessionId": 29515,
+    "pollChunkId": "92cd13",
+    "finalChunkId": "2a3dd8",
+    "reportedFinalExitCode": 0,
+    "retry": "NONE",
+    "originalPopenPid": 537967,
+    "runtimeWindow": "Root reports both actual cases GREEN and Native window RELEASED before interruption. No runtime authority transferred to finisher."
+  },
+  "actualRunnerPid": 537967,
+  "actualRunnerWaitStatus": 0,
+  "stdoutStderrFilesClosedAfterOriginalWait": true,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "precheck": {
+    "path": "/tmp/ticket-38-current-mixed-refusal-_z0oxwjo/precheck.json",
+    "bytes": 1654,
+    "sha256": "7ebdb45cf77f4ccd82668d701dd14fad6234784e3ed259054732e6cd79bf7691"
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-current-mixed-refusal-_z0oxwjo/postcheck.json",
+    "bytes": 1525,
+    "sha256": "152714ea7488b8e38636d380eb107074745e69b16abedf7927a34713164f50fe"
+  },
+  "recoveryReadback": {
+    "path": "/tmp/ticket38-evidence-finish/readback.json",
+    "bytes": 8721,
+    "sha256": "eae8a02a410f6796ee819764aa5de5ef678254dffd5e5525bd261b0d2abb2347"
+  },
+  "window": "RELEASED per Root-transcribed prior report before interruption; no fresh runtime/drain/authority in evidence finisher.",
+  "limitations": "Top original Popen wait0 is retained directly; tool IDs are Root-transcribed. Individual Native/catalog/converter/serializer metadata and receipt/entry IDs uncaptured. No extinction/full38/product claim."
+}

@@ -1,0 +1,14 @@
+diff --git a/packages/session/session-format-v3-to-v4/src/validation.ts b/packages/session/session-format-v3-to-v4/src/validation.ts
+index 72d75b6879a5c22ece0dc952ac6fb6570079dff0..38bd86a5e39a7163eef666882a39fd23d9bb46e4 100644
+--- a/packages/session/session-format-v3-to-v4/src/validation.ts
++++ b/packages/session/session-format-v3-to-v4/src/validation.ts
+@@ -63,6 +63,9 @@ export function restoreReleasedV4Artifact(artifact: SessionFormatArtifact, known
+     }
+     if (event.seq !== index) throw new SessionFormatError(`format v4 event ${index} is not dense`)
+     if (!knownEventTypes.has(event.type)) continue
++    if (event.type === 'tool/parsed-call' && event['ignorable'] === true) {
++      throw new SessionFormatError(`format v4 event ${event.type} at seq ${index} must not be ignorable`)
++    }
+     assertV4RetiredSyntax(event)
+     assertV4SystemMessageFields(event)
+     assertV4ToolResultMessage(event)

@@ -1,0 +1,25 @@
+{
+  "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.json",
+  "results": [
+    {
+      "label": "06-strict-typescript",
+      "result": {
+        "chunk_id": "18683b",
+        "wall_time_seconds": 1.001132905,
+        "session_id": 64320,
+        "original_token_count": 0,
+        "output": ""
+      }
+    },
+    {
+      "label": "06-strict-typescript-completion",
+      "result": {
+        "chunk_id": "6e5bd4",
+        "wall_time_seconds": 4.626484928,
+        "exit_code": 0,
+        "original_token_count": 0,
+        "output": ""
+      }
+    }
+  ]
+}

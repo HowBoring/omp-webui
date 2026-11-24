@@ -1,0 +1,110 @@
+{
+  "url": "http://127.0.0.1:43267/",
+  "kind": "actual-host-plus-labelled-carrier-faults",
+  "cases": [
+    {
+      "name": "actual-native-preflight",
+      "result": "PASS",
+      "report": {
+        "status": "verified-blocked",
+        "sessionAdmission": "blocked",
+        "code": "S0_DIAGNOSTICS_ONLY",
+        "identity": {
+          "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+          "patchSha256": "4a09fb3da0b9161097a4c72022dd2ac2d790e76ea2cdfb42ed48441c0fa62472",
+          "sourceSha256": "e978ad38f8ba2bf26dffab5a0d798eda69a2a7af68efb2a331d9daf23eb039f9",
+          "schemaSha256": "fde59ea50240a6c9e7450d838883f335c1bf52af67d21e8a982a6c2a9a6b67d9",
+          "installationSha256": "6cba8b0da025a3e4684b81a4f65c164cfd345c0a53071d5254aee89f42886975",
+          "runtime": {
+            "name": "bun",
+            "version": "1.4.4",
+            "platform": "linux",
+            "arch": "x64"
+          }
+        },
+        "missingCapabilities": [
+          "catalog.readonly.v1",
+          "continuation.strict.v1",
+          "interaction.explicit-answer.v1",
+          "attachments.prepare.v1",
+          "submission.durable-receipt.v1",
+          "history.coherent-cut.v1",
+          "history.position-durable.v1",
+          "client.conversation-rebuild.v1",
+          "security.private-session-admission.v1",
+          "installation.immutable-global.v1",
+          "platform.windows-wsl2.acceptance"
+        ]
+      }
+    },
+    {
+      "name": "simulated-persisted-page-restore-fresh-preflight",
+      "result": "PASS"
+    },
+    {
+      "name": "intercepted-wrong-rpc-id",
+      "result": "PASS"
+    },
+    {
+      "name": "intercepted-malformed-report",
+      "result": "PASS"
+    },
+    {
+      "name": "intercepted-unsupported-remote",
+      "result": "PASS"
+    },
+    {
+      "name": "intercepted-failed-asset",
+      "result": "PASS"
+    },
+    {
+      "name": "actual-two-browser-preflight-bounded-busy",
+      "result": "PASS",
+      "outcomes": [
+        "verified-blocked",
+        "blocked"
+      ]
+    },
+    {
+      "name": "intercepted-late-report-after-generation-loss",
+      "result": "PASS"
+    }
+  ],
+  "browser": "156.0.8078.79",
+  "screenshotSha256": "fc0d6fd1c26b10cab60422d4a9a794397c58071e2e3ab828884024b8ebaf9411",
+  "clientBuild": {
+    "kind": "diagnostic-only",
+    "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "lockSha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4"
+    },
+    "sourceInputs": 232,
+    "sourceSha256": "68f2ebc7048a7014ed5ce9cd530f8b8443a448a0572f4697a314c2d9c94cfc95",
+    "contractSha256": "c2d6d0d33e7bc6c0a5180067e22110489222ee778653faea3cca4b63cbc53877",
+    "assets": {
+      "client.js": "693e42659effe1dae4d9885804c738782c3e9d742500a3134321a3a5859fc04e",
+      "index.html": "3b9d07c6cde9d8acb7783324ed459c9ed8fadbad97a82c35308169b7d2f30ac1"
+    },
+    "manifestSha256": "5fc3eaad06de64779118e87be576f080975589d88ece971ee4070ed541f8fa0a"
+  },
+  "platform": "Linux x64",
+  "windowsWsl2": "DEFERRED/NOT RUN by user instruction",
+  "priorRuns": [
+    {
+      "run": "00",
+      "result": "FAIL",
+      "scope": "contended harness scheduling",
+      "observed": "Timed out after 30 seconds waiting only for verified-blocked while owner harness concurrently occupied the serialized preflight. The response was not retained.",
+      "resolution": "Run serially for normal acceptance; add separate two-browser bounded busy/refusal coverage."
+    },
+    {
+      "run": "01",
+      "result": "FAIL",
+      "scope": "harness implementation",
+      "observed": "Actual preflight, simulated persisted restoration and four carrier/asset faults passed. Redundant await on server-side WebSocket route close returned None and raised TypeError before final stale-generation assertion.",
+      "resolution": "Remove redundant server-side close. Page-side loss still tested; browser disposal owns proxy cleanup."
+    }
+  ]
+}

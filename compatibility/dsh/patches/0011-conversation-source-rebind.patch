@@ -1,0 +1,210 @@
+diff --git a/packages/client/ui-chat/tests/chat-apply.client.spec.tsx b/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
+index b2c24ca1..2bd4027e 100644
+--- a/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
++++ b/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
+@@ -11,14 +11,16 @@ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+ import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
+ import { parseProjectionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
+-import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
+-import type { SessionId } from '@deepseek-ai/dsh-session/types'
++import type { SessionBinding, SessionLiveEventEntry } from '@deepseek-ai/dsh-api-session-controller/client'
++import { createUserMessage } from '@deepseek-ai/dsh-llm'
++import { MessageId } from '@deepseek-ai/dsh-llm/brand'
++import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
+ import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
+ import {
+   apply as applyConversation, inject as injectConversation,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import type {
+-  ConversationLocationDataSource, ConversationLocationDataStore, ConversationTurnDataMap,
++  ConversationLocationDataSource, ConversationLocationDataStore, ConversationSnapshot, ConversationTurnDataMap,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import {
+   apply as applyChat, EMPTY_CHAT_SNAPSHOT, inject as injectChat,
+@@ -377,6 +379,95 @@ describe('Chat apply wiring', () => {
+     await b.runtime.dispose()
+   })
+ 
++  it('keeps Conversation entries on the Chat generation across a projection rebuild', async () => {
++    const b = await bench()
++    try {
++      await b.runtime.sessions.add({ id: SID })
++      using reference = b.runtime.sessions.retain(SID)
++      const binding = reference.binding
++      b.sourceDescriptor.resolve(binding)
++      // The View slot resolves this hook pair once per materialized binding,
++      // and ChatView reads both against that same pair. Capture it before the
++      // first prompt, as the live View did.
++      const hooks = b.runtime.ctx.uiSession.adapter.bindingSource(reference).getSnapshot().hooks as {
++        conversation: ObservableSnapshot<ConversationSnapshot>
++        chat: ObservableSnapshot<ChatSnapshot>
++      }
++      // useSyncExternalStore subscribes both hooks; Chat activation hangs off
++      // that first subscriber, so the test must model it too.
++      const stopChat = hooks.chat.subscribe(() => {})
++      const stopConversation = hooks.conversation.subscribe(() => {})
++      const append = (entry: SessionLiveEventEntry): Promise<void> =>
++        b.runtime.sessions.appendEvent(SID, entry)
++      const user = (seq: number, text: string): SessionLiveEventEntry => ({ type: 'event', event: {
++        type: 'user/message', seq: SessionSeq(seq), time: seq, surfaceOp: 'append',
++        data: createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } }),
++      } })
++
++      // The seven live events the controlled provider captured for the first
++      // prompt: the prompt echo, three user occurrences, and one assistant reply.
++      await append(user(0, 'prompt'))
++      await append({ type: 'event', event: {
++        type: 'turn/start', seq: SessionSeq(1), time: 1, data: { turn: 1 },
++      } })
++      await append(user(2, 'prompt'))
++      await append({ type: 'event', event: {
++        type: 'step/start', seq: SessionSeq(3), time: 3, data: { turn: 1, step: 1 },
++      } })
++      await append(user(4, 'prompt'))
++      await append({ type: 'event', event: {
++        type: 'assistant/message', seq: SessionSeq(5), time: 5, surfaceOp: 'append', data: {
++          turn: 1, step: 1, stream: [], message: {
++            id: MessageId('old-answer'), role: 'assistant', content: [{ type: 'text', text: 'old answer' }],
++            source: { kind: 'model', provider: 'fixture', model: 'fixture' },
++          },
++        },
++      } })
++      await append({ type: 'event', event: {
++        type: 'step/end', seq: SessionSeq(6), time: 6, data: { turn: 1, step: 1 },
++      } })
++
++      // The prompt settled and the projection rebuilt onto a new generation.
++      binding.projection.set({ phase: 'rebuilding', signal: new AbortController().signal })
++      binding.projection.set({
++        phase: 'ready',
++        binding: parseProjectionBinding({ source: 'window', generation: 'generation-2' }),
++        signal: new AbortController().signal,
++      })
++      await b.runtime.sessions.appendEvent(SID, { type: 'event', event: {
++        type: 'turn/start', seq: SessionSeq(20), time: 20, data: { turn: 2 },
++      } })
++      await b.runtime.sessions.appendEvent(SID, { type: 'event', event: {
++        type: 'step/start', seq: SessionSeq(21), time: 21, data: { turn: 2, step: 1 },
++      } })
++      await b.runtime.sessions.appendEvent(SID, { type: 'event', event: {
++        type: 'assistant/message', seq: SessionSeq(22), time: 22, surfaceOp: 'append', data: {
++          turn: 2, step: 1, stream: [], message: {
++            id: MessageId('new-answer'), role: 'assistant', content: [{ type: 'text', text: 'new answer' }],
++            source: { kind: 'model', provider: 'fixture', model: 'fixture' },
++          },
++        },
++      } })
++
++      await vi.waitFor(() => {
++        const live = b.runtime.ctx.uiConversation.binding(binding).target('chat').getSnapshot()
++        expect(live?.order.length ?? 0).toBeGreaterThan(0)
++      })
++      const chat = hooks.chat.getSnapshot()
++      const conversation = hooks.conversation.getSnapshot()
++      const entries = conversation.views.grouped('chat')?.entries ?? []
++      // Both hooks must describe the generation the binding now owns.
++      expect(chat.order).not.toContain('old-answer')
++      expect(entries.length).toBeGreaterThan(0)
++      expect(entries.flatMap(entry => entry.kind === 'node' ? [entry.key] : []))
++        .toContain(chat.order.at(-1))
++      stopChat()
++      stopConversation()
++    } finally {
++      await b.runtime.dispose()
++    }
++  })
++
+   it('binds Turn data directly to its keyed Location source', async () => {
+     const b = await bench()
+     const spec = b.runtime.slots.spec('conversation.chat.node') as unknown as {
+diff --git a/packages/client/ui-conversation/src/client/apply.ts b/packages/client/ui-conversation/src/client/apply.ts
+index e7577436..cdebd8e1 100644
+--- a/packages/client/ui-conversation/src/client/apply.ts
++++ b/packages/client/ui-conversation/src/client/apply.ts
+@@ -5,7 +5,7 @@ import type { Context } from '@deepseek-ai/cordis'
+ import z from '@deepseek-ai/schemastery'
+ import type { ISessions, SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
+ import { IconPaperclipOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+-import { createSnapshotStore, type BoundActions } from '@deepseek-ai/dsh-client-store'
++import { createSnapshotStore, type BoundActions, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
+ import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ // Type-only service and declaration merges used by this assembly.
+@@ -30,6 +30,7 @@ import { formatFileMention } from '@deepseek-ai/dsh-file-reference/grammar'
+ import { relativizeToCwd, workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
+ import { ConversationController, UnsupportedImageMediaTypeError, isImageMediaType } from './service.ts'
+ import type { IConversation } from './service.ts'
++import type { ConversationSnapshot } from './contract/snapshot.ts'
+ import { ComposerBlockRegistry } from './input/blocks.ts'
+ import type { ComposerBlock } from './contract/composer-blocks.ts'
+ import { InputHub } from './input/hub.ts'
+@@ -239,6 +240,55 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+   }
+   const bindings = new Set<SessionBinding>()
+   const trackedBindings = new WeakSet<SessionBinding>()
++  const conversationSources = new WeakMap<SessionBinding, ObservableSnapshot<ConversationSnapshot>>()
++  // A projection rebuild retires the loaded assembly, so the snapshot resolved
++  // now dies with it. Follow the replacement generation and hand the one
++  // listener set to its snapshot instead of serving a stale generation.
++  const conversationSource = (binding: SessionBinding): ObservableSnapshot<ConversationSnapshot> => {
++    let source = conversationSources.get(binding)
++    if (source !== undefined) return source
++    let target = uiConversation.binding(binding).snapshot
++    let leave: (() => void) | undefined
++    let stopProjection: (() => void) | undefined
++    const listeners = new Set<() => void>()
++    const notify = (): void => { for (const listener of listeners) listener() }
++    const follow = (): void => {
++      let next: ObservableSnapshot<ConversationSnapshot>
++      try {
++        next = uiConversation.binding(binding).snapshot
++      } catch {
++        // The Session binding was withdrawn; its ctx effect drops this source.
++        stopProjection?.()
++        return
++      }
++      if (next === target) return
++      leave?.()
++      target = next
++      leave = listeners.size > 0 ? target.subscribe(notify) : undefined
++      notify()
++    }
++    stopProjection = binding.projection.subscribe(follow)
++    binding.ctx.effect(() => () => {
++      stopProjection?.()
++      leave?.()
++      conversationSources.delete(binding)
++    }, 'ui-conversation: binding snapshot generation')
++    source = {
++      getSnapshot: () => target.getSnapshot(),
++      subscribe: (listener) => {
++        listeners.add(listener)
++        if (leave === undefined) leave = target.subscribe(notify)
++        return () => {
++          listeners.delete(listener)
++          if (listeners.size > 0) return
++          leave?.()
++          leave = undefined
++        }
++      },
++    }
++    conversationSources.set(binding, source)
++    return source
++  }
+   const trackBinding = (binding: SessionBinding): void => {
+     if (trackedBindings.has(binding)) return
+     trackedBindings.add(binding)
+@@ -326,11 +376,10 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+     resolve: (binding) => {
+       trackBinding(binding)
+       const shell = inputHub.shellFor(binding)
+-      const conversation = uiConversation.binding(binding)
+       restoreView(binding.sessionId)
+       return {
+         hooks: {
+-          conversation: conversation.snapshot,
++          conversation: conversationSource(binding),
+           input: shell.state,
+         },
+         props: { inputActions: shell.actions },

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+  "baseTree": "77ab54bbce37988207baa603b1d39aa9db9aeaaa",
+  "patches": [
+    {
+      "path": "patches/0001-navigation-policy.patch",
+      "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+      "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+    },
+    {
+      "path": "patches/0002-semantic-drafts.patch",
+      "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+      "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+    },
+    {
+      "path": "patches/0003-projection-rebuild.patch",
+      "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+      "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
+    },
+    {
+      "path": "patches/semantic-draft-esm.patch",
+      "sha256": "52718beaff79d4892f2cf89768b9f7e8846b72d17e883007f9e308a8a70ff9d2",
+      "treeAfter": "d05468939bcb06446ace47045d138f716406c788"
+    },
+    {
+      "path": "patches/0006-parsed-tool-presentation.patch",
+      "sha256": "e3ef9ab063b735d192279e3d46740d635128c500e308f89c6ee759e547147ab5",
+      "treeAfter": "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea"
+    },
+    {
+      "path": "patches/0008-provider-runtime.patch",
+      "sha256": "48887717d2e13ab5a9b77a91fdecc29c7e72c250851030b05c58c2d38a87ca08",
+      "treeAfter": "d876ff7a0636f71bdcae2148ec1a45d5a42e142f"
+    },
+    {
+      "path": "patches/0009-linux-web-shortcuts.patch",
+      "sha256": "9ba36f2083360e113118e1f86619081334ebc9a6c4e78ba15aaaa4c2347ead32",
+      "treeAfter": "52c982f334decf8c27e2296445dedada1e6d0309"
+    },
+    {
+      "path": "patches/0010-chat-source-rebind.patch",
+      "sha256": "90df8ac2915bd793af9988a545d06adcae64b1de1d5922bee3019c7fcf2c8592",
+      "treeAfter": "23caf717f04503207a6154c68fd25fea79b15957"
+    },
+    {
+      "path": "patches/0011-conversation-source-rebind.patch",
+      "sha256": "4caaf35b190d19164d47eb480e4192311e444b13e1611b5d268c7cbf0c144e2a",
+      "treeAfter": "3c517fbb5a4eb5397de624e550bd253576b91bd4"
+    },
+    {
+      "path": "patches/0012-client-test-projection-seam.patch",
+      "sha256": "81208a578e4e7b04a4812889a0c58d5312ad5c158705b899b48f0b252e7abedf",
+      "treeAfter": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
+    },
+    {
+      "path": "patches/0013-css-module-relative-hash.patch",
+      "sha256": "754ea9266e5ad4ba4be317c494465a4bfe2df893d5bf288b21d32acac88e1b2b",
+      "treeAfter": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f"
+    }
+  ]
+}

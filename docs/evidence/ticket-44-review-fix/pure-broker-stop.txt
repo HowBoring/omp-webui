@@ -1,0 +1,52 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/interactions/broker-remote.fixture.ts:
+(pass) two current public Remote pages race: invalid never wins, one valid answer crosses Native, refresh fences old delivery [137.90ms]
+(pass) Native invalid acknowledgement re-presents with a fresh delivery and original deadline; timer cancels without a default [32.05ms]
+(pass) overlapping Remote arrivals cannot defeat cancel; other credentials retain only current rights [32.51ms]
+(pass) overlapping Remote arrivals cannot defeat native-cancel; other credentials retain only current rights [45.50ms]
+(pass) overlapping Remote arrivals cannot defeat expiry; other credentials retain only current rights [21.57ms]
+(pass) overlapping Remote arrivals cannot defeat scope-revoke; other credentials retain only current rights [53.19ms]
+(pass) overlapping Remote arrivals cannot defeat credential-revoke; other credentials retain only current rights [22.56ms]
+(pass) all-page disconnect keeps startup UI alive until its original absolute 30-minute deadline; expiry requests Stop [15.29ms]
+(pass) lost Native acknowledgement stays unknown, requests Stop and cannot revive after worker replacement or tool/URI IDs [14.60ms]
+(pass) a held Native acknowledgement cannot suspend the deadline (timer) [11.10ms]
+(pass) a held Native acknowledgement cannot suspend the deadline (late-invalid) [11.71ms]
+(pass) credential revocation during a held answer fences the old view while preserving the actual Native outcome [35.62ms]
+
+tests/interactions/stop-remote.fixture.ts:
+(pass) concurrent public Stop fences work, withdraws the Native queue, and waits for joint idle [18.31ms]
+(pass) 30 seconds only offers one-use current-page force; expired/replaced pages never terminate [27.04ms]
+(pass) an original handle that becomes unknown (replaced) stays unusable even if its adapter later reports current [5.63ms]
+(pass) an original handle that becomes unknown (throws) stays unusable even if its adapter later reports current [23.65ms]
+(pass) confirmed termination unknown remains unknown and cannot replay [5.80ms]
+(pass) confirmed termination throws remains unknown and cannot replay [9.85ms]
+(pass) native settled does not bypass remaining Host interactions work or replay a blocked action [7.19ms]
+(pass) native settled does not bypass remaining Host history work or replay a blocked action [14.46ms]
+(pass) native settled does not bypass remaining Host queued work or replay a blocked action [8.71ms]
+(pass) native settled does not bypass remaining Host other work or replay a blocked action [5.36ms]
+(pass) typed public Native adapter uses the existing queue withdrawal and summary commands [0.42ms]
+(pass) EOF and agent_end never establish idle; abort refusal remains visible without automatic force [5.72ms]
+(pass) a late UI cancellation must drain before idle, and restored text never overwrites a newer draft [5.65ms]
+(pass) invalid known UI cancellation cannot turn Native settlement into joint idle [10.71ms]
+(pass) rejected known UI cancellation cannot turn Native settlement into joint idle [5.80ms]
+(pass) incompatible known UI cancellation cannot turn Native settlement into joint idle [19.43ms]
+(pass) held stop answer (answered) and incompatible cancellation preserve authoritative outcomes [8.36ms]
+(pass) held deadline answer (answered) and incompatible cancellation preserve authoritative outcomes [6.27ms]
+(pass) held scope-revoke answer (answered) and incompatible cancellation preserve authoritative outcomes [5.86ms]
+(pass) held native-cancel answer (answered) and incompatible cancellation preserve authoritative outcomes [6.90ms]
+(pass) held stop answer (invalid) and incompatible cancellation preserve authoritative outcomes [5.82ms]
+(pass) held deadline answer (invalid) and incompatible cancellation preserve authoritative outcomes [8.40ms]
+(pass) held scope-revoke answer (invalid) and incompatible cancellation preserve authoritative outcomes [5.65ms]
+(pass) held native-cancel answer (invalid) and incompatible cancellation preserve authoritative outcomes [6.94ms]
+(pass) invalid late UI cancellation remains unknown after ordinary controls and Native settlement [5.06ms]
+(pass) rejected late UI cancellation remains unknown after ordinary controls and Native settlement [13.12ms]
+(pass) incompatible late UI cancellation remains unknown after ordinary controls and Native settlement [4.36ms]
+(pass) UI tracking overflow cannot evict unresolved evidence or make a settled Stop idle [139.68ms]
+(pass) a failed Host UI control remains failed even when its live cancellation ledger is empty [3.11ms]
+(pass) public Native state requires explicit empty background and queues, with fresh worker correlation [5.59ms]
+
+ 42 pass
+ 0 fail
+ 291 expect() calls
+Ran 42 tests across 2 files. [1248.00ms]

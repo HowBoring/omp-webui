@@ -1,0 +1,22 @@
+{
+  "kind": "actual-owned-native-syscall-observation",
+  "build": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+    "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+    "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
+  },
+  "INETCalls": 0,
+  "xattrCalls": 103,
+  "nativeControlWrites": 6,
+  "noClobberLinkCalls": 2,
+  "traceFiles": 189,
+  "tracesSha256": "04ba0ca260bf5296df13a09f118782a66ed5adb20c92e847e3094c09fbcb01de",
+  "rawTraceDirectory": "vendor/strict-review-evidence/final-trace",
+  "checks": {
+    "tests": 2,
+    "assertions": 21,
+    "result": "PASS"
+  },
+  "scope": "Successful strict generation title publication/reopen and native nested artifact logical copy; Linux synthetic HOME/cwd, pre-import provider guard; process-crash only, no general performance claim"
+}

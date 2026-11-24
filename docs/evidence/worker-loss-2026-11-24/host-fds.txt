@@ -1,0 +1,24 @@
+total 0
+lrwx------              1 howboring howboring 64 Nov 24 01:30 0 -> /dev/pts/4
+lrwx------              1 howboring howboring 64 Nov 24 01:30 1 -> /dev/pts/4
+lrwx------+             1 howboring howboring 64 Nov 24 01:30 10 -> socket:[6738668]
+lrwx------              1 howboring howboring 64 Nov 24 01:30 11 -> anon_inode:[pidfd]
+lrwx------              1 howboring howboring 64 Nov 24 00:56 12 -> /home/howboring/.local/share/omp-webui/browser-access.sqlite
+lrwx------              1 howboring howboring 64 Nov 24 00:56 13 -> /home/howboring/.local/share/omp-webui/attachments/originals.sqlite
+lrwx------+             1 howboring howboring 64 Nov 24 00:57 14 -> socket:[6824667]
+lrwx------+             1 howboring howboring 64 Nov 24 00:56 15 -> socket:[6812300]
+lrwx------+             1 howboring howboring 64 Nov 24 01:30 16 -> socket:[6738675]
+lrwx------+             1 howboring howboring 64 Nov 24 01:30 17 -> socket:[6738677]
+lrwx------+             1 howboring howboring 64 Nov 24 00:57 18 -> socket:[6812301]
+lrwx------+             1 howboring howboring 64 Nov 24 00:56 19 -> socket:[6741712]
+lrwx------              1 howboring howboring 64 Nov 24 01:30 2 -> /dev/pts/4
+lrwx------+             1 howboring howboring 64 Nov 24 01:00 20 -> socket:[6812264]
+lrwx------+             1 howboring howboring 64 Nov 24 01:30 22 -> socket:[6739821]
+lrwx------+             1 howboring howboring 64 Nov 24 00:56 25 -> socket:[6769469]
+lrwx------              1 howboring howboring 64 Nov 24 00:56 3 -> anon_inode:[eventpoll]
+lrwx------              1 howboring howboring 64 Nov 24 01:30 4 -> anon_inode:[eventfd]
+lrwx------              1 howboring howboring 64 Nov 24 00:56 5 -> /home/howboring/.local/share/omp-webui/directory-grants.sqlite
+lrwx------+             1 howboring howboring 64 Nov 24 00:56 6 -> socket:[6738661]
+lrwx------+             1 howboring howboring 64 Nov 24 00:56 7 -> socket:[6738662]
+lrwx------              1 howboring howboring 64 Nov 24 00:56 8 -> /home/howboring/.local/share/omp-webui/session-index.sqlite
+lrwx------+             1 howboring howboring 64 Nov 24 00:56 9 -> socket:[6738664]

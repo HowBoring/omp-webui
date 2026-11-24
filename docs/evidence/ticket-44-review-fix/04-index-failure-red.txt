@@ -1,0 +1,26 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-supervisor.test.ts:
+(pass) explicit Open retains a stable prelaunch failure when its selected cwd disappeared [25.35ms]
+(pass) Open during pending idle retirement retains its prelaunch reason [36.57ms]
+(pass) zero exit with a failed final protocol tail persists an unknown shutdown outcome [26.81ms]
+(pass) an oversized adapter code remains bounded and its unknown worker is available for manual observation [26.81ms]
+54 |   try {
+55 |     f.controls.start = async () => {
+56 |       await rename(f.dataDir, f.dataDir + ".original"); await mkdir(f.dataDir);
+57 |       throw new Error("STRICT_OCCUPIED");
+58 |     };
+59 |     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_ATTEMPT_UNAVAILABLE");
+                                                                         ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "SESSION_ATTEMPT_UNAVAILABLE"
+Received message: "INDEX_UNAVAILABLE"
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-supervisor.test.ts:59:69)
+(fail) a failed attempt write cannot bypass cleanup of a definitely refused owned worker [18.00ms]
+
+ 4 pass
+ 1 fail
+ 15 expect() calls
+Ran 5 tests across 1 file. [221.00ms]

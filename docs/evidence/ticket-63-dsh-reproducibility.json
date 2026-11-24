@@ -1,0 +1,22 @@
+{
+  "checkouts": [
+    "/home/howboring/Projects/omp-webui-review-stock/.dsh-proof/run-TliUl1/checkout-a",
+    "/home/howboring/Projects/omp-webui-review-stock/.dsh-proof/run-TliUl1/checkout-b"
+  ],
+  "sourceTree": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f",
+  "artifacts": [
+    {
+      "fileCount": 371,
+      "sha256": "a7fc3ae760b5d53cfa6125c3993dbdfd7f04ab749f6929eb7e9bf0e5aa2b1c3f"
+    },
+    {
+      "fileCount": 371,
+      "sha256": "a7fc3ae760b5d53cfa6125c3993dbdfd7f04ab749f6929eb7e9bf0e5aa2b1c3f"
+    }
+  ],
+  "shipped": {
+    "fileCount": 371,
+    "sha256": "a7fc3ae760b5d53cfa6125c3993dbdfd7f04ab749f6929eb7e9bf0e5aa2b1c3f"
+  },
+  "identical": true
+}

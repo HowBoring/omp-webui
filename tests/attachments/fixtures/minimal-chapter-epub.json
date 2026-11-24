@@ -1,0 +1,85 @@
+{
+  "fixture": "tests/attachments/fixtures/minimal-chapter.epub",
+  "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+  "authoring": "Python stdlib ZIP_STORED/fixed1980 order/regular0100644 metadata. EPUB3 mimetype first and uncompressed/no extra field, container rootfile, OPF required identity/title/language/modified metadata, local manifest/spine with one XHTML chapter and separate required nav document. All resource hrefs local; namespace/vocabulary identifiers are not network resources.",
+  "bytes": 1893,
+  "originalSha256": "34985b766db4cddb6ecea12aac1a26690a3bd9aa631f6a402977c6d01f98bbd8",
+  "memberCount": 5,
+  "rootfile": "OEBPS/package.opf",
+  "spine": [
+    "chapter"
+  ],
+  "manifest": {
+    "chapter": {
+      "id": "chapter",
+      "href": "chapter.xhtml",
+      "media-type": "application/xhtml+xml"
+    },
+    "navigation": {
+      "id": "navigation",
+      "href": "nav.xhtml",
+      "media-type": "application/xhtml+xml",
+      "properties": "nav"
+    }
+  },
+  "chapterTitle": "Chapter",
+  "paragraphs": [
+    "Controlled prepared document"
+  ],
+  "members": [
+    {
+      "memberPath": "mimetype",
+      "bytes": 20,
+      "sha256": "e468e350d1143eb648f60c7b0bd6031101ec0544a361ca74ecef256ac901f48b",
+      "crc32": "2cab616f",
+      "utf8": "application/epub+zip"
+    },
+    {
+      "memberPath": "META-INF/container.xml",
+      "bytes": 238,
+      "sha256": "9bc16b7cf36822e1e2b55bfabbe0b0b7cb9abecdcfec7c9ab262c22009d41861",
+      "crc32": "6ffc5d91",
+      "utf8": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\"><rootfiles><rootfile full-path=\"OEBPS/package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+    },
+    {
+      "memberPath": "OEBPS/package.opf",
+      "bytes": 641,
+      "sha256": "015471cccddc715b9034e956ccb760b4190aefc12a501f51e17179f3ccf4f6b0",
+      "crc32": "bb0a4e8f",
+      "utf8": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"pub-id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"pub-id\">urn:uuid:00000000-0000-4000-8000-000000000038</dc:identifier><dc:title>EPUB witness</dc:title><dc:language>en</dc:language><meta property=\"dcterms:modified\">2026-01-01T00:00:00Z</meta></metadata><manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"navigation\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/></manifest><spine><itemref idref=\"chapter\"/></spine></package>"
+    },
+    {
+      "memberPath": "OEBPS/chapter.xhtml",
+      "bytes": 157,
+      "sha256": "429ed1769fc2cd0209a7d31d6495d23f9fdfd1131ad478ef584fb2e9dec122da",
+      "crc32": "c85ab420",
+      "utf8": "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\"><head><title>Chapter</title></head><body><p>Controlled prepared document</p></body></html>"
+    },
+    {
+      "memberPath": "OEBPS/nav.xhtml",
+      "bytes": 273,
+      "sha256": "a7d2f55a6e5d95df8a238f92a3b72e4c8fe6b3a06c6aad846eabef8aebe98088",
+      "crc32": "69be8c5c",
+      "utf8": "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" lang=\"en\" xml:lang=\"en\"><head><title>Navigation</title></head><body><nav epub:type=\"toc\" id=\"toc\"><h1>Contents</h1><ol><li><a href=\"chapter.xhtml\">Chapter</a></li></ol></nav></body></html>"
+    }
+  ],
+  "independentValidation": "Stdlib ZIP CRC/member/hash/local-header/mimetype-order and independent ElementTree XML/OPF/container/manifest/spine/nav/chapter graph checks. One content chapter, no images/script/style/external resource hrefs. No EPUBCheck/full schema/rendering or Native converter invoked.",
+  "expectedNativePreparation": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "degradations": [
+      "document_structure_changed"
+    ],
+    "omittedImages": 0,
+    "expectedText": "**Title:** EPUB witness\n**Language:** en\n\nChapter\n\nControlled prepared document",
+    "expectedTextBytes": 79,
+    "expectedTextSha256": "417f798e8bf98981a2f92d2dcab954563f2b79e7ce6486e7be4c0b14b0d4ccea",
+    "expectedRepresentationSha256": "b04d22a6b470a322cd10704bd1cc40fadd3d3ae1a970399dc65fa2c860f7dc28",
+    "basis": "Worked explicit-source chain, NOT observed conversion: EpubConverter adds only Title/Language metadata headers, follows only the chapter spine, counts zero img tags, normalizes no tables, then local Turndown retains ordinary head/title Chapter and converts the one paragraph with blank-line boundaries. HTML tokenizer/declaration behavior is honored by valid UTF8 XHTML without optional XML declaration. Sections join blank lines and trim. OPF identifier/modified and non-spine navigation do not enter selected metadata/content.",
+    "providerKnownSpan": {
+      "text": "Controlled prepared document",
+      "bytes": 28,
+      "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+    },
+    "limits": "Exact text/digests independently worked from inspected Native/local HTML source and hashlib-pinned, UNEXECUTED. Full EPUB schema/EPUBCheck/application/render/layout fidelity unvalidated. Provider witnesses known28B only, not whole prepared Markdown/provider wrapper delivery."
+  }
+}

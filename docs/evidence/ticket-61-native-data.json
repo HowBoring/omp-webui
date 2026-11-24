@@ -1,0 +1,136 @@
+{
+  "kind": "ticket-61-native-data",
+  "generatedAt": "2026-11-21T20:29:08Z",
+  "scope": "isolated synthetic native data under a private HOME; no real user history is read or written",
+  "provider": "controlled fixture compatibility/omp/fixtures/navigation-provider.ts (no real model inference)",
+  "builds": {
+    "current": {
+      "path": "vendor/omp-candidate/cli.js",
+      "sha256": "6385297622ab2a79ca2923c374fe6902b2efd65886775827adcb3db51a03b07a",
+      "runtime": "vendor/omp-candidate base 57771ae562b9345e0579bceb2d68d585e3e6927e"
+    },
+    "previous": {
+      "path": "vendor/omp-previous/node_modules/@oh-my-pi/pi-coding-agent/dist/cli.js",
+      "sha256": "648be0034d37318687525546dcbef0bd1596dda87d008cc14fecc801c821ac76"
+    }
+  },
+  "checks": {
+    "currentCreatesNativeData": {
+      "status": "pass",
+      "exit": 0,
+      "replyRendered": true,
+      "sessionFile": "navigation-current/.omp/agent/sessions/-tmp-project/2026-11-21T20-29-11-538Z_01a1ffcc-73f2-7111-b530-26e76922cf2e.jsonl",
+      "sha256": "74d5f26bb72331b7c20320018751ba1902f6bc1d249623fdb75a8c9bcf219686",
+      "headerVersion": 3,
+      "runtime": null,
+      "network": {
+        "denied": 16,
+        "actualNetworkDispatches": 0,
+        "guard": "preimport-no-provider-v1"
+      }
+    },
+    "currentTuiReopensCurrentData": {
+      "status": "pass",
+      "exit": 0,
+      "rendered": true,
+      "write": {
+        "preserved": true,
+        "appended": [
+          "custom:session_exit 19.0.0"
+        ]
+      }
+    },
+    "previousBuildOpensCurrentData": {
+      "status": "pass",
+      "resolution": "lossless-resume",
+      "exit": 0,
+      "rendered": true,
+      "write": {
+        "preserved": true,
+        "appended": [
+          "custom:session_exit 18.20.2"
+        ]
+      }
+    },
+    "previousBuildCreatesBaseData": {
+      "status": "pass",
+      "exit": 0,
+      "replyRendered": true,
+      "sha256": "b885def41af86409133d8f69ae0afe24334f85f0335f86b03977af32d06f2f44",
+      "runtime": null,
+      "generations": [
+        "title -",
+        "session -",
+        "model_change 18.20.2",
+        "thinking_level_change 18.20.2",
+        "custom:date-cwd-reminder 18.20.2",
+        "message 18.20.2",
+        "custom:system-prompt-digest 18.20.2",
+        "message 18.20.2",
+        "custom:session_exit 18.20.2"
+      ]
+    },
+    "currentUpgradesPreviousData": {
+      "status": "pass",
+      "tui": {
+        "exit": 0,
+        "rendered": true,
+        "write": {
+          "preserved": true,
+          "appended": [
+            "custom:session_exit 19.0.0"
+          ]
+        }
+      },
+      "continuation": {
+        "exit": 0,
+        "reply": true,
+        "stdout": [
+          "literal fixture response 21"
+        ],
+        "stderr": [
+          "S0_FIXTURE_NETWORK_DENIED:fetch",
+          "Working..."
+        ]
+      },
+      "previousRecordsPreserved": true,
+      "appended": [
+        "custom:session_exit 19.0.0",
+        "message 19.0.0",
+        "custom:system-prompt-digest 19.0.0",
+        "message 19.0.0",
+        "custom:session_exit 19.0.0"
+      ],
+      "newMetadata": {
+        "headerVersion": 3,
+        "recordTypes": [
+          "custom:date-cwd-reminder 18.20.2",
+          "custom:session_exit 18.20.2",
+          "custom:session_exit 19.0.0",
+          "custom:system-prompt-digest 18.20.2",
+          "custom:system-prompt-digest 19.0.0",
+          "message 18.20.2",
+          "message 19.0.0",
+          "model_change 18.20.2",
+          "session -",
+          "thinking_level_change 18.20.2",
+          "title -"
+        ],
+        "formatUnchanged": true
+      }
+    },
+    "previousBuildRollsBackUpgradedData": {
+      "status": "pass",
+      "resolution": "lossless-resume",
+      "exit": 0,
+      "rendered": true,
+      "write": {
+        "preserved": true,
+        "appended": [
+          "custom:session_exit 18.20.2"
+        ]
+      }
+    }
+  },
+  "status": "pass"
+}

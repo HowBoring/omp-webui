@@ -1,0 +1,50 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-supervisor.test.ts:
+24 |     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+25 |     expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+26 |     expect(f.supervisor.starts).toBe(1);
+27 |     const drain = { ...f.controls.drain, ...(protocolFailure ? { protocolFailure } : {}) };
+28 |     completion.resolve(drain); await completion.promise;
+29 |     expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+                                                              ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "code": "SESSION_WORKER_DRAINING",
+-   "state": "failed",
++   "state": "closed",
+  }
+
+- Expected  - 2
++ Received  + 1
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-supervisor.test.ts:29:58)
+(fail) Open failure survives older idle completion with tail %s at the same clock [50.95ms]
+24 |     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+25 |     expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+26 |     expect(f.supervisor.starts).toBe(1);
+27 |     const drain = { ...f.controls.drain, ...(protocolFailure ? { protocolFailure } : {}) };
+28 |     completion.resolve(drain); await completion.promise;
+29 |     expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+                                                              ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "code": "SESSION_WORKER_DRAINING",
+-   "state": "failed",
++   "code": "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48",
++   "state": "outcome_unknown",
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-supervisor.test.ts:29:58)
+(fail) Open failure survives older idle completion with tail RPC_PROTOCOL at the same clock [22.75ms]
+
+ 0 pass
+ 7 filtered out
+ 2 fail
+ 10 expect() calls
+Ran 2 tests across 1 file. [303.00ms]

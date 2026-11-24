@@ -48,6 +48,7 @@ The Host is an adapter and process supervisor, not a second Agent implementation
 ## Engineering conventions
 
 - TypeScript strict mode; avoid `any`, unchecked casts, and implicit protocol assumptions.
+- Use repository TypeScript for editor diagnostics and apply Oxlint and the strict typecheck to TypeScript changes.
 - Prefer small modules with explicit interfaces and one responsibility.
 - Target 120 characters per line, 50 lines per method, cyclomatic complexity <=15, and nesting depth <=4.
 - Keep public types documented where their semantics are not obvious.
@@ -60,12 +61,16 @@ The Host is an adapter and process supervisor, not a second Agent implementation
 
 ~~~bash
 bun run dev
+bun run lint
 bun run typecheck
 bun test
 bun run check
 ~~~
 
-The initial Host is only a health-check scaffold. Do not describe the DSH Gateway or OMP RPC integration as implemented until the corresponding end-to-end tests pass.
+The product Host, DSH Gateway and OMP RPC integration are implemented on the frozen combination in
+`docs/release-final.md`. Do not describe a *new* combination (upstream bump, patch change, re-enroll) as
+implemented until `bun run product:verify`, `bun test tests/product/freeze.test.ts` and the affected
+product/native scenarios pass again.
 
 ## Agent skills
 
@@ -82,3 +87,4 @@ Use the five canonical labels mapped in docs/agents/triage-labels.md.
 
 Single-context: CONTEXT.md and docs/adr/.
 Before domain exploration or design, read docs/agents/domain.md.
+Before changing or debugging the real browser product, read docs/agents/product-runtime.md.

@@ -1,0 +1,26 @@
+diff --git a/packages/client/ui-chat/tests/chat-apply.client.spec.tsx b/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
+index 2bd4027e..3ff52dfc 100644
+--- a/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
++++ b/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
+@@ -359,8 +359,8 @@ describe('Chat apply wiring', () => {
+ 
+     // A projection rebuild retires the loaded assembly and admits a new one.
+     listener.mockClear()
+-    binding.projection.set({ phase: 'rebuilding', signal: new AbortController().signal })
+-    binding.projection.set({
++    b.runtime.sessions.behavior(SID).projection.set({ phase: 'rebuilding', signal: new AbortController().signal })
++    b.runtime.sessions.behavior(SID).projection.set({
+       phase: 'ready',
+       binding: parseProjectionBinding({ source: 'window', generation: 'generation-2' }),
+       signal: new AbortController().signal,
+@@ -428,8 +428,8 @@ describe('Chat apply wiring', () => {
+       } })
+ 
+       // The prompt settled and the projection rebuilt onto a new generation.
+-      binding.projection.set({ phase: 'rebuilding', signal: new AbortController().signal })
+-      binding.projection.set({
++      b.runtime.sessions.behavior(SID).projection.set({ phase: 'rebuilding', signal: new AbortController().signal })
++      b.runtime.sessions.behavior(SID).projection.set({
+         phase: 'ready',
+         binding: parseProjectionBinding({ source: 'window', generation: 'generation-2' }),
+         signal: new AbortController().signal,

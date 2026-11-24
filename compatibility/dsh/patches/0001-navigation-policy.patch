@@ -1,0 +1,1625 @@
+diff --git a/docs/subsystems/client-modules.md b/docs/subsystems/client-modules.md
+index 5b058a2508bedc31fbcecce2752b9d2f815b4afd..867d3128d98555ee7f0c6b8bb0ca8f424a4913d8 100644
+--- a/docs/subsystems/client-modules.md
++++ b/docs/subsystems/client-modules.md
+@@ -20,6 +20,8 @@ The graph is the wire single source between the Node and browser halves. The hos
+  * non-inject module requests (see {@link WebBootGraph.entries}).
+  */
+ interface WebBootEntry {
++  /** JSON object passed to the Client plugin Config at initial boot. Omission uses plugin defaults; changes require reload. */
++  config?: Record<string, unknown>
+   /** Entry name == package name. */
+   id: string
+   /**
+diff --git a/docs/subsystems/client-modules.zh.md b/docs/subsystems/client-modules.zh.md
+index 9b2af16fdafe485fad76bd374c1fc31a6bb13939..57ac424ff2adf4fa74ad3e4d5b889ba996ee3c22 100644
+--- a/docs/subsystems/client-modules.zh.md
++++ b/docs/subsystems/client-modules.zh.md
+@@ -20,6 +20,8 @@ Web 插件表：[dsh-client-modules](../../packages/client/modules) 中 client 
+  * non-inject module requests (see {@link WebBootGraph.entries}).
+  */
+ interface WebBootEntry {
++  /** JSON object passed to the Client plugin Config at initial boot. Omission uses plugin defaults; changes require reload. */
++  config?: Record<string, unknown>
+   /** Entry name == package name. */
+   id: string
+   /**
+diff --git a/docs/subsystems/web-client.i18n.yaml b/docs/subsystems/web-client.i18n.yaml
+index f201ba2f7e7c9755605bcab9c98267a11d1d4d35..f2bc60cb7b5895cc49db62e41e5d99d9b9303c82 100644
+--- a/docs/subsystems/web-client.i18n.yaml
++++ b/docs/subsystems/web-client.i18n.yaml
+@@ -18,8 +18,8 @@
+   en: 13be17c2a2790ae9
+   zh: f5af715d0ae222be
+ /web-client-architecture/client-models/sessions:
+-  en: e010ab37d059025f
+-  zh: f857a2fc2720a28f
++  en: f1659138a4dd6f9d
++  zh: 014111d146b8e2ae
+ /web-client-architecture/client-models/workspaces:
+   en: c063711f8247c240
+   zh: 5e54758bbaf1670c
+diff --git a/docs/subsystems/web-client.md b/docs/subsystems/web-client.md
+index 93f2fbdf1d74851111c21e5206f78d3dc794a6bf..cdcfb55f7f210a8ec4b2564f08d8df424d7a588c 100644
+--- a/docs/subsystems/web-client.md
++++ b/docs/subsystems/web-client.md
+@@ -47,6 +47,8 @@ Each API controller package owns a paired Host and Client face. The Host side ow
+ 
+ The durable event path opens `follow()`, whose first frame contains the current header, tail page, cursor, and complete projection baseline. History records have an explicit `event` or `chunks` discriminator and an aligned inner `event`; the journal validates each inclusive logical sequence range before the Client retains the records as `SessionEventLikeEntry` values without per-record conversion. Each physical generation atomically replaces the retained window from that snapshot; standard live events then append by sequence. `page()` is reserved for older history and gap repair. The transient control stream starts every generation with a complete baseline and then applies projection updates.
+ 
++Client deployment policy is defined by the [Session Controller](../../packages/api/session-controller/README.md) and [Workspace Controller](../../packages/api/workspace-controller/README.md). The [Workspace Client](../../packages/client/ui-workspace/README.md) requires a public navigation provider in external mode. Boot entry config passes through the Cordis Loader and remains fixed until reload. Client policy never changes Remote resource authorization.
++
+ ### Workspaces
+ 
+ [`api/workspace-controller`](../../packages/api/workspace-controller/README.md) keeps Workspace mutation policy and the authoritative follow feed on the Host. `ClientWorkspaceModel` owns browser rows, Workspace order, archived and pinned Session id arrays, command echoes, and stream/unary race resolution. Every stream generation starts with a complete baseline followed by `upsert`, `remove`, `order`, `archived`, and `pinned` increments; reconnect replaces the model from the new baseline. `WorkspaceController` exposes that model as `ctx.workspaces`, while `ui-workspace` contributes `useWorkspaces` and navigation callbacks. The sidebar's `ArchivedFilter` controls default-hidden, shown, or archived-only rows in lists and search. Archived rows retain their ordering slots, render grayed, and cannot open until restored through the row or search-result Unarchive action. Restoration calls `workspace.unarchiveSession`, and its complete archive set reaches Clients through the unary response and `archived` increment. Session display order stays browser-local and includes hidden archives; pinning moves a Session within that full order, while unpinning does not restore its earlier position.
+diff --git a/docs/subsystems/web-client.zh.md b/docs/subsystems/web-client.zh.md
+index 3c0c0da5bb7c54a1e0b48f7e1405be113c834d0d..d17e48204264c2050180f8281fefe5be7df65cbc 100644
+--- a/docs/subsystems/web-client.zh.md
++++ b/docs/subsystems/web-client.zh.md
+@@ -47,6 +47,8 @@ Connection 拥有请求 URL 解析、request correlation、`/api` carrier、trus
+ 
+ 持久 event 路径打开 `follow()`，其首帧包含当前 header、tail page、cursor 与完整 projection baseline。历史 record 带有显式 `event` 或 `chunks` 判别字段和字段对齐的内部 `event`；journal 先校验每条 record 的逻辑 seq 闭区间，Client 再直接把这些 record 保留为 `SessionEventLikeEntry`，无需逐 record 转换。每个物理 generation 都根据该 snapshot 原子替换保留窗口，随后按 seq append 标准实时 event。`page()` 只用于更早历史与 gap repair。瞬态 control stream 每代以完整 baseline 开始，随后应用 projection update。
+ 
++Client 部署策略由 [Session Controller](../../packages/api/session-controller/README.zh.md) 和 [Workspace Controller](../../packages/api/workspace-controller/README.zh.md) 定义。[Workspace Client](../../packages/client/ui-workspace/README.zh.md) 在外部导航模式下需要公开导航提供者。启动条目的 config 经 Cordis Loader 传递，配置在页面刷新前保持不变。Client 策略不改变 Remote 资源授权。
++
+ ### Workspaces
+ 
+ [`api/workspace-controller`](../../packages/api/workspace-controller/README.zh.md)把 Workspace 变更策略与权威 follow feed 留在 Host。`ClientWorkspaceModel` 拥有浏览器行、Workspace 顺序、归档与置顶 Session id 数组、命令回显，以及流与一元调用的竞态合并。每代 stream 先给出完整 baseline，再给出 `upsert`、`remove`、`order`、`archived` 和 `pinned` increment；重连时以新 baseline 替换 model。`WorkspaceController` 把该 model 作为 `ctx.workspaces` 公开，`ui-workspace` 则提供 `useWorkspaces` 与导航回调。侧边栏的 `ArchivedFilter` 控制列表与搜索中的默认隐藏、显示已归档或仅显示已归档。归档行保留排序位置、置灰展示，必须通过行菜单或搜索结果的取消归档操作恢复后才能打开。恢复调用 `workspace.unarchiveSession`，完整归档集合通过一元响应及 `archived` increment 到达 Client。Session 显示顺序保存在浏览器本地，包含隐藏归档项；置顶在该完整顺序内移动 Session，取消置顶不恢复先前位置。
+diff --git a/packages/api/session-controller/README.i18n.yaml b/packages/api/session-controller/README.i18n.yaml
+index 94482498be4ab2d7210bd8d3269e84c1e76e601b..ef87103ec10c0abc206283d73bbead4e68fd4cdc 100644
+--- a/packages/api/session-controller/README.i18n.yaml
++++ b/packages/api/session-controller/README.i18n.yaml
+@@ -36,5 +36,8 @@
+   en: 23bc3db43e84daa6
+   zh: 0242338ac7bd24fa
+ /session-controller/known-limitations-and-deferred-work/dev-note:
+-  en: e67f633dc6fe7773
+-  zh: e88aeb617ffb74ea
++  en: 3d53a97e4184a0f7
++  zh: 03cdb7772b70cbfa
++/session-controller/known-limitations-and-deferred-work/client-deployment-policy:
++  en: 8f32637958ee5b6a
++  zh: f3fdf16309b3315c
+diff --git a/packages/api/session-controller/README.md b/packages/api/session-controller/README.md
+index f414ce78ef9caedf3b01d9182a4d9d1a57a0109d..ec9c2d4350dc421fd4f193326cc7b1c72c404886 100644
+--- a/packages/api/session-controller/README.md
++++ b/packages/api/session-controller/README.md
+@@ -140,6 +140,11 @@ No direct effect; model requests remain owned by the Agent and LLM packages.
+ <a id="dev-note"></a>
+ ### Dev Note
+ 
++### Client deployment policy
++
++The browser entry accepts `disabledActions` (empty by default) and `allowPromptWhileRunning` (true by default). An embedding supplies these through the public boot entry `config`; omitted config preserves standard behavior and changes require a page reload. Disabled create, fork, rename, prompt and queue operations fail locally before Remote calls. Busy refusal applies to prompt queue/steer and queued-message steering while the Session observes Host running state; queue removal and cancellation remain available unless separately disabled. These checks never grant resource permissions or replace Host admission.
++
++
+ <details>
+ <summary>Working context for maintainers — click to expand</summary>
+ 
+diff --git a/packages/api/session-controller/README.zh.md b/packages/api/session-controller/README.zh.md
+index 2a83f4504dcfb13a55e83e716a751fa227009897..85c71abdf460cdc066cc5b994b73c64b5f3074af 100644
+--- a/packages/api/session-controller/README.zh.md
++++ b/packages/api/session-controller/README.zh.md
+@@ -140,6 +140,11 @@ Blockquote 作为普通 prompt 文本传递，不携带 quote 元数据。本地
+ <a id="dev-note"></a>
+ ### 开发备注
+ 
++### Client 部署策略
++
++浏览器入口接受 `disabledActions`（默认为空）和 `allowPromptWhileRunning`（默认为 true）。嵌入方通过公开启动条目的 `config` 传递配置；省略配置保留标准行为，修改配置需要刷新页面。禁用的 create、fork、rename、prompt 和 queue 操作在发送 Remote 请求前本地失败。Session 观察到 Host running 状态时，忙时限制拒绝 queue、steer 以及已排队消息的 steer；未被另行禁用的队列撤回和取消仍然可用。这些检查不授予资源权限，也不能替代 Host 准入检查。
++
++
+ <details>
+ <summary>维护者工作上下文——点击展开</summary>
+ 
+diff --git a/packages/api/session-controller/src/client/contract/policy.ts b/packages/api/session-controller/src/client/contract/policy.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..21135b360a68ff99b8035bb82717b36e13a4cb06
+--- /dev/null
++++ b/packages/api/session-controller/src/client/contract/policy.ts
+@@ -0,0 +1,20 @@
++import type { SessionId } from '@deepseek-ai/dsh-session/types'
++
++/** Session operations whose Client presentation and execution may be unavailable in a deployment. */
++export type ClientSessionAction = 'create' | 'prompt' | 'rename' | 'fork' | 'queue'
++
++/** Deployment-selected Client behavior; Host authorization is always independent. */
++export interface ClientSessionPolicy {
++  /** Operations this Client must not present or send. Omission leaves the standard action set available. */
++  readonly disabledActions?: readonly ClientSessionAction[]
++  /** False refuses prompt admission while the Host reports this Session running. Omission preserves queueing. */
++  readonly allowPromptWhileRunning?: boolean
++}
++
++// These failures are produced locally before transport; they are not Host endpoints.
++declare module '@deepseek-ai/dsh-typert-protocol' {
++  interface RemoteErrorDetailsMap {
++    'client/session-action-unavailable': { readonly action: ClientSessionAction }
++    'client/session-busy': { readonly sessionId: SessionId; readonly mode: 'queue' | 'steer' }
++  }
++}
+diff --git a/packages/api/session-controller/src/client/contract/sessions.ts b/packages/api/session-controller/src/client/contract/sessions.ts
+index c1fede0937ac2981c458bc296b2689d8eea1b51f..5bed96afc2f43f8e441304ce7b05096d6e9ae81d 100644
+--- a/packages/api/session-controller/src/client/contract/sessions.ts
++++ b/packages/api/session-controller/src/client/contract/sessions.ts
+@@ -4,6 +4,7 @@
+  * the concrete class. Widening this interface is the
+  * explicit act of widening what features may do to the sessions domain.
+  */
++import type { ClientSessionPolicy } from './policy.ts'
+ import type { Context } from '@deepseek-ai/cordis'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+@@ -47,6 +48,8 @@ export interface SessionRetainInfo {
+ 
+ /** The sessions-service face injected as `ctx.sessions`. */
+ export interface ISessions {
++  /** Client availability only; absent preserves standard actions. Never grants Remote access. */
++  readonly policy?: ClientSessionPolicy
+   /** Host catalog and local reference-source counts; navigation belongs to view owners. */
+   readonly list: ObservableSnapshot<SessionListState>
+   /**
+diff --git a/packages/api/session-controller/src/client/index.ts b/packages/api/session-controller/src/client/index.ts
+index b9600f36a66e72efe0ad6ffd9c29d0cf38916a55..56c7193dd1f635dd0464fcb74758d89f4bbdb886 100644
+--- a/packages/api/session-controller/src/client/index.ts
++++ b/packages/api/session-controller/src/client/index.ts
+@@ -1,5 +1,7 @@
+ /** Client Session object layer, Agent scopes, and Remote lifecycle wiring. */
+ 
++import z from '@deepseek-ai/schemastery'
++import type { ClientSessionAction, ClientSessionPolicy } from './contract/policy.ts'
+ import type { Context } from '@deepseek-ai/cordis'
+ import type {} from '@deepseek-ai/dsh-agent/types'
+ import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
+@@ -34,6 +36,7 @@ export type {
+   SessionSearchResultItem,
+   SessionProjectionSnapshot,
+ } from './sessions/manager.ts'
++export type { ClientSessionAction, ClientSessionPolicy } from './contract/policy.ts'
+ export type { Session } from './sessions/session.ts'
+ export type {
+   ProjectionsBaseline,
+@@ -76,6 +79,17 @@ export type {
+   SessionSnapshot,
+ } from './contract/snapshot.ts'
+ 
++/** Deployment behavior only; Remote authorization and Host admission remain authoritative. */
++export interface Config extends ClientSessionPolicy {
++  /** Unavailable Client operations; omission enables the standard action set. */
++  disabledActions?: ClientSessionAction[]
++}
++/** Validated immutable policy selection. Defaults preserve the standard Client behavior. */
++export const Config: z<Config> = z.object({
++  disabledActions: z.array(z.union(['create', 'prompt', 'rename', 'fork', 'queue'])).default([]),
++  allowPromptWhileRunning: z.boolean().default(true),
++})
++
+ /** Consumer-owned reference labels; extend this map through the package's canonical /client entry. */
+ export interface SessionReferenceSourceMap {
+   /** Temporary Client Controller work, including fork-title preparation. */
+@@ -108,11 +122,12 @@ export const inject = [
+ /**
+  * Install Client Session state and its reconnecting control stream.
+  * @param ctx - Client Cordis context.
++ * @param config - deployment policy; omission preserves standard actions and busy queueing.
+  */
+-export function apply(ctx: Context): void {
++export function apply(ctx: Context, config: Config = Config({})): void {
+   const remotes = ctx.remote as unknown as SessionRemotes
+   const connection = ctx.get('connection') as ConnectionHandle
+-  const sessions = new ClientSessions(ctx, remotes)
++  const sessions = new ClientSessions(ctx, remotes, config)
+   ctx.remote.$on('api-session/added', (summary) => { sessions.handleSessionAdded(summary) })
+   ctx.remote.$on('api-session/removed', (sessionId) => { sessions.handleSessionRemoved(sessionId) })
+   ctx.remote.$on('api-session/status', (sessionId, running) => {
+diff --git a/packages/api/session-controller/src/client/sessions/manager.ts b/packages/api/session-controller/src/client/sessions/manager.ts
+index e7450ca9734de87032f3d19f6143b1854421e39a..b5a2e048ac56fe995ad67de2a945423f8b65e992 100644
+--- a/packages/api/session-controller/src/client/sessions/manager.ts
++++ b/packages/api/session-controller/src/client/sessions/manager.ts
+@@ -1,5 +1,7 @@
+ /** Host catalog, durable projection caches, and explicitly retained Client instances. */
+ 
++import type { ClientSessionPolicy } from '../contract/policy.ts'
++import { sessionActionFailure } from './policy.ts'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import { SessionSeq, type SessionId, type SessionSeqCursor } from '@deepseek-ai/dsh-session/types'
+ import type { SessionProjectionMap, SessionProjectionViewValues } from '@deepseek-ai/dsh-session-projection/types'
+@@ -127,8 +129,8 @@ export class SessionManager {
+     this.listSnapshotCache = this.buildListSnapshot()
+   })
+ 
+-  /** @param remote - generated Remote namespaces used by catalog and history readers. */
+-  constructor(private readonly remote: SessionRemotes) {
++  /** @param remote - generated Remote namespaces. @param policy - deployment selection; absent preserves standard behavior. */
++  constructor(private readonly remote: SessionRemotes, private readonly policy?: ClientSessionPolicy) {
+     this.listSnapshotCache = this.buildListSnapshot()
+   }
+ 
+@@ -272,6 +274,7 @@ export class SessionManager {
+   private createSession(sessionId: SessionId): Session {
+     const address = this.addresses.get(sessionId)
+     return new Session(sessionId, this.remote, {
++      ...(this.policy === undefined ? {} : { policy: this.policy }),
+       ...(address === undefined ? {} : { address }),
+       // The sender's local first-send flip mirrors into the list row so the
+       // session surfaces (lists filter on blank) before any host frame lands.
+@@ -495,6 +498,8 @@ export class SessionManager {
+       agentPreset?: string
+     } = {},
+   ): Promise<RemoteResult<{ sessionId: SessionId }>> {
++    const unavailable = sessionActionFailure(this.policy, 'create')
++    if (unavailable !== undefined) return { ok: false, error: unavailable }
+     const shared = {
+       ...(opts.sessionId === undefined ? {} : { sessionId: opts.sessionId }),
+       ...(opts.agentPreset === undefined ? {} : { agentPreset: opts.agentPreset }),
+@@ -538,6 +543,8 @@ export class SessionManager {
+   async fork(
+     opts: { sessionId: SessionId; atSeq?: SessionSeq; allowMigration?: boolean },
+   ): Promise<RemoteResult<{ sessionId: SessionId }>> {
++    const unavailable = sessionActionFailure(this.policy, 'fork')
++    if (unavailable !== undefined) return { ok: false, error: unavailable }
+     const source = this.summaries.find(s => s.sessionId === opts.sessionId)
+     const result = await this.remote.session.fork({
+       sessionId: opts.sessionId,
+@@ -563,6 +570,8 @@ export class SessionManager {
+    * @returns the accepted title and event position, or the Remote failure.
+    */
+   async rename(sessionId: SessionId, title: string): Promise<RemoteResult<SessionRenameValue>> {
++    const unavailable = sessionActionFailure(this.policy, 'rename')
++    if (unavailable !== undefined) return { ok: false, error: unavailable }
+     const result = await this.remote.session.rename({ sessionId, title })
+     if (result.ok) {
+       this.projectionStore(sessionId).apply('title', result.value.title, SessionSeq(result.value.seq))
+diff --git a/packages/api/session-controller/src/client/sessions/policy.ts b/packages/api/session-controller/src/client/sessions/policy.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..82b2deb113b4edbdb05ee97a8f3f706eac903464
+--- /dev/null
++++ b/packages/api/session-controller/src/client/sessions/policy.ts
+@@ -0,0 +1,15 @@
++/** Local deployment refusal, independent of Remote resource authorization. */
++import { RemoteError, type RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
++import type { ClientSessionAction, ClientSessionPolicy } from '../contract/policy.ts'
++
++/**
++ * Check an action against the immutable deployment selection.
++ * @param policy - Client-selected availability; omission preserves the standard behavior.
++ * @param action - operation about to execute.
++ * @returns a local failure when unavailable, otherwise undefined.
++ */
++export function sessionActionFailure(policy: ClientSessionPolicy | undefined, action: ClientSessionAction): RemoteFailure | undefined {
++  return policy?.disabledActions?.includes(action)
++    ? new RemoteError('client/session-action-unavailable', 'client/session-action-unavailable', { action })
++    : undefined
++}
+diff --git a/packages/api/session-controller/src/client/sessions/service.ts b/packages/api/session-controller/src/client/sessions/service.ts
+index 86b1ad4757e97ef54f8e5ed1a49d3d6f202cf325..2d2da2a2e095c500a56666447c39948006ac3162 100644
+--- a/packages/api/session-controller/src/client/sessions/service.ts
++++ b/packages/api/session-controller/src/client/sessions/service.ts
+@@ -1,4 +1,5 @@
+ /** Client catalog and source-labelled ownership of exact Session generations. */
++import type { ClientSessionPolicy } from '../contract/policy.ts'
+ import type { Context, Fiber } from '@deepseek-ai/cordis'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
+@@ -248,6 +249,8 @@ class ClientSessionReference implements SessionReference {
+ 
+ /** Host catalog and local reference allocator; view selection remains outside the Controller. */
+ export class ClientSessions implements ISessions {
++  /** Immutable deployment selection shared by all Client Session generations. */
++  readonly policy: ClientSessionPolicy
+   /**
+    * The wire schema's own result bound, re-exposed for presentation plugins as
+    * injected data. Not per-connection state: the `session.search` response
+@@ -268,12 +271,15 @@ export class ClientSessions implements ISessions {
+   /**
+    * @param ctx - client root context (scope fibers mount under it).
+    * @param remote - generated Remote namespaces shared with every Session.
++   * @param policy - deployment selection; omission preserves standard Client behavior.
+    */
+   constructor(
+     private readonly rootCtx: Context,
+     remote: SessionRemotes,
++    policy: ClientSessionPolicy = {},
+   ) {
+-    this.manager = new SessionManager(remote)
++    this.policy = Object.freeze({ ...policy, disabledActions: Object.freeze([...(policy.disabledActions ?? [])]) })
++    this.manager = new SessionManager(remote, this.policy)
+     this.list = createSnapshotStore<SessionListState>({
+       ids: [], byId: {}, phase: 'pending', projectionsBySession: {},
+     })
+diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
+index 60194de5eb5bed57fb2d4ba10032678b77b4eaea..735ee75f27f36ae3b84688e1c7554ae5c4a964b8 100644
+--- a/packages/api/session-controller/src/client/sessions/session.ts
++++ b/packages/api/session-controller/src/client/sessions/session.ts
+@@ -10,6 +10,8 @@ import type { UserMessage } from '@deepseek-ai/dsh-llm/types'
+ import { SessionLogOffset, SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
+ import { SessionEventStream } from '../transport.ts'
+ import type { SessionJournalChange } from '../transport.ts'
++import type { ClientSessionPolicy } from '../contract/policy.ts'
++import { sessionActionFailure } from './policy.ts'
+ import type {
+   PromptContentPart,
+   QueueAction,
+@@ -79,6 +81,8 @@ interface OlderHistoryRequest {
+ 
+ /** Manager-owned observers of a Session object's local state edges. */
+ export interface SessionOptions {
++  /** Client admission rules supplied by the Session Controller deployment. */
++  readonly policy?: ClientSessionPolicy
+   /** Catalog-discovered address selecting non-activating subagent transport. */
+   address?: SubagentAddress
+   /**
+@@ -275,6 +279,14 @@ export class Session implements SessionFace {
+   ): Promise<RemoteResult<{ accepted: true }>> {
+     this.promptError = null
+     this.lastAgentError = null
++    const unavailable = sessionActionFailure(this.options.policy, 'prompt')
++    if (unavailable !== undefined || (this.running && this.options.policy?.allowPromptWhileRunning === false)) {
++      const error = unavailable ?? new RemoteError('client/session-busy', 'client/session-busy', { sessionId: this.sessionId, mode })
++      if (requestId !== undefined) this.retireFailedSubmission(requestId)
++      this.promptError = { op: 'send', error }
++      this.notifier.markDirty()
++      return { ok: false, error }
++    }
+     // Before the first await, so a turn observed ahead of the receipt clears it.
+     const firstPrompt = this.blankBit && !this.firstPromptPendingTurn
+     if (firstPrompt) this.firstPromptPendingTurn = true
+@@ -364,6 +376,11 @@ export class Session implements SessionFace {
+ 
+   /** Apply one operation to a still-pending queue occurrence. */
+   async updateQueue(itemId: MessageId, action: QueueAction): Promise<RemoteResult<{ accepted: true }>> {
++    const unavailable = sessionActionFailure(this.options.policy, 'queue')
++    if (unavailable !== undefined) return { ok: false, error: unavailable }
++    if (action.kind === 'steer' && this.running && this.options.policy?.allowPromptWhileRunning === false) {
++      return { ok: false, error: new RemoteError('client/session-busy', 'client/session-busy', { sessionId: this.sessionId, mode: 'steer' }) }
++    }
+     return this.remote.session.updateQueue({ sessionId: this.sessionId, itemId, action })
+   }
+ 
+@@ -396,6 +413,8 @@ export class Session implements SessionFace {
+    * @returns the rename result (normalized accepted title + title event seq).
+    */
+   async rename(title: string): Promise<RemoteResult<{ title: string; seq: SessionSeq }>> {
++    const unavailable = sessionActionFailure(this.options.policy, 'rename')
++    if (unavailable !== undefined) return { ok: false, error: unavailable }
+     const result = await this.remote.session.rename({ sessionId: this.sessionId, title })
+     if (!result.ok) return result
+     const seq = SessionSeq(result.value.seq)
+diff --git a/packages/api/session-controller/tests/session-policy.client.spec.ts b/packages/api/session-controller/tests/session-policy.client.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..075c058e4abef3173386b526ae8b22608facb742
+--- /dev/null
++++ b/packages/api/session-controller/tests/session-policy.client.spec.ts
+@@ -0,0 +1,70 @@
++/** Client admission is observed at the public Session verbs and Connection calls. */
++import { Context } from '@deepseek-ai/cordis'
++import { ClientSessions } from '../src/client/sessions/service.ts'
++import { sessionWorld } from './remote/session.client.ts'
++import { describe, expect, onTestFinished } from 'vitest'
++import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
++import type { SessionId } from '@deepseek-ai/dsh-session/types'
++import { createClientTest, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
++import { sessionBench } from './remote/bench.client.ts'
++
++const it = createClientTest({ roster: webApp.closure(['@deepseek-ai/dsh-api-gateway']) })
++const SID = 'policy-session' as SessionId
++
++describe('Session deployment policy', () => {
++  it('leaves a busy prompt unsent when queue admission is disabled', async ({ mock, start }) => {
++    const session = await sessionBench(mock, start, SID, { policy: { allowPromptWhileRunning: false } })
++    session.handleRunning(true)
++    const result = await session.prompt([{ type: 'text', text: 'keep this draft' }], 'queue')
++    expect(result).toMatchObject({ ok: false, error: { code: 'client/session-busy' } })
++    expect(mock.log.calls('session/prompt')).toHaveLength(0)
++    expect(session.getSnapshot().promptError?.op).toBe('send')
++  }, 60_000)
++
++  it('keeps defaults available and carries deployment policy through public Controller acquisitions', async ({ mock, start }) => {
++    mock.load(sessionWorld)
++    const client = await start()
++    const root = new Context()
++    onTestFinished(() => root.fiber.dispose())
++    const svc = new ClientSessions(root, client.ctx.remote, {
++      disabledActions: ['create', 'fork', 'rename', 'queue'], allowPromptWhileRunning: false,
++    })
++    svc.handleSessionAdded({ sessionId: SID, updatedAt: 0, running: true, blank: false, agentAvailable: true })
++    await expect(svc.create()).rejects.toMatchObject({ rpcError: { code: 'client/session-action-unavailable' } })
++    await expect(svc.fork({ sessionId: SID })).rejects.toMatchObject({ rpcError: { code: 'client/session-action-unavailable' } })
++    const ref = svc.retain(SID, { source: 'controllerOperation' })
++    await ref.ready
++    // Feed a Host running control observation after opening's baseline.
++    svc.handleSessionStatus(SID, true)
++    expect(await ref.binding.session.prompt([{ type: 'text', text: 'unsent' }], 'steer')).toMatchObject({ ok: false })
++    expect(await ref.binding.session.rename('unsent')).toMatchObject({ ok: false })
++    expect(Object.isFrozen(svc.policy.disabledActions)).toBe(true)
++    ref.release()
++    for (const endpoint of ['session/create', 'session/fork', 'session/prompt', 'session/rename']) {
++      expect(mock.log.calls(endpoint)).toHaveLength(0)
++    }
++    const standard = await sessionBench(mock, start, SID)
++    standard.handleRunning(true)
++    expect(await standard.prompt([{ type: 'text', text: 'standard queue' }], 'queue')).toMatchObject({ ok: true })
++    expect(mock.log.calls('session/prompt')).toHaveLength(1)
++  })
++
++  it('refuses busy queued steering without disabling queue withdrawal', async ({ mock, start }) => {
++    const session = await sessionBench(mock, start, SID, { policy: { allowPromptWhileRunning: false } })
++    session.handleRunning(true)
++    expect(await session.updateQueue('queued' as MessageId, { kind: 'steer' })).toMatchObject({
++      ok: false, error: { code: 'client/session-busy' },
++    })
++    expect(mock.log.calls('session/updateQueue')).toHaveLength(0)
++    expect(await session.updateQueue('queued' as MessageId, { kind: 'remove' })).toMatchObject({ ok: true })
++    expect(mock.log.calls('session/updateQueue')).toHaveLength(1)
++  })
++
++  it('refuses an unavailable rename before sending a Remote request', async ({ mock, start }) => {
++    const session = await sessionBench(mock, start, SID, { policy: { disabledActions: ['rename'] } })
++    expect(await session.rename('changed')).toMatchObject({
++      ok: false, error: { code: 'client/session-action-unavailable' },
++    })
++    expect(mock.log.calls('session/rename')).toHaveLength(0)
++  })
++})
+diff --git a/packages/api/workspace-controller/README.i18n.yaml b/packages/api/workspace-controller/README.i18n.yaml
+index e3cb08a7193e215c7851c3631cd0b96cef8b0836..f1c7b8fdbb879af83b0b5ddb69f002e9822083ce 100644
+--- a/packages/api/workspace-controller/README.i18n.yaml
++++ b/packages/api/workspace-controller/README.i18n.yaml
+@@ -30,5 +30,8 @@
+   en: 43b497c19779532e
+   zh: c6d9d3afff774219
+ /workspace-controller/known-limitations-and-deferred-work/dev-note:
+-  en: e67f633dc6fe7773
+-  zh: e88aeb617ffb74ea
++  en: 3d53a97e4184a0f7
++  zh: 03cdb7772b70cbfa
++/workspace-controller/known-limitations-and-deferred-work/client-policy:
++  en: 14d88e97c4841426
++  zh: c800d4f3c930e68b
+diff --git a/packages/api/workspace-controller/README.md b/packages/api/workspace-controller/README.md
+index 27c26c7d9b446e9995b4a3fee242d9abd47a3f38..3b17c1ff6a674e29b0637930df36ce38dd403cf3 100644
+--- a/packages/api/workspace-controller/README.md
++++ b/packages/api/workspace-controller/README.md
+@@ -66,6 +66,10 @@ No direct effect; Workspace mutations do not alter model requests.
+ <a id="dev-note"></a>
+ ### Dev Note
+ 
++### Client policy
++
++Browser Config `disabledSessionActions` defaults to an empty array and accepts `archive` and `pin`. The public Workspace Controller exposes its immutable selection as `policy` and refuses the corresponding archive/unarchive and pin/unpin verbs before Remote calls. UI adapters read this selection independently of resource access; disabled actions never change owner permissions.
++
+ <details>
+ <summary>Working context for maintainers — click to expand</summary>
+ 
+diff --git a/packages/api/workspace-controller/README.zh.md b/packages/api/workspace-controller/README.zh.md
+index 4772d0c9b1780d25183ff09e885d573a62491cac..e5e1f864dc5b0fa87909838389e0e5610a6d6f76 100644
+--- a/packages/api/workspace-controller/README.zh.md
++++ b/packages/api/workspace-controller/README.zh.md
+@@ -66,6 +66,10 @@ Documents 查询占用注册表变更队列，因此其他 Workspace 变更（
+ <a id="dev-note"></a>
+ ### 开发备注
+ 
++### Client 策略
++
++浏览器 Config 的 `disabledSessionActions` 默认为空数组，接受 `archive` 和 `pin`。公开 Workspace Controller 通过 `policy` 暴露不可变选择，在 Remote 请求前拒绝对应的归档、取消归档、置顶和取消置顶操作。UI 适配器独立读取操作可用性与资源权限；禁用操作不改变 owner 权限。
++
+ <details>
+ <summary>维护者工作上下文——点击展开</summary>
+ 
+diff --git a/packages/api/workspace-controller/src/client/index.ts b/packages/api/workspace-controller/src/client/index.ts
+index 3bbf4670a0d3dce459bd566d47b7b501e20f81f0..7ddfa807a367427d3f6cc2b6719e67dea14d0100 100644
+--- a/packages/api/workspace-controller/src/client/index.ts
++++ b/packages/api/workspace-controller/src/client/index.ts
+@@ -1,5 +1,7 @@
+ /** Workspace-specific adapter for the Gateway-owned snapshot stream lifecycle. */
+ 
++import z from '@deepseek-ai/schemastery'
++import type { ClientWorkspacePolicy } from './service.ts'
+ import type { Context } from '@deepseek-ai/cordis'
+ import {
+   RemoteSnapshotStream,
+@@ -16,12 +18,17 @@ export type {
+   WorkspaceFollowSink, WorkspaceListPhase, WorkspaceRemote, WorkspaceSnapshot,
+ } from './model.ts'
+ export { WorkspaceArchiveError, WorkspaceController, WorkspaceCreateError } from './service.ts'
+-export type { IWorkspaces, WorkspaceSource } from './service.ts'
++export type { IWorkspaces, WorkspaceSource, ClientWorkspacePolicy } from './service.ts'
+ export type {
+   SessionActivity, SessionActivityItem, SessionActivityKind, SessionActivityKindMap, WorkspaceId,
+   WorkspaceView,
+ } from '../types.ts'
+ 
++/** Client organization policy; Host resource permissions remain authoritative. */
++export interface Config extends ClientWorkspacePolicy { disabledSessionActions?: ('archive' | 'pin')[] }
++/** Validated selection; omitted configuration enables both operations. */
++export const Config: z<Config> = z.object({ disabledSessionActions: z.array(z.union(['archive', 'pin'])).default([]) })
++
+ type WorkspaceBaselineFrame = Extract<WorkspaceFollowFrame, { type: 'baseline' }>
+ 
+ /** Gateway-owned snapshot stream configured for Workspace state. */
+@@ -43,10 +50,11 @@ export const inject = ['remote', 'remote.workspace']
+ /**
+  * Install Client Workspace state, commands, and reconnecting follow control.
+  * @param ctx - Client root Context.
++ * @param config - Client policy; omission preserves standard actions.
+  */
+-export function apply(ctx: Context): void {
++export function apply(ctx: Context, config: Config = Config({})): void {
+   const model = new ClientWorkspaceModel(ctx.remote.workspace)
+-  new WorkspaceController(ctx, model)
++  new WorkspaceController(ctx, model, config)
+   const control = createWorkspaceStateStream(ctx.remote, {
+     accept: model,
+     carrierFailed: () => { model.handleCarrierFailure() },
+diff --git a/packages/api/workspace-controller/src/client/service.ts b/packages/api/workspace-controller/src/client/service.ts
+index 637cc4e57ab3acde119e0f42ebdb7767f23289e1..936fe108db53833ac0c04f34e68a82a2b8d6574d 100644
+--- a/packages/api/workspace-controller/src/client/service.ts
++++ b/packages/api/workspace-controller/src/client/service.ts
+@@ -2,7 +2,7 @@
+ 
+ import { Service, type Context } from '@deepseek-ai/cordis'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+-import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
++import { RemoteError, type RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
+ import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
+ import type { WorkspaceView } from '../types.ts'
+ import type { ClientWorkspaceModel, WorkspaceSnapshot } from './model.ts'
+@@ -43,8 +43,23 @@ export interface WorkspaceSource {
+   subscribe(listener: () => void): () => void
+ }
+ 
++declare module '@deepseek-ai/dsh-typert-protocol' {
++  interface RemoteErrorDetailsMap {
++    /** Client-only refusal before any Workspace Remote call. */
++    'client/workspace-action-unavailable': { readonly action: 'archive' | 'pin' }
++  }
++}
++
++/** Client availability for Session organization; absent values preserve standard actions. */
++export interface ClientWorkspacePolicy {
++  /** Disabled Client archive/pin operations. Host permissions remain independent. */
++  readonly disabledSessionActions?: readonly ('archive' | 'pin')[]
++}
++
+ /** Workspace Controller's Client service face. */
+ export interface IWorkspaces {
++  /** Immutable Client selection; absent policy preserves standard organization actions. */
++  readonly policy?: ClientWorkspacePolicy
+   /** Host-authoritative Workspace rows, order, archive set, and follow lifecycle. */
+   readonly list: WorkspaceSource
+   /**
+@@ -117,13 +132,17 @@ export interface IWorkspaces {
+ /** Owns the bare Workspace snapshot and Workspace-only commands. */
+ export class WorkspaceController extends Service implements IWorkspaces {
+   readonly list: WorkspaceSource
++  /** Immutable availability selection for this Controller lifetime. */
++  readonly policy: ClientWorkspacePolicy
+ 
+   /**
+    * @param ctx - Client root Context.
+    * @param model - Remote-backed Workspace state model.
++   * @param policy - Client organization selection; omission preserves standard actions.
+    */
+-  constructor(ctx: Context, private readonly model: ClientWorkspaceModel) {
++  constructor(ctx: Context, private readonly model: ClientWorkspaceModel, policy: ClientWorkspacePolicy = {}) {
+     super(ctx, 'workspaces')
++    this.policy = Object.freeze({ disabledSessionActions: Object.freeze([...(policy.disabledSessionActions ?? [])]) })
+     this.list = model
+   }
+ 
+@@ -155,22 +174,30 @@ export class WorkspaceController extends Service implements IWorkspaces {
+     if (!result.ok) throw commandError('reorder', result.error)
+   }
+ 
++  private requireAction(action: 'archive' | 'pin'): void {
++    if (this.policy.disabledSessionActions?.includes(action)) throw new RemoteError('client/workspace-action-unavailable', 'Client action is unavailable', { action })
++  }
++
+   async archiveSession(sessionId: SessionId, options: { readonly stopActivity?: boolean } = {}): Promise<void> {
++    this.requireAction('archive')
+     const result = await this.model.archiveSession(sessionId, options)
+     if (!result.ok) throw new WorkspaceArchiveError(result.error)
+   }
+ 
+   async unarchiveSession(sessionId: SessionId): Promise<void> {
++    this.requireAction('archive')
+     const result = await this.model.unarchiveSession(sessionId)
+     if (!result.ok) throw commandError('session unarchive', result.error)
+   }
+ 
+   async pinSession(sessionId: SessionId): Promise<void> {
++    this.requireAction('pin')
+     const result = await this.model.pinSession(sessionId)
+     if (!result.ok) throw commandError('session pin', result.error)
+   }
+ 
+   async unpinSession(sessionId: SessionId): Promise<void> {
++    this.requireAction('pin')
+     const result = await this.model.unpinSession(sessionId)
+     if (!result.ok) throw commandError('session unpin', result.error)
+   }
+diff --git a/packages/api/workspace-controller/tests/model.client.spec.ts b/packages/api/workspace-controller/tests/model.client.spec.ts
+index 9660b2ead877c41ea9d70bce8169f791c2c6fcef..5078fd6e0eb8c06a8241081e53619c912767d4a1 100644
+--- a/packages/api/workspace-controller/tests/model.client.spec.ts
++++ b/packages/api/workspace-controller/tests/model.client.spec.ts
+@@ -1,4 +1,6 @@
+-import { describe, expect, it, vi } from 'vitest'
++import { Context } from '@deepseek-ai/cordis'
++import { WorkspaceController } from '../src/client/service.ts'
++import { describe, expect, it, vi, onTestFinished } from 'vitest'
+ import {
+   ClientWorkspaceModel, type WorkspaceRemote,
+ } from '../src/client/index.ts'
+@@ -570,3 +572,14 @@ describe('ClientWorkspaceModel', () => {
+     expect(model.getSnapshot().items).toEqual([])
+   })
+ })
++
++it('refuses unavailable Session organization operations at the public Workspace executor', async () => {
++  const ctx = new Context()
++  onTestFinished(() => ctx.fiber.dispose())
++  const remote = new FakeWorkspaceRemote()
++  const controller = new WorkspaceController(ctx, new ClientWorkspaceModel(remote), { disabledSessionActions: ['archive', 'pin'] })
++  for (const method of ['archiveSession', 'unarchiveSession', 'pinSession', 'unpinSession'] as const) {
++    await expect(controller[method](sid('one'))).rejects.toMatchObject({ code: 'client/workspace-action-unavailable', details: { action: method.includes('pin') || method.includes('Pin') ? 'pin' : 'archive' } })
++  }
++  expect(remote.calls).toEqual([])
++})
+diff --git a/packages/client/modules/README.i18n.yaml b/packages/client/modules/README.i18n.yaml
+index 86ee4901937ff31a04872146bb7445bb3c5e54e7..287ae385412c2d959fc4e5dc5534ea1977941cda 100644
+--- a/packages/client/modules/README.i18n.yaml
++++ b/packages/client/modules/README.i18n.yaml
+@@ -39,8 +39,11 @@
+   en: b6a4d3b901c89efe
+   zh: 615b5f3eec41f281
+ /deepseek-ai-dsh-client-modules/understand-the-implementation:
+-  en: 7ab11d2c2bdc6eaa
+-  zh: 54c3c9091cf59711
++  en: ee4615a04fa6503d
++  zh: ee2c5fb2204a43cf
++/deepseek-ai-dsh-client-modules/understand-the-implementation/boot-configuration:
++  en: 4d8d8da60f640bc4
++  zh: 475d88e56e457b82
+ /deepseek-ai-dsh-client-modules/understand-the-implementation/design-concept:
+   en: 49dcadc166c2d06e
+   zh: bbf67c6dc47f4ead
+diff --git a/packages/client/modules/README.md b/packages/client/modules/README.md
+index 3cf748d9a05d6561b66aae833baee1b6d6ca9dd3..dee7b2b2235cb142e0f70c90f2678ed9d55523be 100644
+--- a/packages/client/modules/README.md
++++ b/packages/client/modules/README.md
+@@ -63,6 +63,10 @@ The host serves built client bundles, so `pnpm run build` must have produced eac
+ <a id="understand-the-implementation"></a>
+ ## Understand the implementation
+ 
++### Boot configuration
++
++Each public `WebBootEntry` may carry a JSON-object `config` passed to the browser plugin through the Cordis Loader. Omission uses plugin defaults; Host plugin configuration is not forwarded implicitly. Config survives code replacement. A different configuration for an existing entry rejects synchronization with `configuration changed; reload required`; the page must reload to adopt a new deployment policy. Graph `inject` edges ensure module factory arrival, not service activation order. Required services use Cordis injection.
++
+ <details>
+ <summary>Implementation internals — click to expand</summary>
+ 
+diff --git a/packages/client/modules/README.zh.md b/packages/client/modules/README.zh.md
+index 9016041c36f461a7cdc050428152edcda743a77c..8848a69be5f808bf3ef285ddb0d17c2196a30d62 100644
+--- a/packages/client/modules/README.zh.md
++++ b/packages/client/modules/README.zh.md
+@@ -64,6 +64,10 @@ application combo 脚本只携带每个插件的 `client.js` 入口，并在启
+ <a id="understand-the-implementation"></a>
+ ## 理解实现
+ 
++### 启动配置
++
++公开的 `WebBootEntry` 可携带 JSON 对象 `config`，由 Cordis Loader 传入浏览器插件。省略时使用插件默认配置；不会隐式转发 Host 插件配置。代码替换保留配置。已有条目的配置改变时，同步以 `configuration changed; reload required` 拒绝，须刷新页面采用新部署策略。图中的 `inject` 保证模块工厂到达，不保证服务激活顺序；必需服务通过 Cordis 注入。
++
+ <details>
+ <summary>实现细节——点击展开</summary>
+ 
+diff --git a/packages/client/modules/src/client/entries.ts b/packages/client/modules/src/client/entries.ts
+index 5da84399ff3b9e7eba30e98664930fc3fffa5541..8e012febb5b0a1d3ddb0a47940228ba9f7f86cde 100644
+--- a/packages/client/modules/src/client/entries.ts
++++ b/packages/client/modules/src/client/entries.ts
+@@ -111,6 +111,12 @@ export class ClientEntries {
+   sync(graph: unknown): Promise<void> {
+     if (!this.release.observe(readRelease(graph))) return Promise.resolve()
+     const manifest = parseBootManifest(graph)
++    for (const row of manifest.plugins) {
++      const previous = this.desired.plugins.find(item => item.id === row.id)
++      if (previous !== undefined && JSON.stringify(previous.config) !== JSON.stringify(row.config)) {
++        throw new Error(`client-modules: ${row.id} configuration changed; reload required`)
++      }
++    }
+     if (entryTargets(manifest) !== entryTargets(this.desired)) this.generation++
+     this.desired = manifest
+     const generation = this.generation
+@@ -180,7 +186,8 @@ export class ClientEntries {
+ 
+   /** Keep ownership even when Loader rejects a module's plugin exports after inserting its entry. */
+   private async create(loader: Loader, id: string): Promise<void> {
+-    const options = { name: id }
++    const config = this.desired.plugins.find(row => row.id === id)?.config
++    const options = { name: id, ...(config === undefined ? {} : { config }) }
+     const entryId = loader.ensureId(options)
+     try {
+       await loader.create(options)
+diff --git a/packages/client/modules/src/client/manifest.ts b/packages/client/modules/src/client/manifest.ts
+index 5caa7c4a01a0360ec844e75ccc3f8f7f4f1fc158..5a806b09ac29af46e9c7fbf650f856f93fcba753 100644
+--- a/packages/client/modules/src/client/manifest.ts
++++ b/packages/client/modules/src/client/manifest.ts
+@@ -50,6 +50,8 @@ declare module '@deepseek-ai/cordis' {
+  * non-inject module requests (see {@link WebBootGraph.entries}).
+  */
+ export interface WebBootEntry {
++  /** JSON object passed to the Client plugin Config at initial boot. Omission uses plugin defaults; changes require reload. */
++  config?: Record<string, unknown>
+   /** Entry name == package name. */
+   id: string
+   /**
+@@ -124,6 +126,8 @@ export interface BootModuleRow {
+ 
+ /** The cordis-plugin view of one boot row: what entry composition needs (optional wire fields normalized). */
+ export interface BootPluginRow {
++  /** Independent JSON configuration copy; absent uses plugin defaults. */
++  config?: Record<string, unknown>
+   /** Entry name == package name. */
+   id: string
+   /** Package-name dependency edges ([] when the wire omits them). */
+@@ -271,7 +275,11 @@ export function parseBootManifest(wire: unknown): BootManifest {
+       inject: inject === undefined ? [] : [...inject],
+       external: external === undefined ? [] : [...external],
+     })
++    if (row.config !== undefined && (typeof row.config !== 'object' || row.config === null || Array.isArray(row.config))) {
++      throw new Error(`client-modules: ${subject} config must be a JSON object`)
++    }
+     plugins.push({
++      ...(row.config === undefined ? {} : { config: JSON.parse(JSON.stringify(row.config)) as Record<string, unknown> }),
+       id: row.id,
+       inject: inject === undefined ? [] : [...inject],
+       immediately: row.immediately === true,
+diff --git a/packages/client/modules/tests/entries.client.spec.ts b/packages/client/modules/tests/entries.client.spec.ts
+index 0f56f99b104fc9829d1f5346db8be446339573ac..79f983dcc84e5cf14c17705989a6034e9dcb0ace 100644
+--- a/packages/client/modules/tests/entries.client.spec.ts
++++ b/packages/client/modules/tests/entries.client.spec.ts
+@@ -669,3 +669,16 @@ describe('Host release changes', () => {
+     expect(error).toHaveBeenCalledWith('client-modules: release change subscriber failed', failure)
+   })
+ })
++
++it('passes explicit graph configuration through the real Cordis Loader and requires reload for policy changes', async () => {
++  const received: unknown[] = []
++  const configured = row('policy-consumer', 'r0', { config: { navigationMode: 'external' } })
++  const b = await bench(graph(configured), {
++    'policy-consumer': () => ({ apply: (_ctx: Context, config: unknown) => { received.push(config) } }),
++  })
++  expect(received).toEqual([{ navigationMode: 'external' }])
++  await b.modules.entries.sync(graph({ ...configured, rev: 'r1' }))
++  expect(received.at(-1)).toEqual({ navigationMode: 'external' })
++  expect(() => b.modules.entries.sync(graph(row('policy-consumer', 'r2', { config: { navigationMode: 'automatic' } }))))
++    .toThrow('configuration changed; reload required')
++})
+diff --git a/packages/client/ui-conversation/src/client/locales.ts b/packages/client/ui-conversation/src/client/locales.ts
+index eb3c04782a9963be540459df15a71083da3f856b..a29d8481985839911c06303cd80da24217e263d0 100644
+--- a/packages/client/ui-conversation/src/client/locales.ts
++++ b/packages/client/ui-conversation/src/client/locales.ts
+@@ -384,6 +384,8 @@ export const zh = {
+   'queue.remove': '删除排队消息',
+   'queue.steer': '插话发送',
+   'queue.steer.unavailable': '仅运行中可插话发送',
++  'error.sessionBusy': '会话忙碌中。可继续编辑草稿或停止当前任务，空闲后再发送。',
++  'error.actionUnavailable': '此部署不支持该操作。请保留草稿并选择可用操作。',
+   'error.sessionInUse': '当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。',
+   'queue.editFailed': '编辑失败：这条消息可能已经开始发送。',
+   'queue.removeFailed': '删除失败：这条消息可能已经开始发送。',
+@@ -783,6 +785,8 @@ export const en = {
+   'queue.remove': 'Remove queued message',
+   'queue.steer': 'Steer queued message',
+   'queue.steer.unavailable': 'Steering is available only while the agent is running',
++  'error.sessionBusy': 'The session is busy. Keep editing or stop the current task, then send again.',
++  'error.actionUnavailable': 'This action is unavailable in this deployment. Keep your draft and choose a supported action.',
+   'error.sessionInUse': 'This session is already in use, possibly by another running DSH instance (such as dsh web or the desktop app). Quit other running DSH instances and try again.',
+   'queue.editFailed': 'Edit failed: this message may have already started sending.',
+   'queue.removeFailed': 'Removal failed: this message may have already started sending.',
+@@ -1181,6 +1185,8 @@ export const ja = {
+   'queue.remove': 'キュー済みメッセージを削除',
+   'queue.steer': 'キュー内のメッセージを実行中の指示に追加',
+   'queue.steer.unavailable': '指示の変更はエージェントの実行中のみ利用できます',
++  'error.sessionBusy': 'セッションは実行中です。下書きを編集するか現在のタスクを停止し、終了後に送信してください。',
++  'error.actionUnavailable': 'この環境では利用できません。下書きを保持して利用可能な操作を選んでください。',
+   'error.sessionInUse': 'このセッションはすでに使用中です。別の実行中のDSHインスタンス（dsh webやデスクトップアプリなど）が使用している可能性があります。他のDSHインスタンスを終了して再試行してください。',
+   'queue.editFailed': '編集に失敗しました。このメッセージはすでに送信が開始されている可能性があります。',
+   'queue.removeFailed': '削除に失敗しました。このメッセージはすでに送信が開始されている可能性があります。',
+@@ -1572,6 +1578,8 @@ export const es = {
+   'queue.remove': 'Eliminar mensaje en cola',
+   'queue.steer': 'Redirigir mensaje en cola',
+   'queue.steer.unavailable': 'La dirección solo está disponible mientras el agente está en ejecución',
++  'error.sessionBusy': 'La sesión está ocupada. Puede editar o detener la tarea y enviar después.',
++  'error.actionUnavailable': 'Esta acción no está disponible. Conserve el borrador y elija otra acción.',
+   'error.sessionInUse': 'Esta sesión ya está en uso, posiblemente por otra instancia de DSH en ejecución (como la web dsh o la aplicación de escritorio). Salga de otras instancias de DSH en ejecución y vuelva a intentarlo.',
+   'queue.editFailed': 'Error de edición: es posible que este mensaje ya haya comenzado a enviarse.',
+   'queue.removeFailed': 'Error al eliminar: es posible que este mensaje ya haya comenzado a enviarse.',
+@@ -1970,6 +1978,8 @@ export const fr = {
+   'queue.remove': "Supprimer le message en file d'attente",
+   'queue.steer': 'Guider avec le message en attente',
+   'queue.steer.unavailable': "Le pilotage est disponible uniquement lorsque l'agent est en cours d'exécution",
++  'error.sessionBusy': 'La session est occupée. Modifiez le brouillon ou arrêtez la tâche, puis renvoyez.',
++  'error.actionUnavailable': 'Cette action est indisponible. Gardez le brouillon et choisissez une action disponible.',
+   'error.sessionInUse': "Cette session est déjà utilisée, éventuellement par une autre instance DSH en cours d'exécution (telle que le Web dsh ou l'application de bureau). Quittez les autres instances DSH en cours d'exécution et réessayez.",
+   'queue.editFailed': "Échec de la modification : l'envoi de ce message a peut-être déjà commencé.",
+   'queue.removeFailed': "Échec de la suppression : l'envoi de ce message a peut-être déjà commencé.",
+@@ -2368,6 +2378,8 @@ export const de = {
+   'queue.remove': 'Entfernen Sie die Nachricht in der Warteschlange',
+   'queue.steer': 'Mit vorgemerkter Nachricht lenken',
+   'queue.steer.unavailable': 'Die Steuerung ist nur verfügbar, während der Agent ausgeführt wird',
++  'error.sessionBusy': 'Die Sitzung ist beschäftigt. Entwurf bearbeiten oder Aufgabe stoppen und danach senden.',
++  'error.actionUnavailable': 'Diese Aktion ist nicht verfügbar. Entwurf behalten und eine verfügbare Aktion wählen.',
+   'error.sessionInUse': 'Diese Sitzung wird bereits verwendet, möglicherweise von einer anderen laufenden DSH-Instanz (z. B. dsh Web oder der Desktop-App). Beenden Sie andere laufende DSH-Instanzen und versuchen Sie es erneut.',
+   'queue.editFailed': 'Bearbeitung fehlgeschlagen: Der Versand dieser Nachricht wurde möglicherweise bereits gestartet.',
+   'queue.removeFailed': 'Fehler beim Entfernen: Der Versand dieser Nachricht wurde möglicherweise bereits gestartet.',
+@@ -2766,6 +2778,8 @@ export const ru = {
+   'queue.remove': 'Удалить сообщение из очереди',
+   'queue.steer': 'Направить сообщение из очереди',
+   'queue.steer.unavailable': 'Управление доступно только во время работы агента.',
++  'error.sessionBusy': 'Сеанс занят. Редактируйте черновик или остановите задачу и отправьте позже.',
++  'error.actionUnavailable': 'Действие недоступно. Сохраните черновик и выберите доступное действие.',
+   'error.sessionInUse': 'Этот сеанс уже используется, возможно, другим работающим экземпляром DSH (например, веб-сайтом dsh или настольным приложением). Закройте другие работающие экземпляры DSH и повторите попытку.',
+   'queue.editFailed': 'Не удалось изменить: возможно, это сообщение уже начало отправляться.',
+   'queue.removeFailed': 'Удаление не удалось: возможно, это сообщение уже начало отправляться.',
+@@ -3164,6 +3178,8 @@ export const pt = {
+   'queue.remove': 'Remover mensagem na fila',
+   'queue.steer': 'Orientar com mensagem da fila',
+   'queue.steer.unavailable': 'A direção está disponível apenas enquanto o agente está em execução',
++  'error.sessionBusy': 'A sessão está ocupada. Edite o rascunho ou pare a tarefa e envie depois.',
++  'error.actionUnavailable': 'Esta ação está indisponível. Guarde o rascunho e escolha uma ação disponível.',
+   'error.sessionInUse': 'Esta sessão já está em uso, possivelmente por outra instância DSH em execução (como dsh web ou aplicativo de desktop). Saia de outras instâncias DSH em execução e tente novamente.',
+   'queue.editFailed': 'Falha na edição: esta mensagem pode já ter começado a ser enviada.',
+   'queue.removeFailed': 'Falha na remoção: esta mensagem pode já ter começado a ser enviada.',
+diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+index f7957393d306d9fa0ad24b1884fffdaab39b290b..07dfd72acb2aa4c6484b92e08d33d5577941490c 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+@@ -131,6 +131,10 @@ export const InputBar = memo(function InputBar({
+   useEffect(() => {
+     if (promptError === null) return
+     const { error } = promptError
++    if (error.code === 'client/session-busy' || error.code === 'client/session-action-unavailable') {
++      showToast(t(error.code === 'client/session-busy' ? 'error.sessionBusy' : 'error.actionUnavailable'))
++      return
++    }
+     if (error.code === 'session/writer-held') {
+       showToast(t('error.sessionInUse'))
+       return
+diff --git a/packages/client/ui-conversation/tests/input-bar.client.spec.tsx b/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
+index 630ad9e2cd9baaf25ffaa5c2d338b55309335a4c..6d3c228cb08900974f73062d15ac01088acdc596 100644
+--- a/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
++++ b/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
+@@ -2068,6 +2068,14 @@ describe('strips and variants', () => {
+     expect(send.view.getByRole('alert').textContent).toBe(dictionary['error.sessionInUse'])
+   })
+ 
++  it.each([zh, en])('shows localized recovery guidance for local busy refusal', (dictionary) => {
++    const send = bench({
++      promptError: { op: 'send', error: new RemoteError('client/session-busy', 'client/session-busy', { sessionId: SID, mode: 'queue' }) },
++      t: makeTranslate(dictionary, commonZh),
++    })
++    expect(send.view.getByRole('alert').textContent).toBe(dictionary['error.sessionBusy'])
++  })
++
+   it('announces promptError as a fading toast (ordinary failure — no transaction UI, no Retry)', () => {
+     vi.useFakeTimers()
+     try {
+diff --git a/packages/client/ui-workspace/README.i18n.yaml b/packages/client/ui-workspace/README.i18n.yaml
+index c9d0efca1c9648dcebc08e5ecbdea977da3a0a2f..8eb73d2a2f47c45b3103b361445b63c6d3b81523 100644
+--- a/packages/client/ui-workspace/README.i18n.yaml
++++ b/packages/client/ui-workspace/README.i18n.yaml
+@@ -35,6 +35,9 @@
+ /deepseek-ai-dsh-client-ui-workspace/use-this-package/active-schedule-markers:
+   en: 249d9552d8bef805
+   zh: 405b1c636cba8e0b
++/deepseek-ai-dsh-client-ui-workspace/use-this-package/external-navigation:
++  en: d01ef2fdecf90557
++  zh: 0dc7b4220c20c64c
+ /deepseek-ai-dsh-client-ui-workspace/understand-the-implementation:
+   en: 8f170900a4096408
+   zh: 85332e80adf39403
+diff --git a/packages/client/ui-workspace/README.md b/packages/client/ui-workspace/README.md
+index f799572b157c2c3fda676d94926ffdfb9e0dea46..9864bb9b4fafe881b5c2fed9e2bccd2f7db71905 100644
+--- a/packages/client/ui-workspace/README.md
++++ b/packages/client/ui-workspace/README.md
+@@ -98,6 +98,13 @@ The first-use directory name and its stored title are fixed, so neither follows
+ The package injects the Client `remoteAccess` service and provides the root standard Hook `useWorkspaceAccess(workspaceId, action)`, which answers whether the current Peer may call `action` on one Workspace resource, and `ctx.uiWorkspace.whenAccess(workspaceId, action, callback)`, which keeps the callback's effects installed while that answer is true, with the semantics of `ctx.remoteAccess.whenAccess`; snapshot semantics belong to [`dsh-api-remote-access`](../../api/remote-access/README.md#client-face).
+ 
+ <a id="understand-the-implementation"></a>
++### External navigation
++
++Client Config `navigationMode` defaults to `automatic`. In `external` mode this plugin activates only while the public `workspaceNavigation` service is available. Its `request()` receives distinct restore, Workspace-selection and New intents. The navigation owner validates saved identity hints, owns errors and explicit creation, and checks the request signal before opening or preparing drafts. Newer navigation or disposal aborts that signal; explicit navigation before catalog readiness supersedes startup restoration. No provider means no automatic fallback. `openWorkspace()` resolves after dispatch, not after provider completion; `connectWorkspace()` rejects. Explicit `ctx.sessions.create()` and `uiWorkspace.openSession()` remain separate operations. A Workspace is neither directory authorization nor native Session registration.
++
++Session deployment policy filters built-in menus, row actions and shortcuts, and guards rename requests and archive/pin execution. Remote owner status stays unchanged; plugins calling Remote directly still need Host enforcement.
++
++
+ ## Understand the implementation
+ 
+ <details>
+diff --git a/packages/client/ui-workspace/README.zh.md b/packages/client/ui-workspace/README.zh.md
+index bd6cd38fdb81fc41486c0a4121300a102dde8864..7c2975beda0ab115ac59ccd7069fd99492472b82 100644
+--- a/packages/client/ui-workspace/README.zh.md
++++ b/packages/client/ui-workspace/README.zh.md
+@@ -98,6 +98,13 @@ Workspace 和 Session 的启动基线均就绪后，空安装环境调用 `works
+ 本包注入 Client `remoteAccess` 服务，并提供根作用域标准 Hook `useWorkspaceAccess(workspaceId, action)`，回答当前 Peer 能否在某个 Workspace 资源上调用 `action`，以及 `ctx.uiWorkspace.whenAccess(workspaceId, action, callback)`，在该答案为 true 期间保持回调的效果，语义同 `ctx.remoteAccess.whenAccess`；快照语义归 [`dsh-api-remote-access`](../../api/remote-access/README.zh.md#client-face)。
+ 
+ <a id="understand-the-implementation"></a>
++### 外部导航
++
++Client Config 的 `navigationMode` 默认为 `automatic`。在 `external` 模式下，插件仅在公开的 `workspaceNavigation` 服务可用时激活，其 `request()` 分别接收恢复、选择工作区和新建意图。导航提供者验证保存的身份提示，负责错误处理与显式创建，并在打开或准备草稿前检查请求 signal。后续导航或释放会取消 signal；目录数据就绪前发起的显式导航优先于启动恢复。缺少提供者时不回退到自动创建。`openWorkspace()` 在分发后完成，不等待提供者；`connectWorkspace()` 拒绝。显式的 `ctx.sessions.create()` 和 `uiWorkspace.openSession()` 保持独立。工作区不等于目录授权或原生 Session 登记。
++
++Session 部署策略筛选内置菜单、行操作和快捷键，并保护重命名请求以及归档和置顶执行。Remote owner 身份保持不变；直接调用 Remote 的插件仍须由 Host 检查。
++
++
+ ## 理解实现
+ 
+ <details>
+diff --git a/packages/client/ui-workspace/package.json b/packages/client/ui-workspace/package.json
+index 1ef4efb734d8ff4cfae19738e0ae1b0cb7c64a0f..2364303def8ec15c4041e7725c763f191a0a3d0e 100644
+--- a/packages/client/ui-workspace/package.json
++++ b/packages/client/ui-workspace/package.json
+@@ -84,7 +84,8 @@
+     "react": "^18.2.0",
+     "@deepseek-ai/dsh-client-shortcuts": "workspace:*",
+     "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
+-    "@deepseek-ai/dsh-client-ui-context-menu": "workspace:*"
++    "@deepseek-ai/dsh-client-ui-context-menu": "workspace:*",
++    "@deepseek-ai/schemastery": "workspace:~"
+   },
+   "files": [
+     "locale/*.json",
+diff --git a/packages/client/ui-workspace/src/client/action-policy.ts b/packages/client/ui-workspace/src/client/action-policy.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..8becfd9c0277a425ced8be642a137fc115020b8d
+--- /dev/null
++++ b/packages/client/ui-workspace/src/client/action-policy.ts
+@@ -0,0 +1,14 @@
++/** Deployment availability is independent of Remote resource permissions. */
++import type { Context } from '@deepseek-ai/cordis'
++import type { ClientSessionAction } from '@deepseek-ai/dsh-api-session-controller/client'
++
++/**
++ * @param controllers - Controllers carrying immutable deployment selections.
++ * @param action - operation to present or execute.
++ * @returns false only for explicitly disabled operations; absent policy preserves standard behavior.
++ */
++export function sessionActionAvailable(controllers: Pick<Context, 'sessions' | 'workspaces'>, action: ClientSessionAction | 'archive' | 'pin'): boolean {
++  return action === 'archive' || action === 'pin'
++    ? !controllers.workspaces.policy?.disabledSessionActions?.includes(action)
++    : !controllers.sessions.policy?.disabledActions?.includes(action)
++}
+diff --git a/packages/client/ui-workspace/src/client/index.ts b/packages/client/ui-workspace/src/client/index.ts
+index 3405214331797439100d8d6056780c823928d891..63d2ec10f209abfd16179965fc60173384f476e4 100644
+--- a/packages/client/ui-workspace/src/client/index.ts
++++ b/packages/client/ui-workspace/src/client/index.ts
+@@ -19,6 +19,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-context-menu/client'
+  * packages/client/AGENTS.md.
+  */
+ import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
++import z from '@deepseek-ai/schemastery'
+ import type { Context } from '@deepseek-ai/cordis'
+ import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
+ import type { ISessions, SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client'
+@@ -47,6 +48,7 @@ import {
+   type WorkspaceActionRequest, type SessionIdInjected, type WorkspaceBrowserInjected, type WorkspacePickerInjected,
+ } from './contract/slots.ts'
+ import { createWorkspaceShortcutControls, installWorkspaceShortcuts } from './shortcuts.ts'
++import { sessionActionAvailable } from './action-policy.ts'
+ import { UiWorkspaceService } from './navigation.ts'
+ import { createWorkspaceViewStore } from './stores.ts'
+ import { WorkspaceBrowser } from './rows/WorkspaceBrowser.tsx'
+@@ -60,7 +62,7 @@ import { registerToasts } from './toast/register.ts'
+ import { WorkspacePicker, WorkspacePickerFactory } from './WorkspacePicker.tsx'
+ import { en, ja, es, fr, de, ru, pt, zh, type WorkspaceKey } from './locales.ts'
+ 
+-export type { StartSessionOptions, UiWorkspace } from './navigation.ts'
++export type { StartSessionOptions, UiWorkspace, WorkspaceNavigationRequest, WorkspaceNavigator } from './navigation.ts'
+ export type {
+   DirectoryFlowOwnerProps, DirectoryFlowSlotName, DirectoryPickingHooks, DirectoryPickingInjected,
+   MenuOpenState, RowToast, SessionRenameTarget, SessionRowOwnerProps, UseMenuOpenState, WorkspaceBrowserInjected,
+@@ -70,6 +72,11 @@ export type {
+ } from './contract/slots.ts'
+ export type { WorkspaceKey } from './locales.ts'
+ 
++/** Client navigation ownership; omission preserves DSH automatic restoration and creation. */
++export interface Config { navigationMode?: 'automatic' | 'external' }
++/** External mode delegates to workspaceNavigation.request() and never falls back to automatic creation. */
++export const Config: z<Config> = z.object({ navigationMode: z.union(['automatic', 'external']).default('automatic') })
++
+ /** Localized follow-up text for the existing archive notice. */
+ export interface ArchiveNotice {
+   readonly text: string
+@@ -141,8 +148,15 @@ export const inject = ['contextMenus',
+  * ledger. Inject factories return plain callbacks; data reads use the
+  * framework's global hooks.
+  * @param ctx - client root context.
++ * @param config - navigation ownership; absent preserves automatic behavior.
+  */
+-export function apply(ctx: Context): void {
++export function apply(ctx: Context, config: Config = Config({})): void {
++  if (config.navigationMode === 'external') {
++    ctx.inject(['workspaceNavigation'], (scoped) => { install(scoped, config) })
++  } else install(ctx, config)
++}
++
++function install(ctx: Context, config: Config): void {
+   const sessions = ctx.get('sessions') as ISessions
+   const workspaces = ctx.get('workspaces') as IWorkspaces
+   // One viewing-store instance, created here as ui-layout does for its layout
+@@ -155,7 +169,7 @@ export function apply(ctx: Context): void {
+   let toastSeq = 0
+   const notify = (toast: RowToast): void => { rowToast.set({ ...toast, seq: ++toastSeq }) }
+   const uiWorkspace = new UiWorkspaceService(
+-    ctx, ctx.remote.directoryPicker, workspaces, sessions, viewInstance.actions, notify,
++    ctx, ctx.remote.directoryPicker, workspaces, sessions, viewInstance.actions, notify, config.navigationMode,
+   )
+   ctx.slots.provideRoot({
+     hooks: { workspaces: workspaces.list },
+@@ -199,7 +213,9 @@ export function apply(ctx: Context): void {
+   // its bound hook.
+   const renameRequest = derive(shortcutControls.state, state => state.renameTarget)
+   const archiveRequest = createSnapshotStore<SessionArchiveConfirmRequest | null>(null)
+-  const requestSessionRename = shortcutControls.rename
++  const requestSessionRename = (sessionId: SessionId, title: string): void => {
++    if (sessionActionAvailable(ctx, 'rename')) shortcutControls.rename(sessionId, title)
++  }
+   const unarchiveSession = (sessionId: SessionId): void => {
+     uiWorkspace.unarchiveSession(sessionId).catch((reason: unknown) => {
+       console.warn('session unarchive rejected:', reason)
+@@ -389,8 +405,8 @@ export function apply(ctx: Context): void {
+     ...pinInjected(), ...archiveInjected(), ...renameInjected(), ...forkInjected(), ...sessionIdInjected(),
+   })
+   ctx.slots.inject('sidebar.workspaces.session.row.action', function* () {
+-    yield ctx.slots.register({ name: 'sidebar.workspaces.session.row.action', id: 'archive', order: 100, locale: NS, inject: archiveInjected }, ArchiveSessionRowButton)
+-    yield ctx.slots.register({ name: 'sidebar.workspaces.session.row.action', id: 'pin', order: 200, locale: NS, inject: pinInjected }, PinSessionRowButton)
++    if (sessionActionAvailable(ctx, 'archive')) yield ctx.slots.register({ name: 'sidebar.workspaces.session.row.action', id: 'archive', order: 100, locale: NS, inject: archiveInjected }, ArchiveSessionRowButton)
++    if (sessionActionAvailable(ctx, 'pin')) yield ctx.slots.register({ name: 'sidebar.workspaces.session.row.action', id: 'pin', order: 200, locale: NS, inject: pinInjected }, PinSessionRowButton)
+   })
+   // The surfaces the actions raise live in the frame-wide layer: they must
+   // outlive the row menu the action sat in.
+diff --git a/packages/client/ui-workspace/src/client/locales.ts b/packages/client/ui-workspace/src/client/locales.ts
+index 7420f4547b23371659c981f099f4dae76b46b37c..c12a453ce924fb4d93bd05c1f79073df3f0b2425 100644
+--- a/packages/client/ui-workspace/src/client/locales.ts
++++ b/packages/client/ui-workspace/src/client/locales.ts
+@@ -6,6 +6,7 @@
+ 
+ /** Simplified Chinese dictionary (the key-set source of truth). */
+ export const zh = {
++  'shortcut.unavailable': '当前部署不支持此操作',
+   'defaultWorkspace.failed': '无法创建默认工作区，请通过“选择工作区”选择文件夹',
+   'draft.workspaceRequired': '请先选择工作区',
+   'draft.initializationFailed': '暂时无法填入草稿，请稍后重试',
+@@ -132,6 +133,7 @@ export type WorkspaceKey = keyof typeof zh
+ 
+ /** English dictionary, checked complete against the zh key set. */
+ export const en = {
++  'shortcut.unavailable': 'This action is unavailable in this deployment',
+   'defaultWorkspace.failed': 'Unable to create default workspace. Use Choose workspace to select a folder.',
+   'draft.workspaceRequired': 'Choose a workspace first.',
+   'draft.initializationFailed': 'Could not fill the draft. Please try again shortly.',
+@@ -255,6 +257,7 @@ export const en = {
+ 
+ /** Japanese copy, checked against the English keys. */
+ export const ja = {
++  'shortcut.unavailable': 'この環境ではこの操作は利用できません',
+   'defaultWorkspace.failed': 'デフォルトのワークスペースを作成できません。ワークスペースを選択してフォルダーを選んでください。',
+   'draft.workspaceRequired': '先にワークスペースを選択してください。',
+   'draft.initializationFailed': '下書きを埋め込めませんでした。しばらくしてからもう一度お試しください。',
+@@ -378,6 +381,7 @@ export const ja = {
+ 
+ /** Spanish dictionary, checked against the English keys. */
+ export const es = {
++  'shortcut.unavailable': 'Esta acción no está disponible en este entorno',
+   'defaultWorkspace.failed': 'No se puede crear el espacio de trabajo predeterminado. Utilice Elegir espacio de trabajo para seleccionar una carpeta.',
+   'draft.workspaceRequired': 'Elija un espacio de trabajo primero.',
+   'draft.initializationFailed': 'No se pudo completar el borrador. Inténtelo de nuevo en breve.',
+@@ -501,6 +505,7 @@ export const es = {
+ 
+ /** French dictionary, checked against the English keys. */
+ export const fr = {
++  'shortcut.unavailable': 'Cette action est indisponible dans cet environnement',
+   'defaultWorkspace.failed': 'Impossible de créer un espace de travail par défaut. Utilisez Choisir un espace de travail pour sélectionner un dossier.',
+   'draft.workspaceRequired': "Choisissez d'abord un espace de travail.",
+   'draft.initializationFailed': 'Impossible de remplir le projet. Veuillez réessayer sous peu.',
+@@ -624,6 +629,7 @@ export const fr = {
+ 
+ /** German dictionary, checked against the English keys. */
+ export const de = {
++  'shortcut.unavailable': 'Diese Aktion ist in dieser Umgebung nicht verfügbar',
+   'defaultWorkspace.failed': 'Der Standardarbeitsbereich kann nicht erstellt werden. Verwenden Sie „Arbeitsbereich auswählen“, um einen Ordner auszuwählen.',
+   'draft.workspaceRequired': 'Wählen Sie zunächst einen Arbeitsbereich.',
+   'draft.initializationFailed': 'Der Entwurf konnte nicht ausgefüllt werden. Bitte versuchen Sie es in Kürze noch einmal.',
+@@ -747,6 +753,7 @@ export const de = {
+ 
+ /** Russian dictionary, checked against the English keys. */
+ export const ru = {
++  'shortcut.unavailable': 'Это действие недоступно в этой среде',
+   'defaultWorkspace.failed': 'Невозможно создать рабочую область по умолчанию. Используйте «Выбрать рабочее пространство», чтобы выбрать папку.',
+   'draft.workspaceRequired': 'Сначала выберите рабочее место.',
+   'draft.initializationFailed': 'Не удалось заполнить черновик. Пожалуйста, повторите попытку в ближайшее время.',
+@@ -870,6 +877,7 @@ export const ru = {
+ 
+ /** Portuguese dictionary, checked against the English keys. */
+ export const pt = {
++  'shortcut.unavailable': 'Esta ação não está disponível neste ambiente',
+   'defaultWorkspace.failed': 'Não foi possível criar o espaço de trabalho padrão. Use Escolher espaço de trabalho para selecionar uma pasta.',
+   'draft.workspaceRequired': 'Escolha um espaço de trabalho primeiro.',
+   'draft.initializationFailed': 'Não foi possível preencher o rascunho. Por favor, tente novamente em breve.',
+diff --git a/packages/client/ui-workspace/src/client/navigation.ts b/packages/client/ui-workspace/src/client/navigation.ts
+index 42265f1af6e376f7371b86feb4e9b04b61ea50fe..3b06c006c7c97330c50b614c029ecc6d3ff7172a 100644
+--- a/packages/client/ui-workspace/src/client/navigation.ts
++++ b/packages/client/ui-workspace/src/client/navigation.ts
+@@ -1,9 +1,11 @@
+ /** Workspace archive and directory UI capability. */
+ 
++import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+ import { Service, type Context } from '@deepseek-ai/cordis'
+ import type { AccessEffect, RemoteEndpoint } from '@deepseek-ai/dsh-api-remote-access/client'
+ import type { ClientRemote, DirectoryListing, RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
+ import type {
++  ClientSessionAction,
+   ISessions,
+   SessionCreateError,
+   SessionBinding,
+@@ -22,6 +24,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+ import type { DraftInitializationOptions } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import type { RowToast } from './contract/slots.ts'
++import { sessionActionAvailable } from './action-policy.ts'
+ import { pinOrderAccounts, pinOrderSource } from './pin-order.ts'
+ import type { WorkspaceViewStoreActions } from './stores.ts'
+ 
+@@ -36,6 +39,34 @@ export interface StartSessionOptions extends DraftInitializationOptions {
+   readonly agentPreset?: string
+ }
+ 
++/** External navigation requests never create or retain a Session themselves. */
++export type WorkspaceNavigationRequest = (
++  | { readonly kind: 'restore'; readonly saved: { readonly sessionId?: SessionId; readonly subagentAddress?: SubagentAddress } }
++  | {
++    readonly kind: 'workspace'
++    readonly workspaceId: WorkspaceId
++    readonly beforeOpen?: (sessionId: SessionId) => void
++    readonly options: Pick<StartSessionOptions, 'agentPreset'>
++  }
++  | { readonly kind: 'new'; readonly workspaceId?: WorkspaceId; readonly options?: StartSessionOptions }
++) & { readonly signal: AbortSignal }
++
++/** External navigation owner. Registration precedes external UiWorkspace activation. */
++export interface WorkspaceNavigator {
++  /**
++   * Validate the requested target, own errors and explicit creation, then open only while signal is live.
++   * @param request - intent; saved ids are restoration hints, never authorization or native identity proof.
++   */
++  request(request: WorkspaceNavigationRequest): void
++}
++
++declare module '@deepseek-ai/cordis' {
++  interface Context {
++    /** Required in external navigation mode. Loss disposes the dependent Workspace UI. */
++    workspaceNavigation: WorkspaceNavigator
++  }
++}
++
+ /** Workspace archive and directory operations consumed by Client UI domains. */
+ export interface UiWorkspace {
+   /**
+@@ -49,7 +80,8 @@ export interface UiWorkspace {
+    * @param beforeOpen - optional synchronous preparation for the selected Session,
+    * skipped after supersession; a throw aborts the open and releases the retained reference.
+    * @param options - choices for the Session the connection creates or reuses.
+-   * @returns completion; a superseded request may create a Session but does not open it.
++   * External mode emits workspaceNavigation.request() without creating or retaining; the provider owns beforeOpen.
++   * @returns automatic completion, or external dispatch completion; a superseded automatic request may create without opening.
+    * @throws on failure; a refused creation is also shown through the Workspace
+    * notice unless a later navigation or disposal superseded the request.
+    */
+@@ -78,12 +110,13 @@ export interface UiWorkspace {
+    * @param workspaceId - target Workspace.
+    * @param options - choices for the created or reused Session.
+    * @returns a Session already addressable through the Session Controller.
++   * @throws in external navigation mode, which requires explicit provider-owned creation.
+    */
+   connectWorkspace(workspaceId: WorkspaceId, options?: Pick<StartSessionOptions, 'agentPreset'>): Promise<SessionId>
+   /**
+    * Open the Workspace blank `connectWorkspace` resolves, so New Session returns to that blank's
+    * unsent draft. A creation the Host refuses is shown through the Workspace notice and leaves the
+-   * selection as it was.
++   * selection as it was. External mode emits a new intent without automatic creation.
+    * @param workspaceId - explicit target; absent inherits the current or most recent Workspace.
+    * @param options - initial content, the blank's preset, and `whenDraftExists`, which decides
+    * whether existing text or attachments are kept, replaced, or followed by the prompt.
+@@ -175,6 +208,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+   )
+   private mainReference: SessionReference | undefined
+   private restorationNavigation: AbortSignal | undefined
++  private explicitNavigation = false
+ 
+   /**
+    * @param ctx - Client root Context.
+@@ -183,6 +217,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+    * @param sessions - pure Session Controller.
+    * @param view - the browser's viewing-store write set (one instance shared with its registration).
+    * @param notify - show one notice through the Workspace notice channel.
++   * @param navigationMode - external delegates restoration, Workspace selection and New; absent preserves automatic navigation.
+    */
+   constructor(
+     ctx: Context,
+@@ -191,6 +226,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+     private readonly sessions: ISessions,
+     private readonly view: Pick<WorkspaceViewStoreActions, 'pinSessionOrder'>,
+     private readonly notify: (toast: RowToast) => void,
++    private readonly navigationMode: 'automatic' | 'external' = 'automatic',
+   ) {
+     super(ctx, 'uiWorkspace')
+     ctx.effect(() => {
+@@ -206,6 +242,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+   }
+ 
+   connectWorkspace(workspaceId: WorkspaceId, options: Pick<StartSessionOptions, 'agentPreset'> = {}): Promise<SessionId> {
++    if (this.navigationMode === 'external') return Promise.reject(new Error('uiWorkspace.connectWorkspace: external navigation requires explicit Session creation'))
+     return this.connectBlank(workspaceId, options)
+   }
+ 
+@@ -291,7 +328,10 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+   }
+ 
+   openSession(target: SessionTarget): void {
+-    this.replaceMain(target, this.lifetime.signal, 'reveal')
++    this.explicitNavigation = true
++    const signal = this.navigationMode === 'external'
++      ? AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal]) : this.lifetime.signal
++    this.replaceMain(target, signal, 'reveal')
+   }
+ 
+   openWorkspace(
+@@ -299,6 +339,12 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+     beforeOpen?: (sessionId: SessionId) => void,
+     options: Pick<StartSessionOptions, 'agentPreset'> = {},
+   ): Promise<void> {
++    if (this.navigationMode === 'external') {
++      this.explicitNavigation = true
++      this.delegateNavigation({ kind: 'workspace', workspaceId, options,
++        ...(beforeOpen === undefined ? {} : { beforeOpen }) })
++      return Promise.resolve()
++    }
+     return this.openWorkspaceSession(workspaceId, beforeOpen, options)
+   }
+ 
+@@ -335,6 +381,13 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+   }
+ 
+   startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void {
++    this.requireAction('create')
++    if (this.navigationMode === 'external') {
++      this.explicitNavigation = true
++      this.delegateNavigation({ kind: 'new', ...(workspaceId === undefined ? {} : { workspaceId }),
++        ...(options === undefined ? {} : { options }) })
++      return
++    }
+     const { agentPreset, ...draft } = options ?? {}
+     const draftOptions = options === undefined ? undefined : draft
+     const initializeDraft = draftOptions !== undefined && (draftOptions.prompt !== undefined
+@@ -428,6 +481,18 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+     return access.whenResourceAccess('workspace', workspaceId, action, callback)
+   }
+ 
++  private requireAction(action: ClientSessionAction): void {
++    if (!sessionActionAvailable({ sessions: this.sessions, workspaces: this.workspaces }, action)) throw new RemoteError('client/session-action-unavailable', 'Client action is unavailable', { action })
++  }
++
++  private delegateNavigation(request: Omit<Extract<WorkspaceNavigationRequest, { kind: 'restore' }>, 'signal'>
++    | Omit<Extract<WorkspaceNavigationRequest, { kind: 'workspace' }>, 'signal'>
++    | Omit<Extract<WorkspaceNavigationRequest, { kind: 'new' }>, 'signal'>): void {
++    const signal = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
++    this.restorationNavigation = signal
++    this.ctx.workspaceNavigation.request({ ...request, signal })
++  }
++
+   private watchNavigation(): () => void {
+     let initial: 'waiting' | 'connecting' | 'done' = 'waiting'
+     const reconcile = (): void => {
+@@ -437,7 +502,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+       const workspace = this.workspaces.list.getSnapshot()
+       const sessions = this.sessions.list.getSnapshot()
+       if (workspace.phase !== 'ready' || sessions.phase !== 'ready') return
+-      if (this.mainReference !== undefined) {
++      if (this.explicitNavigation || this.mainReference !== undefined) {
+         initial = 'done'
+         return
+       }
+@@ -464,6 +529,10 @@ class UiWorkspaceService extends Service implements UiWorkspace {
+ 
+   private async restoreSelection(workspaces: WorkspaceSnapshot, sessions: SessionListState): Promise<void> {
+     const saved = this.selection.getSnapshot()
++    if (this.navigationMode === 'external') {
++      this.delegateNavigation({ kind: 'restore', saved })
++      return
++    }
+     if (saved.subagentAddress !== undefined) {
+       this.replaceMain(saved.subagentAddress, this.lifetime.signal, 'preserve')
+       return
+diff --git a/packages/client/ui-workspace/src/client/session-actions/context-menus.tsx b/packages/client/ui-workspace/src/client/session-actions/context-menus.tsx
+index f312e0233ff25ed2998cac7871456a81a654bd18..84a9c4ee82d8c255c79c17d220d6d6af66cf5e18 100644
+--- a/packages/client/ui-workspace/src/client/session-actions/context-menus.tsx
++++ b/packages/client/ui-workspace/src/client/session-actions/context-menus.tsx
+@@ -1,4 +1,5 @@
+ /** Structured Session actions over the workspace owner's existing callbacks. */
++import { sessionActionAvailable } from '../action-policy.ts'
+ import type { Context } from '@deepseek-ai/cordis'
+ import type { RemoteEndpoint } from '@deepseek-ai/dsh-api-remote-access/client'
+ import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
+@@ -38,17 +39,17 @@ export function registerSessionMenus(ctx: Context, actions: Actions): void {
+     ctx.workspaces.list.getSnapshot().archivedSessionIds.includes(target.sessionId)
+   register('pin', 100, ['workspace/pinSession', 'workspace/unpinSession'], (target) => {
+     const pinned = ctx.workspaces.list.getSnapshot().pinnedSessionIds.includes(target.sessionId)
+-    if (archived(target) || !allowed(target, pinned ? 'workspace/unpinSession' : 'workspace/pinSession')) return []
++    if (!sessionActionAvailable(ctx, 'pin') || archived(target) || !allowed(target, pinned ? 'workspace/unpinSession' : 'workspace/pinSession')) return []
+     return [{
+       id: 'pin', label: t(pinned ? 'menu.unpinSession' : 'menu.pinSession'), icon: { key: pinned ? 'workspace.unpin' : 'workspace.pin' },
+       run: () => { (pinned ? actions.unpinSession : actions.pinSession)(target.sessionId) },
+     }]
+   })
+-  register('rename', 200, ['session/rename'], target => allowed(target, 'session/rename') ? [{
++  register('rename', 200, ['session/rename'], target => sessionActionAvailable(ctx, 'rename') && allowed(target, 'session/rename') ? [{
+     id: 'rename', label: t('rename'), icon: { key: 'workspace.rename' }, commandId: 'session.rename' as ShortcutCommandId,
+     run: () => { actions.requestSessionRename(target.sessionId, target.displayTitle) },
+   }] : [])
+-  register('fork', 300, ['session/fork'], target => allowed(target, 'session/fork') ? [{
++  register('fork', 300, ['session/fork'], target => sessionActionAvailable(ctx, 'fork') && allowed(target, 'session/fork') ? [{
+     id: 'fork', label: t('menu.fork'), icon: { key: 'workspace.fork' }, commandId: 'session.fork' as ShortcutCommandId,
+     run: () => { actions.forkSession(target.sessionId) },
+   }] : [])
+@@ -58,7 +59,7 @@ export function registerSessionMenus(ctx: Context, actions: Actions): void {
+   }])
+   register('archive', 600, ['workspace/archiveSession', 'workspace/unarchiveSession'], (target) => {
+     const restoring = archived(target)
+-    if (!allowed(target, restoring ? 'workspace/unarchiveSession' : 'workspace/archiveSession')) return []
++    if (!sessionActionAvailable(ctx, 'archive') || !allowed(target, restoring ? 'workspace/unarchiveSession' : 'workspace/archiveSession')) return []
+     return [{
+       id: 'archive', label: t(restoring ? 'menu.unarchiveSession' : 'menu.archiveSession'),
+       icon: { key: restoring ? 'workspace.unarchive' : 'workspace.archive' }, separatorBefore: true, afterContent: true,
+diff --git a/packages/client/ui-workspace/src/client/shortcuts.ts b/packages/client/ui-workspace/src/client/shortcuts.ts
+index 180c13fbcb299283a595ed09cf7fd7ee6a518760..7025cf395f82922c219eb467cf98bbfbaef5b623 100644
+--- a/packages/client/ui-workspace/src/client/shortcuts.ts
++++ b/packages/client/ui-workspace/src/client/shortcuts.ts
+@@ -1,6 +1,7 @@
+ /** Workspace command registration and browser-owned opening requests. */
+ import type { Context } from '@deepseek-ai/cordis'
+-import type { SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client'
++import { sessionActionAvailable } from './action-policy.ts'
++import type { ClientSessionAction, SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client'
+ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+ import type { ShortcutCommand, ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
+ import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+@@ -63,6 +64,9 @@ export function installWorkspaceShortcuts(
+   reportForkFailure: (reason: 'unavailable' | 'failed') => void,
+ ): void {
+   const t = ctx.locale.bind('workspace')
++  const policyActions: Readonly<Record<string, ClientSessionAction | 'archive'>> = {
++    'session.new': 'create', 'session.rename': 'rename', 'session.fork': 'fork', 'session.archive': 'archive',
++  }
+   const current = () => Object.values(ctx.sessions.list.getSnapshot().byId)
+     .find(row => (row.retainedBy.mainView ?? 0) > 0)
+   const addReason = () => ctx.slots.entries('sidebar.workspaces.directoryFlow').length === 0
+@@ -75,7 +79,11 @@ export function installWorkspaceShortcuts(
+         'desktop:macos': { code, modifiers }, 'desktop:windows': { code, modifiers }, 'desktop:linux': { code, modifiers },
+         'web:macos': { code, modifiers: webModifiers }, 'web:windows': { code, modifiers: webModifiers },
+       },
+-      regions: ['page', 'editable'], modals: ['sidebar'], resolve,
++      regions: ['page', 'editable'], modals: ['sidebar'], resolve: (context) => {
++        const action = policyActions[id]
++        return action !== undefined && !sessionActionAvailable(ctx, action)
++          ? { status: 'blocked', reason: t('shortcut.unavailable') } : resolve(context)
++      },
+     }), `ui-workspace: ${id}`)
+   }
+   register('session.new', () => t('session.new'), ['new session', 'new chat'], 'KeyN', ['primary'], ['primary', 'alt'],
+diff --git a/packages/client/ui-workspace/tests/session-menu-actions.client.spec.ts b/packages/client/ui-workspace/tests/session-menu-actions.client.spec.ts
+index 0e54a391ca3282b5c34bab6d4d1c6439ecdf5dde..bf18065537248bd0960f872444993d259185acd5 100644
+--- a/packages/client/ui-workspace/tests/session-menu-actions.client.spec.ts
++++ b/packages/client/ui-workspace/tests/session-menu-actions.client.spec.ts
+@@ -1,3 +1,5 @@
++import type { ClientWorkspacePolicy } from '@deepseek-ai/dsh-api-workspace-controller/client'
++import type { ClientSessionPolicy } from '@deepseek-ai/dsh-api-session-controller/client'
+ import { Context } from '@deepseek-ai/cordis'
+ import { expect, it, onTestFinished, vi } from 'vitest'
+ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+@@ -8,11 +10,13 @@ import { SessionId } from '@deepseek-ai/dsh-session/types'
+ import { registerSessionMenus } from '../src/client/session-actions/context-menus.tsx'
+ import { en, zh } from '../src/client/locales.ts'
+ 
+-function bench() {
++function bench(policy: ClientSessionPolicy = {}, workspacePolicy: ClientWorkspacePolicy = {}) {
++
+   const ctx = new Context()
+   onTestFinished(() => ctx.fiber.dispose())
+   const registry = new MenuRegistry(vi.fn())
+   onTestFinished(() => { registry.dispose() })
++  ctx.provide('sessions', { policy } as never)
+   ctx.provide('contextMenus', { register: registry.register.bind(registry) } as never)
+   const locale = new LocaleRuntime(ctx)
+   ctx.provide('locale', locale)
+@@ -20,7 +24,7 @@ function bench() {
+   const list = createSnapshotStore<WorkspaceSnapshot>({
+     items: [], pinnedSessionIds: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
+   })
+-  ctx.provide('workspaces', { list } as never)
++  ctx.provide('workspaces', { list, policy: workspacePolicy } as never)
+   const permissions = new Map<string, ReturnType<typeof createSnapshotStore<boolean>>>()
+   const access = (action: string) => {
+     let source = permissions.get(action)
+@@ -95,3 +99,15 @@ it('reacts to permission and locale updates, prevents withdrawn actions, and dis
+   expect(menu.source.getSnapshot()).toEqual([])
+   menu.dispose()
+ })
++
++it('omits unsupported operations without changing real owner permissions', async () => {
++  const b = bench({ disabledActions: ['rename', 'fork'] }, { disabledSessionActions: ['archive', 'pin'] })
++  await b.fiber.await()
++  expect(b.access('session/rename').getSnapshot()).toBe(true)
++  const menu = b.open()
++  expect(menu.source.getSnapshot().map(item => item.id)).toEqual(['session.id/copy'])
++  menu.select('session.rename/rename')
++  menu.select('session.fork/fork')
++  expect(b.actions.requestSessionRename).not.toHaveBeenCalled()
++  expect(b.actions.forkSession).not.toHaveBeenCalled()
++})
+diff --git a/packages/client/ui-workspace/tests/shortcuts.client.spec.ts b/packages/client/ui-workspace/tests/shortcuts.client.spec.ts
+index b48156992194af268fe3dae57122aff8b6a5d27b..2b37ac017e0bb7b00f79d7a0f4b416ca00b71da5 100644
+--- a/packages/client/ui-workspace/tests/shortcuts.client.spec.ts
++++ b/packages/client/ui-workspace/tests/shortcuts.client.spec.ts
+@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
+ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+ import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
+-import type { SessionListState, SessionSummary, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
++import type { ClientWorkspacePolicy } from '@deepseek-ai/dsh-api-workspace-controller/client'
++import type { ClientSessionPolicy, SessionListState, SessionSummary, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
+ import { SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import type { ShortcutCommand, ShortcutGesture, ShortcutPlatform } from '@deepseek-ai/dsh-client-shortcuts/client'
+@@ -23,7 +24,7 @@ const row = (id: string, main = false): SessionSummary => ({
+   id: sid(id), title: id, displayTitle: id, cwd: `/workspace/${id}`, blank: false,
+   running: false, updatedAt: 0, retainedBy: main ? { mainView: 1 } : {},
+ })
+-async function bench(runtime: 'web' | 'desktop' = 'desktop', platform: ShortcutPlatform = 'macos') {
++async function bench(runtime: 'web' | 'desktop' = 'desktop', platform: ShortcutPlatform = 'macos', policy: ClientSessionPolicy = {}, workspacePolicy: ClientWorkspacePolicy = {}) {
+   const ctx = new Context()
+   onTestFinished(async () => { await ctx.fiber.dispose() })
+   const registry = new ShortcutRegistry(runtime, platform)
+@@ -41,7 +42,8 @@ async function bench(runtime: 'web' | 'desktop' = 'desktop', platform: ShortcutP
+   const bindings = new Map(['a', 'b'].map(id => [sid(id), {
+     sessionId: sid(id), session: { ...history, loadOlder },
+   }]))
+-  ctx.provide('sessions', { list, binding: (id: SessionId) => bindings.get(id) })
++  ctx.provide('workspaces', { policy: workspacePolicy })
++  ctx.provide('sessions', { policy, list, binding: (id: SessionId) => bindings.get(id) })
+   const panelInfo = createSnapshotStore<PanelInfo>({ activePanelId: null })
+   ctx.provide('layout', { panelInfo })
+   const directory = createSnapshotStore(true)
+@@ -69,6 +71,16 @@ async function bench(runtime: 'web' | 'desktop' = 'desktop', platform: ShortcutP
+ afterEach(() => { vi.restoreAllMocks() })
+ 
+ describe('workspace shortcut ownership', () => {
++  it('blocks unavailable actions even for an otherwise eligible main Session', async () => {
++    const b = await bench('web', 'macos', { disabledActions: ['rename', 'fork'] }, { disabledSessionActions: ['archive'] })
++    for (const id of ['session.rename', 'session.fork', 'session.archive']) {
++      expect(b.commands.get(id)!.resolve(context)).toMatchObject({ status: 'blocked' })
++    }
++    expect(b.navigation.forkSession).not.toHaveBeenCalled()
++    expect(b.controls.state.getSnapshot().renameTarget).toBeNull()
++    expect(b.commands.get('session.new')!.resolve(context).status).toBe('handled')
++  })
++
+   it('refuses rename and archive without a selected Session and keeps a busy picker closed', async () => {
+     const b = await bench()
+     b.select('none')
+diff --git a/packages/client/ui-workspace/tests/workspaces-service.client.spec.ts b/packages/client/ui-workspace/tests/workspaces-service.client.spec.ts
+index f4e5bdcac923c499b3604a6a459dc1b0248fe543..fb23cb718df7d88e6fdb04d97a67af73dbf68ea4 100644
+--- a/packages/client/ui-workspace/tests/workspaces-service.client.spec.ts
++++ b/packages/client/ui-workspace/tests/workspaces-service.client.spec.ts
+@@ -19,7 +19,7 @@ import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
+ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+ import type { DraftInitializationOptions, SessionInputResolver } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import type { RowToast } from '../src/client/contract/slots.ts'
+-import { DirectoryBrowseError, UiWorkspaceService } from '../src/client/navigation.ts'
++import { DirectoryBrowseError, UiWorkspaceService, type WorkspaceNavigationRequest } from '../src/client/navigation.ts'
+ import { en, zh } from '../src/client/locales.ts'
+ import { createWorkspaceViewStore, FLAT_SESSION_ORDER_KEY } from '../src/client/stores.ts'
+ import { UNGROUPED_KEY } from '../src/client/tree.ts'
+@@ -271,6 +271,7 @@ class FakeDirectoryPicker {
+ }
+ 
+ interface BenchOptions {
++  readonly navigationMode?: 'automatic' | 'external'
+   readonly conversation?: boolean
+   readonly configureWorkspaces?: (workspaces: FakeWorkspaces) => void
+   readonly workspaces?: WorkspaceSnapshot
+@@ -280,6 +281,8 @@ interface BenchOptions {
+ 
+ function bench(options: BenchOptions = {}) {
+   const ctx = new Context()
++  const navigationRequests: WorkspaceNavigationRequest[] = []
++  ctx.provide('workspaceNavigation', { request: (request) => { navigationRequests.push(request) } })
+   contexts.push(ctx)
+   const locale = new LocaleRuntime(ctx)
+   locale.setLocale('en')
+@@ -309,8 +312,10 @@ function bench(options: BenchOptions = {}) {
+     sessions,
+     view.actions,
+     notify,
++    options.navigationMode,
+   )
+-  return { ctx, directoryPicker, sessions, uiWorkspace, workspaces, layout, selectPanel, view, notify, requestDraftInitialization }
++  return { ctx, navigationRequests, directoryPicker, sessions, uiWorkspace, workspaces, layout, selectPanel, view, notify,
++    requestDraftInitialization }
+ }
+ 
+ function lastOpening(open: MockInstance<UiWorkspaceService['openWorkspace']>): Promise<void> {
+@@ -320,6 +325,37 @@ function lastOpening(open: MockInstance<UiWorkspaceService['openWorkspace']>): P
+ }
+ 
+ describe('UiWorkspaceService', () => {
++  it('keeps explicit navigation made before catalog readiness ahead of startup restoration', async () => {
++    const b = bench({ navigationMode: 'external' })
++    const requests = b.navigationRequests
++    b.uiWorkspace.startSession(wid('a'))
++    b.sessions.list.set(sessionState())
++    b.workspaces.list.set(workspaceState([workspace('a')]))
++    await setImmediate()
++    expect(requests.map(item => item.kind)).toEqual(['new'])
++    expect(requests[0]!.signal.aborted).toBe(false)
++  })
++
++  it('delegates restoration, Workspace selection and explicit new without automatic creation', async () => {
++    persistSelection({ sessionId: sid('stale') })
++    const b = bench({ navigationMode: 'external' })
++    const intents = b.navigationRequests
++    b.sessions.list.set(sessionState())
++    b.workspaces.list.set(workspaceState([workspace('a')]))
++    await vi.waitFor(() => { expect(intents.map(item => item.kind)).toEqual(['restore']) })
++    await b.uiWorkspace.openWorkspace(wid('a'))
++    b.uiWorkspace.startSession(wid('a'), { prompt: 'unsent' })
++    expect(intents.map(item => item.kind)).toEqual(['restore', 'workspace', 'new'])
++    expect(intents.slice(0, 2).every(item => item.signal.aborted)).toBe(true)
++    expect(intents[2]!.signal.aborted).toBe(false)
++    expect(b.sessions.create).not.toHaveBeenCalled()
++    expect(b.sessions.retain).not.toHaveBeenCalled()
++    expect(b.workspaces.initializeDefault).not.toHaveBeenCalled()
++    await expect(b.uiWorkspace.connectWorkspace(wid('a'))).rejects.toThrow('external navigation')
++    await b.ctx.fiber.dispose()
++    expect(intents[2]!.signal.aborted).toBe(true)
++  })
++
+   it('prepares and selects the default Workspace after both startup baselines', async () => {
+     const b = bench({ configureWorkspaces: (workspaces) => {
+       workspaces.initializeDefault.mockImplementation(async () => {
+diff --git a/packages/test-support/client-runtime/src/workspaces.ts b/packages/test-support/client-runtime/src/workspaces.ts
+index 67f182cf68ab865b326243ea1aac654bc6201316..e513894c2192d2c53188bdd65c0e5862f6213ff9 100644
+--- a/packages/test-support/client-runtime/src/workspaces.ts
++++ b/packages/test-support/client-runtime/src/workspaces.ts
+@@ -13,7 +13,7 @@ type WorkspaceFixtureSnapshot = FixtureSnapshot<WorkspaceSnapshot>
+ 
+ /** Callable command names on the production Workspace Controller face. */
+ type WorkspaceAction = {
+-  [Key in keyof IWorkspaces]: IWorkspaces[Key] extends (...args: never[]) => unknown ? Key : never
++  [Key in keyof IWorkspaces]-?: IWorkspaces[Key] extends (...args: never[]) => unknown ? Key : never
+ }[keyof IWorkspaces]
+ 
+ /** Test replacement retaining one Controller command's parameters and result. */
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 9a84d64b213cb37f074294d8f62c69eb789a8c9a..2ab79242857396f07661d8352d67d48ced620294 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -7274,6 +7274,9 @@ importers:
+       '@deepseek-ai/dsh-util-workspace-path':
+         specifier: workspace:*
+         version: link:../../util/workspace-path
++      '@deepseek-ai/schemastery':
++        specifier: link:../../../vendor/schemastery
++        version: link:../../../vendor/schemastery
+       clsx:
+         specifier: ^2.0.0
+         version: 2.1.1

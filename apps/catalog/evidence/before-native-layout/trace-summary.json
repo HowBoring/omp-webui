@@ -1,0 +1,20 @@
+{
+  "kind": "actual-native-readonly-catalog-file-process-and-socket-trace",
+  "result": "PASS",
+  "fixture": "synthetic header in isolated temporary HOME/cwd; no actual user profile",
+  "frames": [
+    "ready",
+    "response",
+    "response",
+    "response"
+  ],
+  "exitCode": 0,
+  "stderrBytes": 0,
+  "traceLines": 210,
+  "unsafeWriteOrOrdinarySessionImportObservations": [],
+  "bindSyscalls": 0,
+  "nonUnixConnectSyscalls": 0,
+  "nativeLeaseObservationConnects": 1,
+  "execveCount": 1,
+  "traceSha256": "8c19e9a89341d4dcb4ef336a88bfa52939a89985e24d13d2e722fbeda669188e"
+}

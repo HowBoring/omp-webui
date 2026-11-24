@@ -1,0 +1,21 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/supervisor.test.ts:
+{"scenario":"native-cooperative-directory-revoked","exit":{"workerId":"4af7ad7f-587d-48c8-b522-8f1d3177e175","reason":"directory-revoked","elapsedMs":118.59579800000029,"nativeSettled":true,"queuedInputsWithdrawn":true,"uiCancelled":true,"drain":{"code":0,"forced":false,"stderrBytes":512,"terminationSent":false,"forceSent":false,"stdoutEOF":true,"stderrEOF":true},"notificationCount":14,"tailNotifications":11},"audit":{"calls":1,"toolStarted":false,"abortObserved":true,"termObserved":false,"termAt":0,"actualNetworkDispatches":0}}
+(pass) real busy native cooperative directory-revoked obeys one 30+5 deadline and records actual exit [5687.90ms]
+{"scenario":"native-stubborn-directory-revoked","exit":{"workerId":"dda5f8a1-8c36-4cc3-a865-79401292d068","reason":"directory-revoked","elapsedMs":35668.349131999996,"nativeSettled":false,"queuedInputsWithdrawn":false,"uiCancelled":true,"drain":{"code":137,"forced":true,"stderrBytes":512,"terminationSent":true,"forceSent":true,"stdoutEOF":true,"stderrEOF":true},"notificationCount":12,"tailNotifications":1},"audit":{"calls":1,"toolStarted":true,"abortObserved":true,"termObserved":true,"termAt":1794843402934,"actualNetworkDispatches":0}}
+(pass) real busy native stubborn directory-revoked obeys one 30+5 deadline and records actual exit [39725.61ms]
+{"scenario":"native-cooperative-all-browser-access-revoked","exit":{"workerId":"a9edcc40-0954-4f95-ae5a-6fb7be690be8","reason":"all-browser-access-revoked","elapsedMs":240.19246199999907,"nativeSettled":true,"queuedInputsWithdrawn":true,"uiCancelled":true,"drain":{"code":0,"forced":false,"stderrBytes":512,"terminationSent":false,"forceSent":false,"stdoutEOF":true,"stderrEOF":true},"notificationCount":14,"tailNotifications":11},"audit":{"calls":1,"toolStarted":false,"abortObserved":true,"termObserved":false,"termAt":0,"actualNetworkDispatches":0}}
+(pass) real busy native cooperative all-browser-access-revoked obeys one 30+5 deadline and records actual exit [7802.55ms]
+{"scenario":"native-stubborn-all-browser-access-revoked","exit":{"workerId":"8356ff2d-3442-4635-88da-25572097cba8","reason":"all-browser-access-revoked","elapsedMs":35031.385152,"nativeSettled":false,"queuedInputsWithdrawn":false,"uiCancelled":true,"drain":{"code":137,"forced":true,"stderrBytes":512,"terminationSent":true,"forceSent":true,"stdoutEOF":true,"stderrEOF":true},"notificationCount":12,"tailNotifications":1},"audit":{"calls":1,"toolStarted":true,"abortObserved":true,"termObserved":true,"termAt":1794843454805,"actualNetworkDispatches":0}}
+(pass) real busy native stubborn all-browser-access-revoked obeys one 30+5 deadline and records actual exit [43361.09ms]
+{"scenario":"native-cooperative-host-shutdown","exit":{"workerId":"d4c3bd86-34a5-4b50-881f-03b5c4e48a23","reason":"host-shutdown","elapsedMs":247.15252400000463,"nativeSettled":true,"queuedInputsWithdrawn":true,"uiCancelled":true,"drain":{"code":0,"forced":false,"stderrBytes":512,"terminationSent":false,"forceSent":false,"stdoutEOF":true,"stderrEOF":true},"notificationCount":14,"tailNotifications":11},"audit":{"calls":1,"toolStarted":false,"abortObserved":true,"termObserved":false,"termAt":0,"actualNetworkDispatches":0}}
+(pass) real busy native cooperative host-shutdown obeys one 30+5 deadline and records actual exit [5958.69ms]
+{"scenario":"native-stubborn-host-shutdown","exit":{"workerId":"365a2043-113d-493b-ae0a-0e8e6c05b5c1","reason":"host-shutdown","elapsedMs":35680.698198,"nativeSettled":false,"queuedInputsWithdrawn":false,"uiCancelled":true,"drain":{"code":137,"forced":true,"stderrBytes":512,"terminationSent":true,"forceSent":true,"stdoutEOF":true,"stderrEOF":true},"notificationCount":12,"tailNotifications":1},"audit":{"calls":1,"toolStarted":true,"abortObserved":true,"termObserved":true,"termAt":1794843502925,"actualNetworkDispatches":0}}
+(pass) real busy native stubborn host-shutdown obeys one 30+5 deadline and records actual exit [42698.23ms]
+
+ 6 pass
+ 9 filtered out
+ 0 fail
+ 33 expect() calls
+Ran 6 tests across 1 file. [145.58s]

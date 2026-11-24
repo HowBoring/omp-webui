@@ -1,0 +1,107 @@
+{
+  "admitted": {
+    "version": "durable-submission-v1",
+    "clientSubmissionId": "consumed-retained-original",
+    "target": {
+      "sourceId": "2750dcd6cd791db1d1226f6728c7341ba38db5b1ded0de1c6d2bdcaeb58fdb74",
+      "instanceId": "54fc215aeff0aaf9a1c2ed7d32401296672777f2de3e56a21b4f4f0464c02c83",
+      "nativeSessionId": "native-0000"
+    },
+    "found": true,
+    "duplicate": false,
+    "admission": "local",
+    "origin": {
+      "sourceId": "2750dcd6cd791db1d1226f6728c7341ba38db5b1ded0de1c6d2bdcaeb58fdb74",
+      "instanceId": "54fc215aeff0aaf9a1c2ed7d32401296672777f2de3e56a21b4f4f0464c02c83",
+      "nativeSessionId": "native-0000",
+      "clientSubmissionId": "consumed-retained-original"
+    },
+    "reservation": "committed",
+    "operationOutcome": "unknown",
+    "inputOutcome": "unresolved",
+    "terminal": false,
+    "persistence": "unresolved",
+    "relations": [],
+    "nextOffset": null
+  },
+  "committed": {
+    "version": "durable-submission-v1",
+    "clientSubmissionId": "consumed-retained-original",
+    "target": {
+      "sourceId": "2750dcd6cd791db1d1226f6728c7341ba38db5b1ded0de1c6d2bdcaeb58fdb74",
+      "instanceId": "54fc215aeff0aaf9a1c2ed7d32401296672777f2de3e56a21b4f4f0464c02c83",
+      "nativeSessionId": "native-0000"
+    },
+    "found": true,
+    "duplicate": false,
+    "admission": "local",
+    "origin": {
+      "sourceId": "2750dcd6cd791db1d1226f6728c7341ba38db5b1ded0de1c6d2bdcaeb58fdb74",
+      "instanceId": "54fc215aeff0aaf9a1c2ed7d32401296672777f2de3e56a21b4f4f0464c02c83",
+      "nativeSessionId": "native-0000",
+      "clientSubmissionId": "consumed-retained-original"
+    },
+    "reservation": "committed",
+    "operationOutcome": "unknown",
+    "inputOutcome": "generated",
+    "terminal": true,
+    "persistence": "committed",
+    "relations": [
+      {
+        "relationId": "entry:b2c60c7e",
+        "role": "input",
+        "status": "observed",
+        "persistence": "committed",
+        "entryId": "b2c60c7e",
+        "availability": "retained"
+      }
+    ],
+    "nextOffset": null
+  },
+  "history": {
+    "entryId": "b2c60c7e",
+    "submission": {
+      "origin": {
+        "sourceId": "2750dcd6cd791db1d1226f6728c7341ba38db5b1ded0de1c6d2bdcaeb58fdb74",
+        "instanceId": "54fc215aeff0aaf9a1c2ed7d32401296672777f2de3e56a21b4f4f0464c02c83",
+        "nativeSessionId": "native-0000",
+        "clientSubmissionId": "consumed-retained-original"
+      },
+      "role": "input"
+    }
+  },
+  "reopened": {
+    "version": "durable-submission-v1",
+    "clientSubmissionId": "consumed-retained-original",
+    "target": {
+      "sourceId": "2750dcd6cd791db1d1226f6728c7341ba38db5b1ded0de1c6d2bdcaeb58fdb74",
+      "instanceId": "54fc215aeff0aaf9a1c2ed7d32401296672777f2de3e56a21b4f4f0464c02c83",
+      "nativeSessionId": "native-0000"
+    },
+    "found": true,
+    "duplicate": false,
+    "admission": "local",
+    "origin": {
+      "sourceId": "2750dcd6cd791db1d1226f6728c7341ba38db5b1ded0de1c6d2bdcaeb58fdb74",
+      "instanceId": "54fc215aeff0aaf9a1c2ed7d32401296672777f2de3e56a21b4f4f0464c02c83",
+      "nativeSessionId": "native-0000",
+      "clientSubmissionId": "consumed-retained-original"
+    },
+    "reservation": "committed",
+    "operationOutcome": "unknown",
+    "inputOutcome": "generated",
+    "terminal": true,
+    "persistence": "committed",
+    "relations": [
+      {
+        "relationId": "entry:b2c60c7e",
+        "role": "input",
+        "status": "observed",
+        "persistence": "committed",
+        "entryId": "b2c60c7e",
+        "availability": "retained"
+      }
+    ],
+    "nextOffset": null
+  }
+}

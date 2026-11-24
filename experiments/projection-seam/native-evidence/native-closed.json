@@ -1,0 +1,15 @@
+{
+  "drain": {
+    "code": 0,
+    "forced": false,
+    "stderrBytes": 480
+  },
+  "audit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 15
+  },
+  "traceSha256": "abe254442a183b5e51f0da74d0b50de8f6d637d3724b1257fa61aa87cb206add",
+  "inetConnects": 0,
+  "inetSends": 0
+}

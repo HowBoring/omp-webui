@@ -1,6 +1,6 @@
 # 原生历史、树与 Conversation 投影合同
 
-Status: 用户已确认 Q1–Q3；投影、公共扩展与真实集成验证尚未实现。
+Status: 用户已确认 Q1–Q3；#34/#35 原生快照与实时公开合同已在隔离 S0 实现。#40 同 ID 投影接缝与多页集成见 [ADR 0015](adr/0015-retain-execution-replace-projection.md)；产品私有会话准入及 Q3 持久导航仍待后续验收。
 日期：2026-11-16（Asia/Singapore）。决策：[原生历史与树导航的投影、游标和重建规则](https://github.com/HowBoring/omp-webui/issues/23)。
 取舍见 [ADR 0010](adr/0010-native-history-projection.md)。本文定义语义目标与工程不变量，不编造现有 wire 字段或新方法名。
 
@@ -31,6 +31,19 @@ Status: 用户已确认 Q1–Q3；投影、公共扩展与真实集成验证尚�
 - DSH follow 开头提供 snapshot、连续 journal、projections 和 assistant baseline；Web 仍调用 deprecated `session.page`。follow 请求没有 resume cursor/epoch 字段，不能发明 `eventsAfter` 或 `history.page`。额外 event envelope 字段会被拒绝。[D1]
 - DSH `surface.replace` 改变模型 surface，Chat 仍保留 append-origin 原文；它不能删除离开的原生分支。physical follow restart 保留旧 window，并拒绝向后退的 cursor。连接 generation 也不自动清掉所有 Session journal。[D2]
 - public retain/release 只有最终引用释放后才可得到同 ID 的新 Client scope；现有公有接口不能协调失效所有持有者。具体实例 `resync` 不是可调用的 public contract，且单独重建 journal 不保证 projections、草稿与附件归属一起恢复。[D3]
+
+## S0 同 ID 重建接缝
+
+补丁 `compatibility/dsh/patches/0003-projection-rebuild.patch` 在保留执行 scope 内新增 opt-in 投影生命周期。
+`projection-invalidated` 指向下一权威 `SessionProjectionBinding`；source 绑定验证后的真实来源与原生 Session，generation
+限定可丢弃 journal、页、assistant 和 projections。`ISessions.retryProjection(id)` 只重试当前权威，不能选择新来源。
+旧窗口在取消回调之前退出；一致的新 journal、完整 projections 与必需 assistant baseline 协调发布，失败明确可见。
+SessionReference、AgentContext、worker、调用 retain 和有效 Interaction 的原始期限保持；草稿保留内存新编辑、重复有序原件、
+稳定存储 key 与 unresolved 尝试。旧异步 provider 工作被取消，projection 写入不续期，不自动重放提交。
+
+完整构建 DSH + Bun + 真实公共 native worker 的多页证据位于
+`experiments/projection-seam/native-evidence/`，受控 Remote/provider 故障矩阵位于 `experiments/projection-seam/evidence/`。
+只使用隔离合成数据、预导入出口 guard 与确定性进程内 provider；原生 cut 仍为 `not_attested`，不声称 Q3 或产品准入完成。
 
 ## 源身份、位置与显示身份
 
@@ -78,6 +91,7 @@ Host 只持有可丢弃的投影、版本/代次映射和有界缓存。必要�
 - 旧页使用实际 DSH `throughSeq` inclusive、`beforeSeq` exclusive 和 chronological records/hasMore 语义，保留工具/来源分组。不能把 OMP 正向 offset 游标直接透传给 DSH；当前 `session.page` alias 和消费端调用也须匹配。
 - 对可从同一源 cut 重建的页允许有界缓存；不能重建相同 seq/内容的页须明确失效并重建代次。内存淘汰不能静默造缺号，不能为了旧 cursor 无限保留 runtime-only attempts 或另存持久 transcript。
 - 已确认的 native 导航、branch、改写/删除、worker 重启以及不可修复的 gap，分别检查是否需要新投影代次。重建时显示同步状态，协调所有页面的 journal、Conversation、projections 和 assistant baseline，拒绝旧页面/page/attempt/异步回复。
+- 激活与首个提交会移动原生 cut/context 和来源绑定，但不改变已发布的可见路径。stock 客户端按 `SessionBinding` 缓存 chat 源、按 `projectionGeneration` 生成 conversation 记录，一次代次替换会让已挂载的 Conversation 停在其退役记录上直到页面刷新。因此 worker、原生 Session、已发布记录数和观测位置可继续时，journal 在后继 cut 上重开分页快照（`rebase`），并仍要求事件从 `after` 连续、后继 cut 的 leaf 等于已发布 tip。`native_source_replaced`、`native_source_binding`、`native_untracked_rewrite`、`native_content_changed` 与回到已发布 tip 的 `native_setLeaf` 视为簿记，不改变已发布记录、seq 与 assistant 帧；重建、真实分支移动、压缩、观测缺口与 settlement 淘汰仍然失败并发布新代次。局限：不伴随生命周期的原地 entry 改写可能让已发布记录滞后到下一次真实替换。
 - 同原生 Session 的重建保持其身份；branch 后确认的是新原生 Session。不能通过伪造新 Session、调私有 `resync`、仅触发 Connection ready、发第二个 snapshot 或发送 `surface.replace` 假装完成统一失效。
 - 公共 DSH 接缝须保全独立草稿/附件引用，允许同 ID 的 journal 代次重建，并协调所有现有持有者；补丁固定来源、schema/资产和兼容实验。若变成大范围核心 Conversation 重写，返回客户端组合决策。
 - [验收交接合同](mvp-acceptance-and-handoff.md)已确认初始目录/历史规模、时延及 Host RSS 目标，均待实测；具体快照/分页/缓冲等工程预算须在对应实现规格与组合中定值并验证。通过原生有界读取保证可达性，超出预算明确拒绝/提示，不静默截断或将局部树称为完整历史。

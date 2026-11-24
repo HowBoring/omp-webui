@@ -1,0 +1,329 @@
+product-admission: {"stage": "product", "sessionAdmission": "admitted", "origin": "http://127.0.0.1:3193", "runtime": {"name": "bun", "version": "1.4.4", "platform": "linux", "arch": "x64"}, "installation": "dd92c4cb91b33b11f677b6c783bd45001985cd20809b79e19fbb0074a4edf855"}
+chat-stage: 2713ms host-ready
+chat-stage: 4205ms page-loaded
+chat-stage: 4622ms granted
+chat-stage: 6966ms catalog-1000
+chat-stage: 7102ms open-clicked
+chat-stage: 24312ms session-present
+chat-stage: 24312ms cold-open:20551ms
+chat-stage: 26641ms first-page-0:2329ms
+chat-stage: 28138ms first-page-1:1497ms
+chat-stage: 29849ms first-page-2:1711ms
+chat-stage: 31887ms first-page-3:2038ms
+chat-stage: 33411ms first-page-4:1524ms
+chat-stage: 35093ms first-page-5:1682ms
+chat-stage: 36504ms first-page-6:1411ms
+chat-stage: 38447ms first-page-7:1943ms
+chat-stage: 40238ms first-page-8:1791ms
+chat-stage: 41691ms first-page-9:1453ms
+chat-stage: 43224ms first-page-10:1532ms
+chat-stage: 45215ms first-page-11:1991ms
+chat-stage: 46847ms first-page-12:1632ms
+chat-stage: 48521ms first-page-13:1674ms
+chat-stage: 50770ms first-page-14:2249ms
+chat-stage: 52252ms first-page-15:1482ms
+chat-stage: 54455ms first-page-16:2203ms
+chat-stage: 56350ms first-page-17:1895ms
+chat-stage: 58223ms first-page-18:1873ms
+chat-stage: 59931ms first-page-19:1707ms
+chat-stage: 61559ms first-page-20:1628ms
+chat-stage: 63675ms first-page-21:2116ms
+chat-stage: 65047ms first-page-22:1372ms
+chat-stage: 66656ms first-page-23:1609ms
+chat-stage: 68492ms first-page-24:1836ms
+chat-stage: 70023ms first-page-25:1531ms
+chat-stage: 72160ms first-page-26:2137ms
+chat-stage: 73581ms first-page-27:1421ms
+chat-stage: 75847ms first-page-28:2266ms
+chat-stage: 77573ms first-page-29:1725ms
+chat-stage: 79109ms first-page-30:1536ms
+chat-stage: 80629ms first-page-31:1521ms
+chat-stage: 80662ms history-nodes=32 more=True first-seq=1000532
+chat-stage: 80838ms old-page-0:165ms
+chat-stage: 83395ms old-page-1:169ms
+chat-stage: 84922ms old-page-2:134ms
+chat-stage: 87158ms old-page-3:167ms
+chat-stage: 88869ms old-page-4:169ms
+chat-stage: 90787ms old-page-5:181ms
+chat-stage: 92811ms old-page-6:122ms
+chat-stage: 94845ms old-page-7:200ms
+chat-stage: 96512ms old-page-8:188ms
+chat-stage: 98504ms old-page-9:296ms
+chat-stage: 100362ms old-page-10:139ms
+chat-stage: 102342ms old-page-11:155ms
+chat-stage: 104120ms old-page-12:219ms
+chat-stage: 106112ms old-page-13:185ms
+chat-stage: 108648ms old-page-14:278ms
+chat-stage: 110457ms old-page-15:151ms
+chat-stage: 112336ms old-page-16:232ms
+chat-stage: 114534ms old-page-17:148ms
+chat-stage: 116510ms old-page-18:120ms
+chat-stage: 118367ms old-page-19:199ms
+chat-stage: 120524ms old-page-20:123ms
+chat-stage: 122157ms old-page-21:131ms
+chat-stage: 124245ms old-page-22:153ms
+chat-stage: 125883ms old-page-23:172ms
+chat-stage: 127862ms old-page-24:306ms
+chat-stage: 129870ms old-page-25:157ms
+chat-stage: 131703ms old-page-26:152ms
+chat-stage: 133721ms old-page-27:252ms
+chat-stage: 135692ms old-page-28:175ms
+chat-stage: 137899ms old-page-29:182ms
+chat-stage: 139790ms old-page-30:112ms
+chat-stage: 141625ms old-page-31:195ms
+chat-stage: 143278ms reach-0:nodes=32:seq=1000532:more=True
+chat-stage: 143700ms reach-1:nodes=160:seq=1000404:more=True
+chat-stage: 143903ms reach-2:nodes=288:seq=1000276:more=True
+chat-stage: 144093ms reach-3:nodes=416:seq=1000148:more=True
+chat-stage: 144431ms reach-4:nodes=512:seq=1000001:more=True
+chat-stage: 147657ms reach-5:nodes=746:seq=999486:more=True
+chat-stage: 150269ms reach-6:nodes=902:seq=999145:more=True
+chat-stage: 151700ms reach-7:nodes=981:seq=998974:more=True
+chat-stage: 155584ms reach-8:nodes=1215:seq=998462:more=True
+chat-stage: 159117ms reach-9:nodes=1449:seq=997947:more=True
+chat-stage: 160680ms reach-10:nodes=1528:seq=997776:more=True
+chat-stage: 163485ms reach-11:nodes=1684:seq=997435:more=True
+chat-stage: 167965ms reach-12:nodes=1918:seq=996923:more=True
+chat-stage: 169439ms reach-13:nodes=1997:seq=996752:more=True
+chat-stage: 173943ms reach-14:nodes=2231:seq=996237:more=True
+chat-stage: 177639ms reach-15:nodes=2387:seq=995896:more=True
+chat-stage: 180004ms reach-16:nodes=2466:seq=995725:more=True
+chat-stage: 184890ms reach-17:nodes=2700:seq=995213:more=True
+chat-stage: 188285ms reach-18:nodes=2934:seq=994698:more=True
+chat-stage: 191468ms reach-19:nodes=3092:seq=994354:more=True
+chat-stage: 195186ms reach-20:nodes=3248:seq=994013:more=True
+chat-stage: 201092ms reach-21:nodes=3561:seq=993330:more=True
+chat-stage: 206671ms reach-22:nodes=3795:seq=992815:more=True
+chat-stage: 211355ms reach-23:nodes=4030:seq=992303:more=True
+chat-stage: 217139ms reach-24:nodes=4264:seq=991791:more=True
+chat-stage: 223727ms reach-25:nodes=4577:seq=991105:more=True
+chat-stage: 228121ms reach-26:nodes=4733:seq=990764:more=True
+chat-stage: 234801ms reach-27:nodes=5046:seq=990081:more=True
+chat-stage: 238761ms reach-28:nodes=5280:seq=989566:more=True
+chat-stage: 244227ms reach-29:nodes=5515:seq=989054:more=True
+chat-stage: 249889ms reach-30:nodes=5749:seq=988542:more=True
+chat-stage: 256626ms reach-31:nodes=6062:seq=987856:more=True
+chat-stage: 261732ms reach-32:nodes=6218:seq=987515:more=True
+chat-stage: 269142ms reach-33:nodes=6531:seq=986832:more=True
+chat-stage: 275752ms reach-34:nodes=6765:seq=986317:more=True
+chat-stage: 281490ms reach-35:nodes=7000:seq=985805:more=True
+chat-stage: 288566ms reach-36:nodes=7234:seq=985293:more=True
+chat-stage: 296803ms reach-37:nodes=7547:seq=984607:more=True
+chat-stage: 301896ms reach-38:nodes=7703:seq=984266:more=True
+chat-stage: 309651ms reach-39:nodes=8016:seq=983583:more=True
+chat-stage: 317215ms reach-40:nodes=8250:seq=983068:more=True
+chat-stage: 323518ms reach-41:nodes=8485:seq=982556:more=True
+chat-stage: 331103ms reach-42:nodes=8719:seq=982044:more=True
+chat-stage: 340336ms reach-43:nodes=9032:seq=981358:more=True
+chat-stage: 346218ms reach-44:nodes=9188:seq=981017:more=True
+chat-stage: 355414ms reach-45:nodes=9501:seq=980334:more=True
+chat-stage: 363585ms reach-46:nodes=9735:seq=979819:more=True
+chat-stage: 372099ms reach-47:nodes=9970:seq=979307:more=True
+chat-stage: 380308ms reach-48:nodes=10204:seq=978795:more=True
+chat-stage: 391267ms duplicate-present={'nodesBefore': 10366, 'nodesAfter': 10366, 'firstSeqBefore': '978439', 'firstSeqAfter': '978439', 'preserved': True}
+chat-stage: 391267ms reachability={'nodes': 10366, 'steps': 49, 'more': False, 'firstSeqBefore': '1000532', 'firstSeqAfter': '978439', 'firstNode': 'UserEntry 0 数据 📜 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'allNativeReachable': True, 'duplicatePresent': {'nodesBefore': 10366, 'nodesAfter': 10366, 'firstSeqBefore': '978439', 'firstSeqAfter': '978439', 'preserved': True}, 'reset': None, 'reason': None, 'elapsedMs': 248024.2}
+{
+  "generatedAt": "2026-11-21T17:17:03Z",
+  "productMeasurement": "measured: product Host apps/host/src/main.ts over the enrolled installation (dd92c4cb91b33b11f677b6c783bd45001985cd20809b79e19fbb0074a4edf855) serving the 1000-Session corpus and the 10000-entry/100MiB history through the real catalog and session worker",
+  "admission": "admitted: product Host verified the enrolled installation and served the measured session",
+  "reference": {
+    "cpus": 4,
+    "memoryMiB": 8192,
+    "storage": "SSD",
+    "note": "Declared acceptance profile; actual runner recorded by the harness."
+  },
+  "actual": {
+    "cpus": 4,
+    "machineCpus": 20,
+    "cpuAffinityEmulation": "4 of 20 processors by affinity (taskset); not 4-vCPU hardware",
+    "memoryMiB": 19844,
+    "memoryLimitMiB": 8192,
+    "kernel": "Linux version 6.18.58.1-microsoft-standard-WSL2 (root@6869314ecc53) (gcc (GCC) 13.2.0, GNU ld (GNU Binutils) 2.41) #1 SMP PREEMPT_DYNAMIC Tue Oct 27 00:24:11 UTC 2026",
+    "filesystem": "ext4",
+    "browser": "Google Chrome 157.0.8103.38",
+    "controlledProvider": "config.yml extension compatibility/omp/fixtures/live-provider.ts with modelRoles.default s0-controlled/deterministic-live; deterministic fixture, not real model inference",
+    "runtime": "see corpus.json"
+  },
+  "corpus": {
+    "seed": "omp-webui-s5-performance-v1",
+    "limits": {
+      "catalogSessions": 1000,
+      "historyEntries": 10000,
+      "historyBytes": 104857600
+    },
+    "catalog": {
+      "sessions": 1000,
+      "idsSha256": "697dbe016ff2d86a65747a56cbedc0c8c78bfacdf1fdb32d71845f75f07d04f6"
+    },
+    "history": {
+      "entries": 10000,
+      "bytes": 112923786,
+      "sha256": "bcf9d2557e288d733d7a220adaef6648578464669092465e9de1785c6a1c69d2",
+      "typeDistribution": {
+        "message": 8980,
+        "message:user": 3100,
+        "message:assistant": 3880,
+        "toolCall": 1000,
+        "message:toolResult": 1000,
+        "branch": 100,
+        "message:fileMention": 1000,
+        "custom": 1000,
+        "custom:s5.performance-marker": 1000,
+        "reset_boundary": 10,
+        "compaction": 10
+      }
+    }
+  },
+  "protocol": {
+    "warmups": 2,
+    "samples": 30,
+    "nearestRankP95": "sorted[ceil(0.95*N)-1]",
+    "rssSamplingMs": 45.0,
+    "rssSource": "/proc/<pid>/status VmRSS + VmHWM",
+    "chatJournalLimitBytes": 201326592
+  },
+  "limits": {
+    "firstPageP95Ms": 3000.0,
+    "oldPageP95Ms": 1000.0,
+    "hostPeakMiB": 512.0
+  },
+  "classes": [
+    {
+      "class": "product",
+      "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+      "historyRows": 32,
+      "reachability": {
+        "nodes": 10366,
+        "steps": 49,
+        "more": false,
+        "firstSeqBefore": "1000532",
+        "firstSeqAfter": "978439",
+        "firstNode": "UserEntry 0 \u6570\u636e \ud83d\udcdc xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "allNativeReachable": true,
+        "duplicatePresent": {
+          "nodesBefore": 10366,
+          "nodesAfter": 10366,
+          "firstSeqBefore": "978439",
+          "firstSeqAfter": "978439",
+          "preserved": true
+        },
+        "reset": null,
+        "reason": null,
+        "elapsedMs": 248024.2
+      },
+      "coldOpenMs": 20550.7,
+      "firstPage": {
+        "class": "product-first-page",
+        "samples": 31,
+        "all": [
+          1711.0691859998042,
+          2038.263510001343,
+          1523.6710760000278,
+          1682.149591999405,
+          1410.8677899985196,
+          1942.7706059996126,
+          1791.106430000582,
+          1452.9367459999776,
+          1532.4297799998021,
+          1991.159590999814,
+          1632.4038000002474,
+          1673.7818129986408,
+          2248.7186930011376,
+          1482.2272129986231,
+          2203.2958500003588,
+          1894.7526840001956,
+          1873.131280999587,
+          1707.4814039988269,
+          1628.408305999983,
+          2115.778721999959,
+          1372.129909999785,
+          1608.7162050007464,
+          1835.6940190005844,
+          1531.2664240009326,
+          2137.1638540003914,
+          1420.5490179992921,
+          2266.3632149997284,
+          1725.2635229997395,
+          1535.8536559997447,
+          1520.6362870012526,
+          20550.7
+        ],
+        "maxMs": 20550.7,
+        "medianMs": 1707.4814039988269,
+        "p95Ms": 2266.3632149997284,
+        "limitMs": 3000.0,
+        "hostPeakMiB": 525.859375,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": false
+      },
+      "oldPage": {
+        "class": "product-old-page",
+        "samples": 30,
+        "all": [
+          134.44543600053294,
+          166.83850600020378,
+          169.3074800004979,
+          181.1738790001982,
+          122.14889599999879,
+          200.13736299915763,
+          187.63259400111565,
+          295.84128399983456,
+          138.7830510011554,
+          155.18704500027525,
+          218.74041999944893,
+          185.20236999938788,
+          278.17803799916874,
+          150.76203100034036,
+          232.01751700071327,
+          147.9005090004648,
+          119.98672900153906,
+          199.1240210008982,
+          123.25760300154798,
+          131.11130600009346,
+          153.40578200084565,
+          172.27345299943408,
+          306.31055899903004,
+          156.51652899941837,
+          152.18291800010775,
+          252.0288640007493,
+          175.44455700044637,
+          182.48356799995236,
+          112.15587699916796,
+          195.23330700030783
+        ],
+        "maxMs": 306.31055899903004,
+        "medianMs": 170.790466499966,
+        "p95Ms": 295.84128399983456,
+        "limitMs": 1000.0,
+        "hostPeakMiB": 525.859375,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": false
+      },
+      "rss": {
+        "hostSampledPeakMiB": 514.6328125,
+        "hostOsPeakMiB": 525.859375,
+        "hostPeakMiB": 525.859375,
+        "ompPeakMiB": 2280.71484375,
+        "browserPeakMiB": 4143.26171875,
+        "toolsPeakMiB": 40.03125,
+        "samples": 7377
+      },
+      "productAdmission": {
+        "stage": "product",
+        "sessionAdmission": "admitted",
+        "origin": "http://127.0.0.1:3193",
+        "runtime": {
+          "name": "bun",
+          "version": "1.4.4",
+          "platform": "linux",
+          "arch": "x64"
+        },
+        "installation": "dd92c4cb91b33b11f677b6c783bd45001985cd20809b79e19fbb0074a4edf855"
+      }
+    }
+  ]
+}
+BLOCKED_CLASSES=[]
+FAILED_CLASSES=['product', 'product']

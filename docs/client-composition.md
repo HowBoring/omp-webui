@@ -1,9 +1,27 @@
 # DSH 客户端组合与能力合同目标
 
-Status: 用户已确认组合方向和产品范围；公开接缝隔离实验已通过，最终产品构建与集成仍待验证。
+Status: 用户已确认组合方向和产品范围；公开接缝隔离实验已通过。stock 产品外壳已服务并由真实浏览器验证
+（grant/New Session/发送/停止/继续/历史恢复/多视图/model+thinking/偏好/stock 斜杠菜单，见
+`docs/evidence/ticket-63-freeze.json`、`docs/evidence/ticket-63-product-flow.json` 与
+`tests/product/evidence/performance-2026-11-24-product.json`）。
+stock 斜杠菜单直接读取 Native command catalog；冻结客户端自身拥有的 `/model` 从 Host face
+排除，其余 Native 命令（例如 `/context`）按 `command-v1`/`no_input` 由 Native 执行，
+未知命令和非斜杠文本不提交。
+产品入口是 stock DSH Web Client 构建产物 `vendor/dsh-product`（`scripts/build-product.ts` 组合 boot graph/route），
+不是 `apps/chat/src/product-entry.tsx`/`client.tsx`；后者仍是组件 browser tests 使用的隔离 fixture
+（`vendor/host-chat`），不随产品服务。唯一 OMP 客户端插件是 `apps/chat/src/product-enrollment.js`，
+在 stock graph 中挂载为 `@omp-webui/product-enrollment`。产品已验证 Tree 查看/历史导航、
+浏览器附件上传、provider 草稿恢复和 Original 重开；`tests/product/product-flow.py` 的最终组合
+场景覆盖 200×200 PNG 与文本附件发送、native `fileMention`/inline image、草稿 reload、拒绝不可用
+附件后继续发送，以及历史重开后经 `/api/ompOriginals/history|original` 按字节核对两个 Original。
+history 重开后，stock 会话把 retained image 作为真实图片渲染：Host 用 OMP `contents` 中
+`retained_native`/关联的 Original 元数据替换 native 占位文本，投影为 stock `image` block；客户端经
+`session/attachment` 读取同一 Session、同一 Tree 索引内已关联的 Original 字节，不暴露任意文件路由，
+也不替换 stock shell。product-flow 在 reload 后断言 200×200 PNG 的 `<img>` 实际加载，并按字节核对
+两个 Original。
 
 日期：2026-11-15。决策：[原生会话与历史导航 MVP 的 DSH 客户端组合](https://github.com/HowBoring/omp-webui/issues/19)。
-取舍见 [ADR 0005](adr/0005-dsh-client-composition.md)。
+取舍见 [ADR 0005](adr/0005-dsh-client-composition.md)。同 Session 多持有者重建在保留执行 scope 内采用窄公开投影生命周期，见 [ADR 0015](adr/0015-retain-execution-replace-projection.md)；复用现有 Conversation 窗口替换，无第二套 assembler。
 
 ## 已选方向
 
@@ -95,8 +113,14 @@ prompt；失败保留草稿，截断等降级须用户明确接受。当前公�
 
 草稿按页签＋Session 隔离并在同页刷新或 Host 重启后恢复，不自动发送。stock DSH 的文字草稿
 按 Session ID 共享 localStorage，runtime 附件不在该快照中；现有导航策略补丁没有补齐恢复。
-需要窄公开接缝承载语义快照、有序原件引用、匹配 binding 的原子恢复和新回执状态，并允许
-配置持久化归属/键。当前只有源码可行性依据，没有该补丁或浏览器恢复实证；不走私有 registry。
+现有[公开草稿补丁与隔离实证](../experiments/draft-seam/README.md)承载语义快照、有序原件引用、
+匹配 binding／修订的原子恢复及独立回执状态，并允许 provider 接管持久化归属和键，禁用旧共享
+读写。Linux 真实 DSH Client／受控公开 Remote 与 provider 夹具验证不覆盖新编辑、冻结提交、
+双页签／重复页签与刷新恢复。provider 模式在执行前持久化未决提交标记；刷新隔离该快照，
+不获取新回执、不新建逻辑提交。公开 beforeDispatch 将本地标记与准确 DSH 请求 ID 关联；
+resolveDraftSubmission 仅接受显式权威结果，先持久化再原子解锁，不按文本匹配。浏览器底层可能
+重传相同 HTTP 请求，证据分别记录物理次数及逻辑身份；这不证明原生恰好执行一次。
+上述夹具不构成产品 Host 原件库、原生准备、持久原生提交或完整产品闭环证明。
 
 ## 投影代次重建
 
@@ -120,8 +144,11 @@ prompt；失败保留草稿，截断等降级须用户明确接受。当前公�
   实际启动 UI、busy 输入门禁、取消/重投与原生静止仍需真实验证；投影算法由对应工单细化。
   完整 OMP/DSH 端到端仍是验收门禁。
 
-已有 28 插件空数据启动与公开策略补丁的隔离对照证据；后者包含两个 fixture 插件，不是最终产品 roster。
-产品运行时仍未接入 DSH、上传存储或真实 OMP。官方基线仍为 DSH dsh-v0.2.2-rc.3 / 38a6a5c965aa99ab525161efb7cc5cf1fe62fced。
+最终 stock 产品 roster 为 33 个 DSH package + `@omp-webui/product-enrollment`（34 entries），
+10 个公开策略/组合 patch，136 个 assets；身份、构建期资产摘要和漂移/拒斥门禁见
+`docs/evidence/ticket-63-freeze.json`。产品运行时已接入真实 DSH product、上传存储和真实 OMP；
+上游基线仍是 DSH `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`，实际构建 source tree 为
+`8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c`。
 
 ## 固定一手证据
 

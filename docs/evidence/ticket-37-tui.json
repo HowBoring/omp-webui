@@ -1,0 +1,18 @@
+{
+  "kind": "navigation-native-tui-evidence",
+  "matched": {
+    "kind": "navigation-native-tui",
+    "historyRendered": true,
+    "abandonedBranchHidden": true,
+    "explicitRename": true,
+    "exit": 0,
+    "recoveredLeaf": "05079b56"
+  },
+  "baseline": {
+    "kind": "baseline-navigation-tui-refusal",
+    "version": "18.20.2",
+    "exit": 1,
+    "invalidHeader": true,
+    "dataUnchanged": true
+  }
+}

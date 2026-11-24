@@ -1,0 +1,32 @@
+{
+  "kind": "windows-chrome-input",
+  "platform": {
+    "browser": "Chrome/160.0.8171.0",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/160.0.0.0 Safari/537.36",
+    "filePathStyle": "windows",
+    "cdp": "http://localhost:9224",
+    "reachability": "Windows Chrome -> WSL2 loopback forwarding",
+    "inputPath": "CDP Input.dispatchKeyEvent / dispatchMouseEvent / dispatchDragEvent / DOM.setFileInputFiles in the Windows Chrome process",
+    "notOsLevel": "no OS clipboard paste from another application and no Explorer-originated drag; those need a visible desktop"
+  },
+  "admission": {
+    "title": "OMP WebUI",
+    "url": "http://localhost:3201/",
+    "text": "OMP WebUI\n\nReal OMP 19 product Host · pinned DSH Client · the native Session stays in your authorized directories.\n\nAppe"
+  },
+  "review": "OMP WebUI\n\nReal OMP 19 product Host · pinned DSH Client · the native Session stays in your authorized directories.\n\nAppearance and language\nTheme\nSystem\nLight\nDark\nLanguage\nApply language\n\nScoped to t",
+  "native": "01a2003a-82f1-734e-b42b-53edf46b80a9",
+  "directoryMechanism": "Input.dispatchKeyEvent",
+  "keyboardTypedPrompt": "windows browser key turn",
+  "turnRendered": true,
+  "attachment": {
+    "fileInput": {
+      "ok": true,
+      "bytes": 19
+    }
+  },
+  "dropObserved": false,
+  "consoleErrors": [],
+  "failedRequests": [],
+  "screenshot": "docs/evidence/ticket-61-windows-input.png"
+}

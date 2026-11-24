@@ -1,0 +1,21 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/supervisor.test.ts:
+60 |     if (this.options.grants.authorize(cwd, cwd).status !== "authorized") throw new Error("SESSION_DIRECTORY_DENIED");
+61 |   }
+62 |   #current(identity: BrowserAccess, active: Active): void {
+63 |     this.#browser(identity); this.#directory(active.cwd);
+64 |     if (directoryIdentity(active.cwd) !== active.cwdIdentity) throw new Error("SESSION_CWD_CHANGED");
+65 |     if (active !== this.#active || active.retired || active.exited) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+                                                                                   ^
+error: SESSION_MANUAL_OPEN_REQUIRED
+      at #current (/workspace/work/omp-webui-ticket-44/packages/sessions/supervisor.ts:65:79)
+      at recheck (/workspace/work/omp-webui-ticket-44/packages/sessions/supervisor.ts:180:80)
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/supervisor.test.ts:232:31)
+(fail) logout during admitted native startup withdraws that browser while another browser can finish the same worker [19135.47ms]
+
+ 0 pass
+ 15 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [19.67s]

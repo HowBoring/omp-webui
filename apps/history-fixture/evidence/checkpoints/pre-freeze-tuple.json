@@ -1,0 +1,61 @@
+{
+  "kind": "isolated-synthetic-component-evidence",
+  "privateSessionAdmission": "blocked",
+  "linux": {
+    "os": "Linux 6.18.57 x86_64 GNU/Linux",
+    "bun": "1.4.4",
+    "chromium": "156.0.8078.79"
+  },
+  "combination": {
+    "omp": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "00ed9b7c1c9ae8a1827917260f04c59674261bbbaad9fcb2a0ede170f72bf09b",
+      "patchSha256": "ebd4c1bb312fbd877bf53ca4119b733d263ba2e88b618157ee33f71f96004988",
+      "schemaSha256": "8345aa426ee69f310e787d247df0dcee0902fbb13d8e1196348fae0d2b5aa25b"
+    },
+    "dsh": {
+      "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "sourceSha256": "caf074030b8fea9f95fd9702a3fd4e565cfe2f98b6d69b57f170a8f3ad49e765",
+      "contractSha256": "344dcf4a9dd48b5eeee87e5c2774c719d58fe03343b023e0d461a7c80ec4e067",
+      "assets": {
+        "client.js": "030e6ec5c68f24722e875a584d3f53ef0e1afacdee68b9a463da498044141b10",
+        "index.html": "a3a1c218fc35ed6f5e7dbded6a26b95ad3f8c72d204dee4577c069e9e4be619f"
+      }
+    },
+    "historyPatchSha256": "732b24792e255000c25aa21e523ccd52893d1035735728aa3a153db0f7f9fb94",
+    "bunLockSha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a"
+  },
+  "checks": {
+    "rootCheck": {
+      "status": "PASS",
+      "tests": 121,
+      "assertions": 847,
+      "files": 29,
+      "seconds": 136.54,
+      "logSha256": "f2ca5c4e327636de84e618acbfb55517743615f0d3efd047429f40a96f4a436f"
+    },
+    "cleanOrderedBuildAndGeneratedCheck": "PASS",
+    "nativeScale": {
+      "kind": "native-reachability-only-not-formal-performance",
+      "nativeBytes": 107226874,
+      "entries": 10000,
+      "pages": 137,
+      "maxPageBytes": 781133,
+      "elapsedMs": 21641.41599000001,
+      "scanMs": 215.40928700000222,
+      "scannedBytes": 107227274
+    },
+    "browser": {
+      "status": "PASS",
+      "actualNativeHistoryPageResponses": 8,
+      "screenshotSha256": "5cdd14deb9dcd68861af4f5255dfa9456a64a14c4173d0c44d3a531110e70162"
+    },
+    "fullUpstreamTypecheck": {
+      "status": "NOT PASS",
+      "reason": "154 lines of upstream/published-cache type errors; zero errors in history, SessionManager and shared RPC source files in the final targeted audit",
+      "logSha256": "c6f4a86b2b0f0f657de488a9eb9f362ebb95cb989c1dffbe02350b7c378ae2fa"
+    }
+  },
+  "windows": "DEFERRED by owner; no Windows/WSL2 PASS claim",
+  "formalPerformance": "NOT RUN; reachability only, formal 30-sample matrix belongs to #60"
+}

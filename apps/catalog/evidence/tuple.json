@@ -1,0 +1,112 @@
+{
+  "kind": "ticket31-native-title-slot-layout-linux-candidate",
+  "ompBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "cumulativePatchSha256": "0c5a4fc201bc3b28b07a65158fbe26fb76668b926557380093e082e4c4634a39",
+  "sourceSha256": "12c72dc14e30975ab0f90df49cfcf3fc1eb50f300366088dc04053ab1c6f437b",
+  "schemaSha256": "f2066f6f64058b01e24640bda9e5a8625fe18d579c0fe3440f774b99fe9ea289",
+  "installationManifestSha256": "bcd56a274b1b96d6148317d6078caece2e031f036670177087dc37635d8dc663",
+  "installationAssets": 77417,
+  "orderedPatches": [
+    {
+      "name": "0001-safe-preflight.patch",
+      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+    },
+    {
+      "name": "0002-readonly-catalog.patch",
+      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+    }
+  ],
+  "catalogClient": {
+    "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceInputs": 238,
+    "sourceSha256": "d5dfe0ef840fccc04f2d1a21fef334c24ec3239eeb60910715c2e5c18eace0f9",
+    "contractSha256": "4b090b5212eb791034600237c2805e451bed1b54482fe2f85309c8292cd54b96",
+    "assets": {
+      "client.js": "dc0bce2136e865a9b0837b4bb957b91933e1a08d2602ff0b65e22abc356eba75",
+      "index.html": "2e3f720f990ffddaa1b26feadfb7ab4e58545e39259aa6b6433b36560ae07b9a"
+    }
+  },
+  "hostBundle": {
+    "file": "catalog-fixture-main.js",
+    "sha256": "d1af18a9a1eeda93202d03838c0cf27e723b990e95188071d80f2164e3c939da"
+  },
+  "runtime": {
+    "name": "bun",
+    "version": "1.4.4"
+  },
+  "screenshots": {
+    "catalog.png": "b41c06b9eed4611942247447b65a7d38ff723f7f16d69bb9b6a18a4d536a1894"
+  },
+  "fixture": {
+    "kind": "synthetic-native-v3",
+    "seed": "catalog-v1-1000-cwd",
+    "sessions": 1004,
+    "distinctDefaultBuckets": 1000,
+    "additionalCases": [
+      "same-ID custom copy",
+      "verified leaf alias",
+      "unknown cwd",
+      "malformed header",
+      "invalid custom source",
+      "nested authorized bucket: same physical instance, distinct source-scoped reference",
+      "actual SessionManager.createEmptySessionFile",
+      "actual SessionManager serialization with user title"
+    ],
+    "sourceScopedRows": 1005,
+    "actualSessionManagerFiles": 2,
+    "layout": "1000 synthetic records serialized with authoritative native title slots; actual Manager empty+titled records; explicit legacy/fault cases retained"
+  },
+  "upstreamReuse": "Owned writable OMP clone from local fixed-base object cache; immutable frozen dependency files reused read-only via hard links. Unmodified pinned DSH browser artifact directories copied and exact source/contract/asset hashes rechecked; no cold DSH build.",
+  "productSessionAdmission": "blocked",
+  "windowsChromeWsl2": "DEFERRED by owner",
+  "diagnosticHostBundle": {
+    "file": "diagnostics-main.js",
+    "sha256": "e72ceb85274b56cdabd48043e274be14f503ae3502d2235430f2b059a97f16a0"
+  },
+  "integrationBase": "3643be43d6ed7d3b5c782ddb97d24398ecc64641",
+  "transportFollowup": {
+    "kind": "actual-stdio-process-contract-fixtures",
+    "pendingRequests": 32,
+    "queuedOrInflightWrites": 32,
+    "readyAndNegotiation": "one independently configurable budget; defaults unchanged",
+    "expiredQueuedRequests": "skipped before starting a write; slot released in finally",
+    "backpressureEvidence": "eight waves of 32 schema-valid 4096-byte describe references; >1 MiB offered; actual blocked flush proved by forced nonzero RPC_STDIN drain",
+    "latePublicationEvidence": "a real paused reader resumes; public reference-receipt probes reject mutation with skip guard removed",
+    "sharedCore": "BoundedStdioTransport + StdioWriteQueue; generated mode policies remain distinct",
+    "duplicateRequestIds": "rejected without replacing pending waiter",
+    "coalescedNegotiation": "validated correlated v2 ack takes effect before next same-read line; before/wrong ack chunks and all catalog chunks rejected"
+  },
+  "reusedEvidence": {
+    "nativeSourceSchemaAndPatch": "native parser source/patch regenerated from clean ordered 0001+0002; wire/schema unchanged",
+    "nativeSyscallTrace": "rerun over actual Manager-authored empty+titled files; current trace-summary.json",
+    "native1000BucketAndRealTtlProof": "rerun with canonical native title-slot corpus, including actual 60.5-second TTL",
+    "dshClientAssets": "exact unmodified pinned browser assets reused; same-tuple actual browser and refreshed Host bundles/enrollment repeated",
+    "sharedTransport": "unchanged from 46647ee; all public transport cases rerun in full check"
+  },
+  "reviewVerification": {
+    "fullCheck": {
+      "tests": 106,
+      "assertions": 920,
+      "result": "PASS"
+    },
+    "upstreamFreshArtifacts": {
+      "tests": 1,
+      "assertions": 5,
+      "result": "PASS"
+    },
+    "nativeTypes": "strict authored-module check PASS; unrelated upstream diagnostics excluded",
+    "priorEvidence": "before-native-layout/ and before-review/",
+    "postBrowserInstallation": "entire 77417-asset enrolled closure reverified after browser with exact unchanged identity",
+    "actualNativeLayout": {
+      "tests": 2,
+      "assertions": 25,
+      "result": "PASS"
+    }
+  },
+  "nativeMetadataRead": {
+    "bytes": 16384,
+    "kind": "one cumulative anchored title-slot plus immediately following header prefix",
+    "titleSlotParser": "authoritative session/session-title-slot.parseTitleSlotLine",
+    "titleSemantics": "current slot overrides legacy header; empty slot removes title; malformed leading records fail partial without search"
+  }
+}

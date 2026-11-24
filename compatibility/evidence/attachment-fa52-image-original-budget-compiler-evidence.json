@@ -1,0 +1,167 @@
+{
+  "ticket": 38,
+  "status": "PASS_ADDITIVE_COMPILER_ONLY_PUBLIC_RUNTIME_NOT_RUN",
+  "hostHeadDuringCompiler": "2f34148de078820618c2b6a58dd0b184d1694560",
+  "hostTreeDuringCompiler": "352b2905a5287e3eeac850a82849b484b6136bff",
+  "firstAttempt": {
+    "status": "FAIL_CONSUMED_STRICT_INPUT_REFUSAL",
+    "originalBunPid": 643406,
+    "waitStatus": 1,
+    "bothReadersAndEof": true,
+    "stdoutBytes": 0,
+    "stderrBytes": 171,
+    "reason": "BUILD_UNENROLLED_COMPILER_INPUT: AJV8.17.1 ucs2length.js; no in-place repair/retry or relabel asPASS.",
+    "rootReceipt": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-compiler-root-tool.json",
+      "bytes": 7078,
+      "sha256": "3560182cdcf5ca7170616c72b445cc832aa736459297ff8b3445479b26534c92"
+    },
+    "pack": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-fail-preserve-20261117/raw.tar.gz",
+      "bytes": 609265,
+      "sha256": "d939e3be40e14198c9993b6363aa69f25bb9adc533c0875c748fee7f28df955b"
+    },
+    "manifest": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-fail-preserve-20261117/manifest.json",
+      "bytes": 10815,
+      "sha256": "c4e783203b971097381d340bf1c50bc709124e23c7a319f0ccbefaff0b8f58a3"
+    }
+  },
+  "secondAttempt": {
+    "status": "PASS_COMPILER_TRANSFORMATION_ONLY",
+    "originalBunPid": 646742,
+    "waitStatus": 0,
+    "bothReadersAndEof": true,
+    "stdoutBytes": 91,
+    "stderrBytes": 0,
+    "networkAudit": {
+      "denied": 0,
+      "dispatched": 0
+    },
+    "runner": {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/runner.json",
+      "bytes": 5208,
+      "sha256": "52575070aa3f4a4085e996c720ccbe5cdaba631168154e2160b9a4cbd9e2c81a"
+    },
+    "rootPreRunTool": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-compiler-v2-root-tool.json",
+      "bytes": 7982,
+      "sha256": "d6b65be8aee0c6b52accb897e000f15e9d5d3ac29cdb86fe60777e7288e1a6f5"
+    },
+    "rootPostTool": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-compiler-v2-root-post-tool.json",
+      "bytes": 3300,
+      "sha256": "b2902db89afc424fa02cd04b9807a2fd0e5d1f7f1fd0cb5cbdb28f051cc19665"
+    },
+    "originalTools": {
+      "pre": {
+        "session": 90614,
+        "completion": "82a2c9",
+        "exitCode": 0
+      },
+      "permit": "e892c3",
+      "run": {
+        "session": 35887,
+        "completion": "269a09",
+        "exitCode": 0
+      },
+      "post": {
+        "session": 50355,
+        "completion": "b95c14",
+        "exitCode": 0
+      }
+    }
+  },
+  "compiledArtifacts": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/cli.js",
+      "bytes": 3286,
+      "sha256": "56cf4218fa0fa15cecaae415aa870ae46e643473f89dd4ef39ccace833a283fc"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/chunk-wdb2qd0x.js",
+      "bytes": 23710,
+      "sha256": "053801f6249ef26d2806ff30693db2b61ce20970a38a21c4663608e0e7756930"
+    }
+  ],
+  "bundleBytes": 26996,
+  "compiledManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/compiled-manifest.json",
+    "bytes": 14500,
+    "sha256": "9bae31f42bf99a0eebd5a89b3f20813c3ff8558e766b442efc233535e56932b4"
+  },
+  "compilerBuildIdentity": {
+    "nativeAuthoredTuple": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+      "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+      "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+    },
+    "externalCompilerClosureSha256": "46cf8bdff41ade4f61513dd4a98d0193c823f9295b2a97b42a9428cab2f536c9",
+    "compilerInventorySha256": "9f26d39ac0cc71cb2a4641abbd90765ec19847338df9fe80d9715c9e9f16fe98",
+    "baseNativeInventorySha256": "c213e58a4c0276c84323e65af614b5be3f4ac07e085b9936cebcd28a6e88eac3",
+    "compositeCompilerInputsSha256": "97c71148b9992682a779aceb9a97814018da3ffa0297df659b47cdc5a170b53d",
+    "verificationRamSha256": "f3c37a49aabbbeca207b535b6a78454aff6973561ca43f148e40512bf948ae6f",
+    "recipeSha256": "82f68c275f5b06d2f19d1d989dcff833051393b79308b1c2c51b0fdca8081c5e"
+  },
+  "externalCompilerClosure": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/external-compiler-closure.json",
+    "bytes": 7686,
+    "sha256": "46cf8bdff41ade4f61513dd4a98d0193c823f9295b2a97b42a9428cab2f536c9"
+  },
+  "externalAddition": "Explicitnewone808B AJV8.17.1 publicruntimeleaf with no transitiveimports; exactpackage/lock/symlink/file pins. Not enrolled by oldNative10715/matched290; no broadnode_modules allowance.",
+  "schemaOrigin": {
+    "status": "REUSED_BYTE_EXACT_EXISTING_SCHEMA_NOT_REGENERATED",
+    "bytes": 227457,
+    "sha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566",
+    "source": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate/rpc-wire.schema.json"
+  },
+  "identityOverlay": {
+    "original": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/modes/rpc/preflight.generated.ts",
+    "originalSha256": "ee48939ee26d18c92cd6283e394fa3985c984d7c2bc0074d5b255a1c7e0246a4",
+    "compiledSha256": "25d94ef6a77d20e4c27facfd6075db3926448abbfcd4df21cef98cfb97da96cd",
+    "loads": 1
+  },
+  "deferredNativeRoot": "/workspace/work/omp-webui-ticket-38/vendor/omp",
+  "originalNativeIndex": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+    "bytes": 1271154,
+    "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+  },
+  "rootPost": {
+    "record": {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/postcheck.json",
+      "bytes": 3169,
+      "sha256": "be1cb18b10778ed80b1ac0615998551e73a325509161543670667583d3749a4b"
+    },
+    "status": "PASS_SOURCE_AND_ADDITIVE_ARTIFACT_METADATA_ONLY",
+    "sourceRecords": 920,
+    "nativeFiles": 10715,
+    "regularNewPrefixBytes": 282107,
+    "meaning": "Fullsource/index/deps/oldFAIL/artifacts verified after compiler; NativeCLI neverexecuted."
+  },
+  "passEvidencepack": {
+    "archive": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-v2-evidencepack-20261117/raw.tar.gz",
+      "bytes": 61993,
+      "sha256": "86030b3cb81ea6664792056058fe8b0c20699a2108a0bef34ab29982666f23a1"
+    },
+    "manifest": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-v2-evidencepack-20261117/manifest.json",
+      "bytes": 9042,
+      "sha256": "83eb6da583350e4ec08394bc0ff2a531aa0c0dd9446c334f36942d912f6a5405"
+    },
+    "members": 21,
+    "uncompressedBytes": 375227,
+    "readback": "Exact ordered regular names/counts/fullbytes without extraction."
+  },
+  "preservation": "All oldsource/readies/raw/manifests and FAIL preserved; newoutputs additiveonly; no source/index/deps/global changes by compiler. Historical source920 stays immutable; subsequent evidence commit changes HostHEAD/index only.",
+  "limitations": [
+    "Compiler pass is code transformation, not Native/publicpreflight/worker/attachment runtimePASS; stablebudgetreason actualRED/GREEN remainsunrun.",
+    "Compiledpreflight contains overlayd8d12dee, while physicaldeferred preflight.generated remains original9f33; no byteequivalence/fullruntimecohort claim. Futureexplicitbinding/publicpreflightcheck/lexicalaudit required.",
+    "Schema bytes reused unchanged8f9c3a; not a freshNative generator result.",
+    "Instrumented guard0/0 is not general syscallnetwork proof; originaltopwait/readers/EOF is not P_ALL/descendant extinction.",
+    "Whole29/38/53/54, global/private/product admission open."
+  ],
+  "evidenceOnly": "Onlycaptured records/hash/readback/allowlistpacks and three newevidence files; no consumedpre/run/post/checker rerun, NativeCLI/test/codec/FFI/Host/browser/kernel/proc/seed/build/GH/merge/push."
+}

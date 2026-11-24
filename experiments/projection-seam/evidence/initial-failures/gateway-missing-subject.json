@@ -1,0 +1,11 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "scope": "Synthetic public Client/Remote/provider + real Gateway Agent invocation; native worker pending",
+  "checks": [
+    "two tabs share native identity; independent drafts and multiple holders retain exact execution binding",
+    "negative control: surface replacement leaves original human rows"
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "chromium": "156.0.8078.79"
+}

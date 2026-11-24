@@ -1,0 +1,11 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/compatibility/dsh-source.test.ts:
+(pass) the declared complete source is accepted through the public DSH build gate [4797.44ms]
+(pass) an undeclared edit to a consumed DSH module blocks the build gate [6427.23ms]
+(pass) ignored startup environment files and undeclared untracked source cannot evade the gate [5504.40ms]
+
+ 3 pass
+ 0 fail
+ 5 expect() calls
+Ran 3 tests across 1 file. [16.80s]

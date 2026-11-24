@@ -1,0 +1,45 @@
+{
+  "kind": "windows-chrome-product",
+  "platform": {
+    "browser": "Chrome/160.0.8171.0",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/160.0.0.0 Safari/537.36",
+    "filePathStyle": "windows",
+    "cdp": "http://localhost:9224",
+    "reachability": "Windows Chrome -> WSL2 loopback forwarding"
+  },
+  "origin": "http://localhost:3201",
+  "admission": {
+    "title": "OMP WebUI",
+    "url": "http://localhost:3201/",
+    "text": "OMP WebUI\n\nReal OMP 19 product Host \u00b7 pinned DSH Client \u00b7 the native Session sta"
+  },
+  "shell": {
+    "title": "OMP WebUI",
+    "url": "http://localhost:3201/",
+    "text": "OMP WebUI\n\nReal OMP 19 product Host \u00b7 pinned DSH Client \u00b7 the native Session stays in your authorized directories.\n\nAppearance and language\nTheme\nSystem\nLight\nD",
+    "clientLoaded": true
+  },
+  "requests": [
+    "200 http://localhost:3201/",
+    "200 http://localhost:3201/client.js",
+    "200 http://localhost:3201/auth/status",
+    "404 http://localhost:3201/favicon.ico",
+    "200 http://localhost:3201/api/settings/describe",
+    "200 http://localhost:3201/api/ompSessions/current",
+    "200 http://localhost:3201/api/session/list",
+    "200 http://localhost:3201/api/ompSessions/catalog",
+    "200 http://localhost:3201/api/ompSessions/grants",
+    "200 http://localhost:3201/",
+    "200 http://localhost:3201/client.js",
+    "200 http://localhost:3201/auth/status",
+    "200 http://localhost:3201/api/settings/describe",
+    "200 http://localhost:3201/api/ompSessions/catalog",
+    "200 http://localhost:3201/api/ompSessions/current",
+    "200 http://localhost:3201/api/ompSessions/grants",
+    "200 http://localhost:3201/api/session/list"
+  ],
+  "failedRequests": [],
+  "consoleErrors": [],
+  "screenshot": "docs/evidence/ticket-61-windows-chrome.png",
+  "inputInjection": "not run: needs a visible Windows desktop session (OS-level drag/keys); see ticket-61 acceptance"
+}

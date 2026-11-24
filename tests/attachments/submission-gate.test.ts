@@ -1,0 +1,366 @@
+import { expect, test } from "bun:test";
+import { AttachmentBridge } from "../../packages/attachments/bridge.ts";
+import { AttachmentSubmissionGate } from "../../packages/attachments/submission-gate.ts";
+import type { AttachmentReceipt } from "../../packages/contracts/attachment-preparation.ts";
+import type { RpcWireCommands } from "../../packages/contracts/generated/omp-wire.ts";
+
+const selection = { session: "projection", draftId: "draft", revision: "1", originalIds: ["original"] };
+const target = { sourceId: "a".repeat(64), instanceId: "b".repeat(64), nativeSessionId: "native" };
+const attempt = { selection, submissionId: "attempt", requestId: "request" };
+function fixture() {
+  let revision = "1", owner = true, prepares = 0, submits = 0;
+  let preparedMessage = "", submittedMessage = "";
+  let failSubmit = false, noInput = false, mismatchOrigin = false, mismatchTarget = false, missingPart = false, unavailablePart = false;
+  let degraded = true;
+  let terminal = true; let deferred: PromiseWithResolvers<void> | undefined;
+  let operationOutcome: "succeeded" | "failed" | "cancelled" | "unknown" = "unknown";
+  const bridge = new AttachmentBridge({ async authorize(request) {
+    if (!owner) throw Error("ATTACHMENT_AUTHORITY_CHANGED");
+    if (request.revision !== revision) throw Error("ATTACHMENT_DRAFT_CHANGED");
+    return { target, draftId: "draft", draftRevision: "1", authorityGeneration: "grant", message: "raw semantic chip projection",
+      objects: [{ originalId: "original", format: "utf8", data: "aGk=", sha256: "c".repeat(64) }] };
+  } }, () => ({ async prepare(input) {
+    prepares++; preparedMessage = input.message;
+    return { version: "attachment-preparation-v1", budgetVersion: "attachment-budgets-v1", receiptId: `receipt-${prepares}`, preparationId: input.preparationId,
+      draftId: "draft", draftRevision: "1", authorityGeneration: "grant", draftFingerprint: "d".repeat(64),
+      binding: { ...target, contextId: "e".repeat(64), modelFingerprint: "f".repeat(64), imageCapable: true }, expiresAt: Date.now() + 60_000,
+      status: "ready", resultDigest: String(prepares).padStart(64, "0"), items: [{ originalId: "original", originalSha256: "c".repeat(64),
+        preparedId: "prepared", preparedSha256: "e".repeat(64), status: "ready", representation: { kind: "text", text: "processed original" },
+        degradations: degraded ? ["text_truncated"] : [] }] } satisfies AttachmentReceipt;
+  }, async cancel() { return { cancelled: true }; }, async submit(input: RpcWireCommands["submission_submit"]["params"]) {
+    submits++; submittedMessage = input.message; if (failSubmit) throw Error("RPC_LOST_RESPONSE");
+    if (deferred) await deferred.promise;
+    return { version: "durable-submission-v1", clientSubmissionId: input.clientSubmissionId,
+      target: mismatchTarget ? { ...target, nativeSessionId: "another-session" } : target, found: true, duplicate: false,
+      admission: "local", reservation: "committed", inputOutcome: noInput ? "no_input" : "generated", operationOutcome,
+      persistence: "committed", terminal, nextOffset: null,
+      origin: { ...target, clientSubmissionId: mismatchOrigin ? "another-attempt" : input.clientSubmissionId },
+      relations: [...(noInput ? [] : [{ relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" }]),
+        { relationId: "entry:prepared", role: "prepared", status: "observed", persistence: "committed", entryId: "prepared", attachments: [{
+          originalId: "original", preparedId: "prepared", originalSha256: "c".repeat(64), preparedSha256: "e".repeat(64), representationKind: "text",
+          ...(unavailablePart ? { entryPartUnavailable: "missing" } : !missingPart ? { entryPart: { kind: "files", index: 0 } } : {}) }] }],
+      preparation: { ...input.preparationConsent, attachments: [] } };
+  } }));
+  const gate = new AttachmentSubmissionGate(bridge, async () => { if (!owner) throw Error("ATTACHMENT_AUTHORITY_CHANGED"); });
+  return { gate, counts: () => ({ prepares, submits }), messages: () => ({ preparedMessage, submittedMessage }),
+    edit: () => { revision = "2"; }, revoke: () => { owner = false; }, loseReply: () => { failSubmit = true; },
+    handledWithoutInput: (outcome: typeof operationOutcome = "unknown", settled = true) => { noInput = true; operationOutcome = outcome; terminal = settled; },
+    mismatchOrigin: () => { mismatchOrigin = true; }, mismatchTarget: () => { mismatchTarget = true; }, missingPart: () => { missingPart = true; },
+    unavailablePart: () => { unavailablePart = true; }, noDegradations: () => { degraded = false; },
+    nonTerminal: () => { terminal = false; },
+    deferSubmit: () => { deferred = Promise.withResolvers<void>(); return () => { deferred?.resolve(); deferred = undefined; }; } };
+}
+async function awaiting(gate: AttachmentSubmissionGate) {
+  for (let i = 0; i < 40; i++) { const state = await gate.status("request"); if (state.phase === "awaiting-consent") return state; await Promise.resolve(); }
+  throw Error("PURE_GATE_NOT_AWAITING_CONSENT");
+}
+function accept(state: Awaited<ReturnType<AttachmentSubmissionGate["status"]>>) {
+  if (!state.receipt) throw Error("PURE_GATE_NO_RECEIPT");
+  return { selection, requestId: "request", receiptId: state.receipt.receiptId, resultDigest: state.receipt.resultDigest,
+    acceptedDegradations: ["text_truncated"] };
+}
+
+test("post-Enter gate uses actual serialized prose and continues only the same explicitly consented attempt", async () => {
+  const f = fixture(); await f.gate.begin(attempt); expect(f.counts()).toEqual({ prepares: 0, submits: 0 });
+  const prompt = "> exact quoted content\n\nresolved reference from owner codec";
+  const pending = f.gate.submit("request", prompt, new AbortController().signal);
+  const state = await awaiting(f.gate); expect(state).toMatchObject({ phase: "awaiting-consent", nativeState: "not-dispatched", prompt });
+  expect(f.counts().submits).toBe(0);
+  await expect(f.gate.consent({ ...accept(state), acceptedDegradations: [] })).rejects.toThrow("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
+  await f.gate.consent(accept(state)); await pending;
+  expect(f.messages()).toEqual({ preparedMessage: prompt, submittedMessage: prompt }); expect(f.counts().submits).toBe(1);
+  expect(await f.gate.status("request")).toMatchObject({ phase: "submitted", recovery: "accepted" });
+  await f.gate.finish("request", "accepted");
+});
+
+test("newer draft edit after preparation refuses consumption without creating another native attempt", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal); void pending.catch(() => {});
+  const state = await awaiting(f.gate); f.edit();
+  await expect(f.gate.consent(accept(state))).rejects.toThrow("ATTACHMENT_DRAFT_CHANGED");
+  await f.gate.cancel("request"); await expect(pending).rejects.toThrow("ATTACHMENT_CANCELLED");
+  expect(f.counts().submits).toBe(0); expect(await f.gate.status("request")).toMatchObject({ recovery: "not-submitted" });
+});
+
+test("revoking the View before consent admits no native dispatch for the pending attempt", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const abort = new AbortController();
+  const pending = f.gate.submit("request", "revoked before consent", abort.signal);
+  const state = await awaiting(f.gate);
+  f.revoke(); abort.abort();
+  await expect(pending).rejects.toThrow("ATTACHMENT_CANCELLED");
+  await expect(f.gate.consent(accept(state))).rejects.toThrow("ATTACHMENT_AUTHORITY_CHANGED");
+  expect(f.counts().submits).toBe(0);
+  await expect(f.gate.status("request")).rejects.toThrow("ATTACHMENT_AUTHORITY_CHANGED");
+});
+
+test("cancelled Remote before consent seals the request against any later native dispatch", async () => {
+  const f = fixture(); await f.gate.begin(attempt); const abort = new AbortController();
+  const pending = f.gate.submit("request", "serialized", abort.signal); void pending.catch(() => {});
+  const state = await awaiting(f.gate); abort.abort(); await expect(pending).rejects.toThrow("ATTACHMENT_CANCELLED");
+  await expect(f.gate.consent(accept(state))).rejects.toThrow("ATTACHMENT_CONSENT_STALE"); expect(f.counts().submits).toBe(0);
+});
+
+test("lost native response remains unresolved and never authorizes a new send from query absence", async () => {
+  const f = fixture(); await f.gate.begin(attempt); f.loseReply();
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal); void pending.catch(() => {});
+  const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await expect(pending).rejects.toThrow();
+  expect(await f.gate.status("request")).toMatchObject({ phase: "unresolved", recovery: "unresolved" });
+  await expect(f.gate.finish("request", "not-submitted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+  expect(f.counts().submits).toBe(1);
+});
+
+
+test("committed no_input is not proof that native hooks or commands never executed", async () => {
+  const f = fixture(); await f.gate.begin(attempt); f.handledWithoutInput();
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+  const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+  expect(await f.gate.status("request")).toMatchObject({ nativeState: "reserved", recovery: "unresolved" });
+  await expect(f.gate.finish("request", "not-submitted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+});
+
+test("a result with another native origin key or target cannot settle the attachment attempt", async () => {
+  for (const mismatch of ["mismatchOrigin", "mismatchTarget"] as const) {
+    const f = fixture(); await f.gate.begin(attempt); f[mismatch]();
+    const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+    const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+    expect(await f.gate.status("request")).toMatchObject({ recovery: "unresolved" });
+    await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+    expect(f.counts().submits).toBe(1);
+  }
+});
+
+test("a committed prepared identity without an actual saved part cannot accept an original", async () => {
+  for (const omission of ["missingPart", "unavailablePart"] as const) {
+    const f = fixture(); await f.gate.begin(attempt); f[omission]();
+    const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+    const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+    expect(await f.gate.status("request")).toMatchObject({ recovery: "unresolved" });
+    await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+  }
+});
+
+test("a successful no-input acknowledgement cannot complete before native terminal publication", async () => {
+  const f = fixture(); await f.gate.begin(attempt); f.handledWithoutInput("succeeded", false);
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+  const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+  expect(await f.gate.status("request")).toMatchObject({ recovery: "unresolved" });
+  await expect(f.gate.finish("request", "completed-without-input")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+});
+
+test("only a correlated successful terminal no-input result completes without accepting any original", async () => {
+  for (const outcome of ["unknown", "failed", "cancelled", "succeeded"] as const) {
+    const f = fixture(); await f.gate.begin(attempt); f.handledWithoutInput(outcome);
+    const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+    const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+    expect(await f.gate.status("request")).toMatchObject({ recovery: outcome === "succeeded" ? "completed-without-input" : "unresolved" });
+    await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+    await expect(f.gate.finish("request", "not-submitted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+    if (outcome === "succeeded") await f.gate.finish("request", "completed-without-input");
+    else await expect(f.gate.finish("request", "completed-without-input")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+    expect(f.counts().submits).toBe(1);
+  }
+});
+
+test("a cancelled attempt stays unresolved when a late publication arrives and is never retroactively accepted", async () => {
+  const f = fixture();
+  const release = f.deferSubmit();
+  await f.gate.begin(attempt);
+  const controller = new AbortController();
+  const running = f.gate.submit("request", "late publication", controller.signal);
+  const state = await awaiting(f.gate);
+  await f.gate.consent(accept(state));
+  let submitting = false;
+  for (let index = 0; index < 200; index++) {
+    if ((await f.gate.status("request")).phase === "submitting") { submitting = true; break; }
+    await new Promise(resolve => setTimeout(resolve, 1));
+  }
+  expect(submitting).toBe(true);
+  expect(await f.gate.cancel("request")).toEqual({ cancelled: false });
+  expect((await f.gate.status("request")).phase).toBe("unresolved");
+  release();
+  await running.catch(() => {});
+  const late = await f.gate.status("request");
+  expect(late.phase).toBe("unresolved");
+  expect(late.recovery).toBe("unresolved");
+  await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+});
+
+test("deletion protection refuses occupancy or execution and changes revision after resolution", async () => {
+  const f = fixture();
+  const binding = { sessionId: "projection", draftId: "draft" };
+  const initial = f.gate.protection(binding, "original");
+  expect(initial.status).toBe("unreferenced");
+  expect(f.gate.protection({ sessionId: "projection", draftId: "other" }, "original")).toEqual(initial);
+  expect(f.gate.protection(binding, "another-original")).toEqual(initial);
+
+  await f.gate.begin(attempt);
+  expect(f.gate.protection(binding, "original")).toEqual({ status: "occupied" });
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+  const state = await awaiting(f.gate);
+  expect(f.gate.protection(binding, "original")).toEqual({ status: "occupied" });
+  await f.gate.consent(accept(state)); await pending;
+  expect(f.gate.protection(binding, "original")).toEqual({ status: "executing" });
+  await f.gate.finish("request", "accepted");
+  const resolved = f.gate.protection(binding, "original");
+  expect(resolved.status).toBe("unreferenced");
+  expect("revision" in resolved && resolved.revision).not.toBe("revision" in initial && initial.revision);
+});
+
+test("a lost publication blocks deletion until explicit recovery resolves the attempt", async () => {
+  const f = fixture();
+  f.loseReply();
+  await f.gate.begin(attempt);
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+  void pending.catch(() => {});
+  const state = await awaiting(f.gate); await f.gate.consent(accept(state));
+  await expect(pending).rejects.toThrow("ATTACHMENT_SEND_FAILED");
+  expect(f.gate.protection({ sessionId: "projection", draftId: "draft" }, "original"))
+    .toEqual({ status: "unresolved-submission" });
+  expect(await f.gate.status("request")).toMatchObject({ phase: "unresolved", recovery: "unresolved" });
+});
+
+test("a cancelled attempt never exposes an Original that a newer live attempt still holds", async () => {
+  const f = fixture();
+  const binding = { sessionId: "projection", draftId: "draft" };
+  const initial = f.gate.protection(binding, "original");
+  await f.gate.begin(attempt);
+  const pending = f.gate.submit("request", "attempt one", new AbortController().signal);
+  void pending.catch(() => {});
+  await awaiting(f.gate);
+  await f.gate.begin({ selection, submissionId: "attempt-2", requestId: "request-2" });
+  await f.gate.cancel("request");
+  await expect(pending).rejects.toThrow("ATTACHMENT_CANCELLED");
+  expect(f.gate.protection(binding, "original")).toEqual({ status: "occupied" });
+  await f.gate.cancel("request-2");
+  const resolved = f.gate.protection(binding, "original");
+  expect(resolved.status).toBe("unreferenced");
+  expect("revision" in resolved && resolved.revision).not.toBe("revision" in initial && initial.revision);
+});
+
+test("stock preparation stays one attempt: degrade-free consent continues it, lossy receipts refuse", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const receipt = await f.gate.stockPrepare("request", "attach the report", new AbortController().signal);
+  expect(receipt.status).toBe("ready");
+  expect(f.counts()).toEqual({ prepares: 1, submits: 0 });
+  await expect(f.gate.stockAccept("request")).rejects.toThrow("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
+  await f.gate.abort("request");
+  expect(f.counts().submits).toBe(0);
+  await expect(f.gate.stockPrepare("request", "another message", new AbortController().signal))
+    .rejects.toThrow();
+});
+
+test("degradation-free stock receipt accepts and submits the same exact message once", async () => {
+  const f = fixture(); f.noDegradations(); await f.gate.begin(attempt);
+  const signal = new AbortController().signal, prompt = "attached notes";
+  await f.gate.stockPrepare("request", prompt, signal);
+  await f.gate.stockPrepare("request", prompt, signal);
+  expect(f.counts()).toEqual({ prepares: 1, submits: 0 });
+  await f.gate.stockAccept("request");
+  await f.gate.submit("request", prompt, signal);
+  expect(f.counts()).toEqual({ prepares: 1, submits: 1 });
+  expect(f.messages()).toEqual({ preparedMessage: prompt, submittedMessage: prompt });
+  expect(await f.gate.status("request")).toMatchObject({ phase: "submitted", recovery: "accepted" });
+});
+
+test("a stock receipt awaiting consent is read-only and continues only after its exact acceptance", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const signal = new AbortController().signal, prompt = "attached scan";
+  expect(await f.gate.pending()).toBeNull();
+  await f.gate.stockPrepare("request", prompt, signal);
+  const waiting = await f.gate.pending();
+  expect(waiting).toMatchObject({ requestId: "request", submissionId: "attempt", prompt });
+  expect(waiting!.receipt.items[0]).toMatchObject({ degradations: ["text_truncated"] });
+  expect(f.counts()).toEqual({ prepares: 1, submits: 0 });
+  expect((await f.gate.status("request")).nativeState).toBe("not-dispatched");
+  const continued = f.gate.stockAwaitConsent("request", signal);
+  await f.gate.consent({ selection, requestId: "request", receiptId: waiting!.receipt.receiptId,
+    resultDigest: waiting!.receipt.resultDigest, acceptedDegradations: ["text_truncated"] });
+  await continued;
+  await f.gate.submit("request", prompt, signal);
+  expect(f.counts()).toEqual({ prepares: 1, submits: 1 });
+  expect(await f.gate.pending()).toBeNull();
+});
+
+test("declining a stock receipt cancels the waiting consent before any native dispatch", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const signal = new AbortController().signal;
+  await f.gate.stockPrepare("request", "attached", signal);
+  const waiting = f.gate.stockAwaitConsent("request", signal); void waiting.catch(() => {});
+  await f.gate.cancel("request");
+  await expect(waiting).rejects.toThrow("ATTACHMENT_CANCELLED");
+  expect(f.counts().submits).toBe(0);
+  expect(await f.gate.pending()).toBeNull();
+});
+
+test("settled stock attempts release the two-attempt ceiling for the next send", async () => {
+  const f = fixture();
+  await f.gate.begin(attempt);
+  await f.gate.stockPrepare("request", "one", new AbortController().signal);
+  await f.gate.abort("request");
+  await f.gate.begin({ ...attempt, requestId: "request-2", submissionId: "attempt-2" });
+  f.noDegradations();
+  await f.gate.stockPrepare("request-2", "two", new AbortController().signal);
+  await f.gate.stockAccept("request-2");
+  await f.gate.submit("request-2", "two", new AbortController().signal);
+  await f.gate.stockRelease("request-2");
+  await f.gate.begin({ ...attempt, requestId: "request-3", submissionId: "attempt-3" });
+  await f.gate.stockPrepare("request-3", "three", new AbortController().signal);
+  expect((await f.gate.pending())?.requestId).toBe("request-3");
+});
+
+test("a matched committed result that is not terminal keeps the attempt and its ceiling", async () => {
+  const f = fixture(); f.noDegradations(); f.nonTerminal();
+  await f.gate.begin(attempt);
+  const signal = new AbortController().signal, prompt = "attached late";
+  await f.gate.stockPrepare("request", prompt, signal);
+  await f.gate.stockAccept("request");
+  await f.gate.submit("request", prompt, signal);
+  // Reservation, origin and relations match, but the operation has not published a terminal outcome.
+  expect(await f.gate.status("request")).toMatchObject({ phase: "submitted", recovery: "unresolved" });
+  await f.gate.stockRelease("request");
+  expect(f.gate.has("request")).toBe(true);
+  expect(await f.gate.status("request")).toMatchObject({ phase: "submitted", recovery: "unresolved" });
+  await f.gate.begin({ ...attempt, requestId: "request-2", submissionId: "attempt-2" });
+  await expect(f.gate.begin({ ...attempt, requestId: "request-3", submissionId: "attempt-3" }))
+    .rejects.toThrow("ATTACHMENT_ATTEMPT_LIMIT");
+});
+
+test("a request id cannot authorize another attempt's receipt for the same Selection", async () => {
+  const f = fixture();
+  const second = { ...attempt, requestId: "request-2", submissionId: "attempt-2" };
+  await f.gate.begin(attempt); await f.gate.begin(second);
+  const signal = new AbortController().signal;
+  await f.gate.stockPrepare("request", "one", signal);
+  await f.gate.stockPrepare("request-2", "two", signal);
+  const first = await f.gate.status("request"), other = await f.gate.status("request-2");
+  expect(first.phase).toBe("awaiting-consent"); expect(other.phase).toBe("awaiting-consent");
+  expect(first.receipt!.receiptId).not.toBe(other.receipt!.receiptId);
+  await expect(f.gate.consent({ selection, requestId: "request", receiptId: other.receipt!.receiptId,
+    resultDigest: other.receipt!.resultDigest, acceptedDegradations: ["text_truncated"] }))
+    .rejects.toThrow("ATTACHMENT_CONSENT_STALE");
+  await expect(f.gate.consent({ selection, requestId: "request", receiptId: first.receipt!.receiptId,
+    resultDigest: other.receipt!.resultDigest, acceptedDegradations: ["text_truncated"] }))
+    .rejects.toThrow("ATTACHMENT_CONSENT_STALE");
+  expect(f.counts().submits).toBe(0);
+  expect((await f.gate.status("request")).phase).toBe("awaiting-consent");
+  expect((await f.gate.status("request-2")).phase).toBe("awaiting-consent");
+  await f.gate.consent({ selection, requestId: "request", receiptId: first.receipt!.receiptId,
+    resultDigest: first.receipt!.resultDigest, acceptedDegradations: ["text_truncated"] });
+  for (let i = 0; i < 40 && f.counts().submits === 0; i++) await Promise.resolve();
+  expect(f.counts().submits).toBe(1);
+  await f.gate.cancel("request-2");
+  expect((await f.gate.status("request-2")).phase).toBe("cancelled");
+});
+
+test("stockRelease keeps an unresolved native attempt queryable for manual recovery", async () => {
+  const f = fixture(); f.noDegradations(); f.loseReply(); await f.gate.begin(attempt);
+  const signal = new AbortController().signal;
+  await f.gate.stockPrepare("request", "uncertain", signal);
+  await f.gate.stockAccept("request");
+  const pending = f.gate.submit("request", "uncertain", signal); void pending.catch(() => {});
+  await expect(pending).rejects.toThrow("ATTACHMENT_SEND_FAILED");
+  expect((await f.gate.status("request")).recovery).toBe("unresolved");
+  await f.gate.stockRelease("request");
+  expect((await f.gate.status("request")).recovery).toBe("unresolved");
+});

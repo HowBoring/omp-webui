@@ -1,0 +1,137 @@
+{
+  "kind": "final-head-windows-os-input",
+  "ticket": 63,
+  "head": "c5949a6882e94c718bbb60392623af0b33ed0fae",
+  "recordedAt": "2026-11-23T17:45:00Z",
+  "host": {
+    "repository": "HowBoring/omp-webui",
+    "worktree": "/home/howboring/Projects/omp-webui-review-stock",
+    "branch": "mvp/spec-29-review-stock",
+    "commit": "c5949a6882e94c718bbb60392623af0b33ed0fae",
+    "origin": "http://127.0.0.1:3180",
+    "pid": 3000757,
+    "startedAt": "2026-11-24T00:56:53+08:00",
+    "dataDir": "/home/howboring/.local/share/omp-webui",
+    "manifest": "vendor/product/installation.json",
+    "manifestSha256": "2c571fab479c512e40c1fe6f67e89c8d2aec12497751a6676634395c304ef022",
+    "healthz": "{\"service\":\"omp-webui-host\",\"status\":\"ok\",\"stage\":\"product\",\"sessionAdmission\":\"admitted\"}",
+    "identityNote": "preflight and manifest identity rechecked before any browser action; the same commit and manifest are the final PR#62 head"
+  },
+  "client": {
+    "platform": "Windows 11 (WSL2 interop), interactive console session",
+    "browser": "Google Chrome Dev 160.0.8171.0, headful",
+    "cdp": "http://localhost:9242",
+    "profile": "C:\\t63-chrome",
+    "chromePid": 57276,
+    "inputPath": "real Win32 input: SwitchToThisWindow + mouse_event drags + SendKeys keystrokes from PowerShell; Explorer drags from a real Explorer window over UIA item rectangles",
+    "notUsed": "no CDP Input.* shorthand for the accepted actions, no synthetic DOM events, no file-input assignment for the drop cases"
+  },
+  "admission": {
+    "mechanism": "one-use bootstrap token read from the Host access store, exchanged in a new Chrome tab",
+    "status": 200,
+    "title": "OMP WebUI",
+    "composer": true,
+    "tokenRecorded": false
+  },
+  "results": [
+    {
+      "id": "assistant-copy",
+      "status": "PASS",
+      "providerSession": "01a20976-a8c9-7536-bad9-bdca82a09699",
+      "answer": "FINAL HEAD CLIP T63",
+      "observation": "real 30-step mouse drag selected the assistant line; DOM selection 'FINAL HEAD CLIP T63'; real Ctrl+C; Windows clipboard read via [System.Windows.Forms.Clipboard]::GetText() returned 'FINAL HEAD CLIP T63\\n' (19 bytes)",
+      "evidence": ["fh7-answer.png", "fh9-copied.png"]
+    },
+    {
+      "id": "external-clipboard-paste",
+      "status": "PASS",
+      "observation": "PowerShell Set-Clipboard 'FINAL HEAD PASTE T63' (read back), real click into the composer, Ctrl+A, Backspace, Ctrl+V; composer became <p dir=\"auto\"><span data-lexical-text=\"true\">FINAL HEAD PASTE T63</span></p>",
+      "evidence": ["fh11-paste.png"]
+    },
+    {
+      "id": "explorer-drop-files",
+      "status": "PASS",
+      "session": "01a2097b-1ea8-754b-adb8-a676bd92b68f",
+      "files": ["C:\\t63-drop\\drop.txt", "C:\\t63-drop\\pixel.png"],
+      "observation": "real Explorer drags into the composer (page observed dragenter/dragover/drop with Files); pending chips rendered: drop.txt TXT 22B and image pixel.png (remove labels 'Remove file drop.txt' and 'Remove image pixel.png'; pixel chip is visible as an image card after type-ahead brought the pixel.png row into view)",
+      "evidence": ["fh12b-drop.png", "fh13-drop2.png", "fh14-chips.png", "C:\\t63-drop\\explorer-png-listed.png"]
+    },
+    {
+      "id": "attachment-send",
+      "status": "FAIL",
+      "session": "01a2097b-1ea8-754b-adb8-a676bd92b68f",
+      "observation": "real Enter dispatched the turn; the UI then reported 'Failed to load history: The Session outcome is unconfirmed. Observe its state manually before another explicit action; do not replay work. (RPC_PROTOCOL)' and no assistant record was written",
+      "nativeControlRecord": {
+        "type": "custom",
+        "customType": "omp.native-control/submission-v1",
+        "id": "control-e0da307645e527923516a30193de33fe",
+        "timestamp": "2026-11-23T17:39:48.751Z",
+        "preparationId": "5d6d819d-c6b6-4884-b2c5-07dc8f63854e",
+        "inputOutcome": "unresolved",
+        "terminal": false
+      },
+      "sessionIndex": {
+        "state": "outcome_unknown",
+        "code": "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
+        "attemptRevision": 2,
+        "observedAt": "2026-11-23T17:39:51.110Z"
+      },
+      "fileMentionsConfirmed": false,
+      "providerIdentityConfirmed": false,
+      "reason": "the worker was lost before delivery; the native journal contains only the session, model_change, thinking_level_change, two generation commits and the unresolved control record",
+      "evidence": ["fh15-drop-sent.png"]
+    },
+    {
+      "id": "post-failure-session-creation",
+      "status": "FAIL",
+      "observation": "after the failed attachment send, both the New session button and Ctrl+Alt+N and the Sessions catalog 'Open Session' failed with 'New session failed: SESSION_WORKER_DRAINING: Wait for the owned worker to finish exiting, then explicitly O…'; the condition persisted >15 minutes with the Host still answering healthy",
+      "consequence": "the Host could not run another explicit session action for the rest of the run; the remaining IME composition-commit and fileMention checks could not be completed on this Host",
+      "evidence": ["fh16-newsession.png", "fh17-newsession2.png", "fh19-sessions.png"]
+    },
+    {
+      "id": "real-enter-send",
+      "status": "PASS",
+      "observation": "real Enter sent the successful copy prompt after a real clipboard paste; composer cleared and the turn completed in 4 s",
+      "evidence": ["fh7-answer.png"]
+    },
+    {
+      "id": "ime-composition",
+      "status": "PARTIAL",
+      "observation": "real typing through the active Chinese IME produced composed text in the composer ('一T') and, after a real Shift toggle, ASCII insertion ('TEST', 'z'); a clean first-Enter-commits/second-Enter-sends sequence could not be isolated before the Host wedged",
+      "evidence": ["fh6-sent.png", "fh8-focus.png"]
+    }
+  ],
+  "retainedObservations": [
+    {
+      "id": "ctrl-shift-c",
+      "status": "OBSERVED on the 5a37f7f build",
+      "observation": "real Ctrl+Shift+C with a selection opened Chrome DevTools (devtools://devtools/bundled/devtools_app.html) and left the clipboard unchanged; no product binding or documentation for Ctrl+Shift+C exists, so this is Chrome's inspector shortcut, not a product copy path"
+    }
+  ],
+  "provider": {
+    "provider": "kimi-code",
+    "model": "k3.1-pro",
+    "api": "anthropic-messages",
+    "usageTotalTokens": 18015,
+    "turn": "Reply with exactly FINAL HEAD CLIP T63",
+    "fixture": false
+  },
+  "cleanup": {
+    "hostTouched": false,
+    "runtimeRestarted": false,
+    "testTabsClosed": "left the single test tab open with the wedged session on screen; no maintainer tab was closed",
+    "artifacts": "/tmp/t63-accept/fh*.png"
+  },
+  "rerunOnFixedHead": {
+    "head": "ae0ddb9bf9",
+    "status": "BLOCKED",
+    "observation": "The Windows console was on 'Windows Default Lock Screen' (GetForegroundWindow; quser session 2 Active), so real Ctrl+C/clipboard paste, Explorer text+200x200 PNG drop and IME first-Enter/second-Enter could not be produced on this head.",
+    "notClaimed": "No PASS is claimed for Windows real OS input on ae0ddb9bf9. The results above remain the c5949a6 record.",
+    "stockConsent": "The typed refusal and consented transform paths were separately observed through Chrome automation on this head; see docs/evidence/ticket-63-consent-attachments-worker-loss.json."
+  },
+  "limitations": [
+    "attachment send failure is a product-side worker-loss/unconfirmed-outcome defect at the final head; the maintainer Host was left untouched and will need a restart to clear SESSION_WORKER_DRAINING",
+    "the image attachment path could not be distinguished from a duplicate-chip/removal race because the Host stopped accepting explicit session actions",
+    "maintainer manual acceptance remains NOT RUN"
+  ]
+}

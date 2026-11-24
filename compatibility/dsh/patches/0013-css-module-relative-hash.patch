@@ -1,0 +1,32 @@
+diff --git a/packages/client/tsdown.client.ts b/packages/client/tsdown.client.ts
+--- a/packages/client/tsdown.client.ts
++++ b/packages/client/tsdown.client.ts
+@@ -877,9 +877,9 @@ export function defineClientConfig(input: ClientConfigInput): UserConfig {
+         this.addWatchFile(fileId)
+         const source = await readFile(fileId)
+         const stylesheetAssets = assets.urlRewrite(this, fileId)
+         const { code, exports: cssExports } = transform({
+-          filename: fileId,
++          filename: relative(REPOSITORY_ROOT, fileId),
+           code: source,
+           cssModules: { pattern: '[hash]_[local]' },
+           minify: true,
+           ...stylesheetAssets.options,
+@@ -905,7 +905,7 @@ export function defineClientConfig(input: ClientConfigInput): UserConfig {
+         this.addWatchFile(fileId)
+         const source = await readFile(fileId)
+         const stylesheetAssets = assets.urlRewrite(this, fileId)
+-        const { code } = transform({ filename: fileId, code: source, minify: true, ...stylesheetAssets.options })
++        const { code } = transform({ filename: relative(REPOSITORY_ROOT, fileId), code: source, minify: true, ...stylesheetAssets.options })
+         return `export default ${stylesheetSource(code.toString(), stylesheetAssets.references)};`
+       },
+     }, {
+@@ -920,7 +920,7 @@ export function defineClientConfig(input: ClientConfigInput): UserConfig {
+         this.addWatchFile(fileId)
+         const source = await readFile(fileId)
+         const stylesheetAssets = assets.urlRewrite(this, fileId)
+-        const { code } = transform({ filename: fileId, code: source, minify: true, ...stylesheetAssets.options })
++        const { code } = transform({ filename: relative(REPOSITORY_ROOT, fileId), code: source, minify: true, ...stylesheetAssets.options })
+         return styleInjectionModule(id, fileId, stylesheetSource(code.toString(), stylesheetAssets.references))
+       },
+     }, assets.plugin],

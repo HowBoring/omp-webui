@@ -1,0 +1,227 @@
+import { afterEach, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
+import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { OriginalStore, type OriginalScope } from "../../packages/attachments/store.ts";
+import { originalHistoryImages, originalHistoryResponse, retainedEntries } from "../../apps/host/src/original-history.ts";
+import { applyHistoryImages, retainedImageMarker } from "../../packages/projection/history-images.ts";
+import { settledHistoryRecords } from "../../packages/projection/history-records.ts";
+import type { TreeHistory } from "../../packages/tree/service.ts";
+
+const sourceId = "a".repeat(64), instanceId = "b".repeat(64);
+const scope: OriginalScope = { hostId: "host", browserId: "browser", pageId: "page", profileId: "profile",
+  sourceId, instanceId, sessionId: "native", canonicalCwd: "/synthetic/project", draftId: "draft",
+  authorityEpoch: "epoch", explicitOpen: true };
+const access = () => ({ ...scope });
+const image = Uint8Array.from([71, 73, 70, 56, 57, 97, 1, 0, 1, 0, 0, 0, 0, 59]);
+const sha256 = createHash("sha256").update(image).digest("hex");
+const attempt = { clientSubmissionId: "send", preparationId: "prepared-draft", draftRevision: "v1",
+  authorityGeneration: "grant-v1" };
+async function* body() { yield image; }
+const roots: string[] = [];
+const stores: OriginalStore[] = [];
+function fixture() {
+  const dataDir = mkdtempSync("/tmp/original-history-");
+  roots.push(dataDir);
+  return { dataDir, open: () => {
+    const store = new OriginalStore({ dataDir, recovery: "exclusive-host-startup", clock: () => 0 });
+    stores.push(store);
+    return store;
+  } };
+}
+afterEach(() => {
+  for (const store of stores.splice(0)) store.close();
+  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+});
+
+function evidence(objectId: string) {
+  const attachment = { originalId: objectId, originalSha256: sha256, preparedId: "prepared-object",
+    preparedSha256: "c".repeat(64), representationKind: "image" as const };
+  const consent = { receiptId: "receipt", resultDigest: "d".repeat(64), draftRevision: attempt.draftRevision,
+    authorityGeneration: attempt.authorityGeneration };
+  const { representationKind, ...preparedItem } = attachment;
+  return {
+    receipt: { version: "attachment-preparation-v1", budgetVersion: "attachment-budgets-v1", ...consent,
+      preparationId: attempt.preparationId, draftId: scope.draftId, draftFingerprint: "e".repeat(64),
+      binding: { sourceId, instanceId, nativeSessionId: "native", contextId: "context", modelFingerprint: "model",
+        imageCapable: true },
+      expiresAt: 60_000, status: "ready", items: [{ ...preparedItem, status: "ready", degradations: [],
+        representation: { kind: representationKind, mimeType: "image/gif", data: "R0lGODlhAQABAAAAADs=",
+          width: 1, height: 1 } }] },
+    result: { version: "durable-submission-v1", clientSubmissionId: attempt.clientSubmissionId,
+      target: { sourceId, instanceId, nativeSessionId: "native" },
+      origin: { sourceId, instanceId, nativeSessionId: "native", clientSubmissionId: attempt.clientSubmissionId },
+      found: true, admission: "local", reservation: "committed", persistence: "committed",
+      operationOutcome: "succeeded", terminal: true, inputOutcome: "generated", duplicate: false, nextOffset: null,
+      preparation: { ...consent, acceptedDegradations: [], attachments: [attachment] },
+      relations: [{ relationId: "entry:user", entryId: "user", role: "input", availability: "retained",
+        status: "observed", persistence: "committed", attachments: [{ ...attachment,
+          entryPart: { kind: "content", index: 0 } }] }] },
+  };
+}
+
+async function committed(store: OriginalStore) {
+  const original = await store.stage(access, { displayName: "photo.gif", mediaType: "image/gif",
+    byteLength: image.length }, body());
+  const { receipt, result } = evidence(original.objectId);
+  store.reserveForSubmission(access, attempt, [original.objectId], receipt);
+  store.recordSubmission(access, attempt.clientSubmissionId, result);
+  return original;
+}
+
+function history(entryIds: string[], retained = entryIds): TreeHistory {
+  const opened = { snapshot: "snapshot", cursor: "cursor", scope: "tree",
+    cut: { first: 0, last: entryIds.length }, expiresAt: 60_000, nativeParts: entryIds.length };
+  return {
+    open: async () => opened,
+    page: async () => ({ ...opened, complete: true, items: retained.map(id => ({ id, kind: "message" })) }),
+    close: async () => {},
+  } as unknown as TreeHistory;
+}
+
+function route(store: OriginalStore, options: { retained?: string[]; revoke?: () => boolean;
+  retains?: (sessionId: string, entryId: string) => boolean | undefined } = {}) {
+  return (request: Request) => originalHistoryResponse(request, {
+    admit: () => options.revoke?.() ? new Response("denied", { status: 403 }) : { hostId: "host", credentialId: "browser", expiresAt: 1 },
+    session: () => ({ scope: { ...scope, sourceId: "c".repeat(64) }, history: history(["user"], options.retained ?? ["user"]) }),
+    ...(options.retains === undefined ? {} : { retains: options.retains }),
+    store,
+  });
+}
+
+test("stage records image geometry and entry lookup finds the retained link", async () => {
+  const { open } = fixture();
+  const store = open();
+  const original = await store.stage(access, { displayName: "photo.gif", mediaType: "image/gif",
+    byteLength: image.length, width: 200, height: 100 }, body());
+  const { receipt, result } = evidence(original.objectId);
+  store.reserveForSubmission(access, attempt, [original.objectId], receipt);
+  store.recordSubmission(access, attempt.clientSubmissionId, result);
+  expect(store.history(access, ["user"])).toMatchObject([{ entryId: "user", width: 200, height: 100 }]);
+  expect(store.entryFor(access, original.objectId)).toBe("user");
+  expect(store.entryFor(() => ({ ...access(), browserId: "other" }), original.objectId)).toBeUndefined();
+});
+
+test("historical Originals stay readable after Host restart and reject another browser, page or session", async () => {
+  const { open } = fixture();
+  const first = open();
+  const original = await committed(first);
+  first.close();
+  const reopened = open();
+  expect(await reopened.history(access, ["user"])).toEqual([{ entryId: "user", objectId: original.objectId,
+    displayName: "photo.gif", mediaType: "image/gif", byteLength: image.length, sha256,
+    availability: "available", width: null, height: null }]);
+  expect(new Uint8Array((await reopened.readHistorical(access, "user", original.objectId, ["user"])).bytes))
+    .toEqual(image);
+  const copy = () => ({ ...scope, sourceId: "c".repeat(64) });
+  expect(await reopened.history(copy, ["user"])).toHaveLength(1);
+  for (const field of ["browserId", "pageId", "hostId", "profileId", "instanceId", "sessionId"] as const) {
+    expect(await reopened.history(() => ({ ...copy(), [field]: "other" }), ["user"])).toEqual([]);
+  }
+  await expect(reopened.readHistorical(() => ({ ...scope, browserId: "other" }), "user", original.objectId, ["user"]))
+    .rejects.toThrow("attachment_object_unavailable");
+  expect(reopened.history(access, ["files"])).toEqual([]);
+});
+
+test("missing and corrupt original files keep a typed reason and leave Native history untouched", async () => {
+  const { open, dataDir } = fixture();
+  const store = open();
+  const original = await committed(store);
+  const file = join(dataDir, `${original.objectId}.original`);
+  unlinkSync(file);
+  expect((await store.history(access, ["user"]))[0]).toMatchObject({ availability: "missing" });
+  const images = originalHistoryImages({ store,
+    session: () => ({ scope, history: history(["user"]) }) });
+  expect(images.retained({ credentialId: "browser", expiresAt: 1 }, "native", ["user"]).size).toBe(0);
+  await expect(store.readHistorical(access, "user", original.objectId, ["user"]))
+    .rejects.toThrow("attachment_original_unavailable");
+  writeFileSync(file, new Uint8Array(image.length).fill(7));
+  await expect(store.readHistorical(access, "user", original.objectId, ["user"]))
+    .rejects.toThrow("attachment_original_corrupt");
+  expect(await store.history(access, ["user"])).toHaveLength(1);
+});
+
+test("the public route rechecks admission, retention and representation on every GET/HEAD", async () => {
+  const { open } = fixture();
+  const store = open();
+  const original = await committed(store);
+  const handle = route(store);
+  const query = `sessionId=native&entryId=user`;
+  const list = await handle(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}`));
+  expect(list.status).toBe(200);
+  expect((await list.json() as { items: unknown[] }).items).toHaveLength(1);
+  const inline = await handle(new Request(`http://127.0.0.1/api/ompOriginals/original?${query}&objectId=${original.objectId}&disposition=inline`));
+  expect(inline.status).toBe(200);
+  expect(inline.headers.get("content-disposition")).toStartWith("inline;");
+  expect(inline.headers.get("x-content-type-options")).toBe("nosniff");
+  expect(Buffer.from(await inline.arrayBuffer())).toEqual(Buffer.from(image));
+  const head = await handle(new Request(`http://127.0.0.1/api/ompOriginals/original?${query}&objectId=${original.objectId}&disposition=attachment`, { method: "HEAD" }));
+  expect(head.status).toBe(200);
+  expect(head.headers.get("content-length")).toBe(String(image.length));
+  expect(await head.text()).toBe("");
+  expect((await handle(new Request(`http://127.0.0.1/api/ompOriginals/original?${query}&objectId=${original.objectId}&disposition=attachment`, { method: "POST" }))).status).toBe(405);
+  expect((await handle(new Request(`http://127.0.0.1/api/ompOriginals/history?sessionId=native&entryId=other`))).status).toBe(404);
+  expect((await handle(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}&entryId=user`))).status).toBe(400);
+  expect((await route(store, { revoke: () => true })(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}`))).status).toBe(403);
+});
+
+test("retention scanning is bounded and reports only entries this exact Native history contains", async () => {
+  expect([...await retainedEntries(history(["user"]), ["user", "other"])]).toEqual(["user"]);
+});
+
+test("a complete Tree index confirms retention without a second Native history snapshot", async () => {
+  const { open } = fixture();
+  const store = open();
+  const original = await committed(store);
+  const query = "sessionId=native&entryId=user";
+  const closed = history([], []);
+  const inline = await originalHistoryResponse(new Request(`http://127.0.0.1/api/ompOriginals/original?${query}&objectId=${original.objectId}&disposition=inline`), {
+    admit: () => ({ hostId: "host", credentialId: "browser", expiresAt: 1 }),
+    session: () => ({ scope: { ...scope, sourceId: "c".repeat(64) }, history: {
+      open: async () => { throw new Error("history_cache_full"); },
+      page: closed.page, close: closed.close,
+    } }),
+    retains: () => true,
+    store,
+  });
+  expect(inline.status).toBe(200);
+  expect(Buffer.from(await inline.arrayBuffer())).toEqual(Buffer.from(image));
+  const absent = await route(store, { retains: () => false })(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}`));
+  expect(absent.status).toBe(404);
+});
+
+test("every available image of one entry projects and stays readable; a missing original is skipped", async () => {
+  const first = Uint8Array.of(1, 2), second = Uint8Array.of(9, 8, 7);
+  const object = (suffix: string, displayName: string, availability: "available" | "missing", byteLength: number) => ({
+    entryId: "user", objectId: `00000000-0000-4000-8000-00000000000${suffix}`, displayName,
+    mediaType: "image/png" as const, byteLength, sha256, availability, width: 2, height: 2 });
+  const items = [object("a", "first.png", "available", 2), object("b", "second.png", "available", 3),
+    object("c", "missing.png", "missing", 2)];
+  const store = {
+    history: () => items,
+    entryFor: () => "user",
+    readHistorical: async (_access: unknown, _entryId: string, objectId: string) =>
+      ({ bytes: objectId.endsWith("b") ? second : first, mediaType: "image/png" }),
+  } as unknown as OriginalStore;
+  const images = originalHistoryImages({
+    session: () => ({ scope, history: history(["user"]) }), store });
+  const retained = images.retained({ credentialId: "browser", expiresAt: 1 }, "native", ["user"]);
+  expect(retained.get("user")?.map(image => image.objectId)).toEqual([
+    "00000000-0000-4000-8000-00000000000a", "00000000-0000-4000-8000-00000000000b"]);
+  const text = [retainedImageMarker, retainedImageMarker, retainedImageMarker].join("\n");
+  const message = settledHistoryRecords({ id: "user", parentId: null, kind: "message", active: false, text,
+    role: "user", timestamp: "2023-11-14T22:13:20.123Z" }, "user", 10, { turn: 0, step: 0 });
+  const projected = applyHistoryImages(message, [...retained.values()].flat());
+  const event = projected.find(record => record.type === "event" && record.event.type === "user/message") as
+    Extract<typeof projected[number], { type: "event" }>;
+  expect(event.event.data).toMatchObject({ content: [{ type: "text", text: retainedImageMarker },
+    { type: "image", attachment: { attachmentId: "00000000-0000-4000-8000-00000000000a" } },
+    { type: "image", attachment: { attachmentId: "00000000-0000-4000-8000-00000000000b" } }] });
+  const identity = { credentialId: "browser", expiresAt: 1 };
+  for (const [index, objectId] of ["00000000-0000-4000-8000-00000000000a",
+    "00000000-0000-4000-8000-00000000000b"].entries()) {
+    const read = await images.read(identity, "native", { attachmentId: objectId, mediaType: "image/png",
+      bytes: index === 0 ? 2 : 3, width: 2, height: 2 });
+    expect(read.data).toEqual(index === 0 ? first : second);
+  }
+});

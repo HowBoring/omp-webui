@@ -1,0 +1,74 @@
+{
+  "fixture": "tests/attachments/fixtures/minimal-text.pdf",
+  "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+  "authoring": "Python standard library, deterministic PDF1.4 objects/xref/trailer and uncompressed ASCII text stream. No PDF renderer/parser/extractor, Native converter, SDK or addon evaluated.",
+  "bytes": 706,
+  "originalSha256": "e30ca8235d4595eb5a7d5f99b41f12e32c10375a8a78b199577737f15d48dff3",
+  "objects": 5,
+  "xrefEntries": 6,
+  "xrefOffset": 523,
+  "objectOffsets": [
+    9,
+    58,
+    115,
+    241,
+    426
+  ],
+  "pageCount": 1,
+  "mediaBox": [
+    0,
+    0,
+    612,
+    792
+  ],
+  "font": "Type1 Helvetica with WinAnsiEncoding",
+  "fontSize": 12,
+  "textPosition": [
+    72,
+    720
+  ],
+  "lineStep": [
+    0,
+    -18
+  ],
+  "contentStreamBytes": 134,
+  "contentStreamSha256": "70d7e2f115301f8b99807018995bc1fb8ac684bafc7e7304fe5c32f3a36a8475",
+  "textLines": [
+    "Controlled prepared document",
+    "Independent PDF line two.",
+    "End of one PDF page."
+  ],
+  "textLineSha256": [
+    "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419",
+    "dffdf81c73fa8c1d3289a40593401d7585179a7f3132608fc70a58e540fec748",
+    "cf98bb33390ac8a90e76561dc663d7e32948494e504cf19a824f8b13a7160e6c"
+  ],
+  "knownProviderSpan": {
+    "text": "Controlled prepared document",
+    "bytes": 28,
+    "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+  },
+  "independentValidation": "Readback verifies all object/xref offsets, startxref/trailer, exact stream Length and Tj ASCII literals, one Page and no image/encryption/action/embedded-file entries. This establishes authored original structure/content, not a rendered/extracted Native-output oracle.",
+  "expectedNativePreparation": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "degradations": [
+      "document_structure_changed"
+    ],
+    "knownTextLinesExactlyOnce": [
+      "Controlled prepared document",
+      "Independent PDF line two.",
+      "End of one PDF page."
+    ],
+    "pageMarkers": [
+      "<!-- Page 1 -->"
+    ],
+    "facts": {
+      "pagesNeedingOcr": [],
+      "hasEncodingIssues": false,
+      "emptyText": false
+    },
+    "preparedTextBytesAndSha256": "UNPREDICTED complete Markdown formatting/count/hash. Require known ASCII text and native page marker independently specified by original/source contract, no OCR/encoding/empty-text flags, correct actual canonical representation digest and full indexed saved text consistency.",
+    "basis": "Native Rust pdfToMarkdown uses pdf-inspector with include_page_numbers:true; real source tests author equivalent PDF Type1 Helvetica Tj text and require contained exact text, page markers and clean encoding. Native PdfConverter exposes OCR/encoding/empty facts; document conversion declares document_structure_changed.",
+    "providerLimit": "Unchanged provider captures existing known28B literal once in developer text. It witnesses those independently authored extracted bytes, not exact full generated Markdown or provider wrapper formatting. Exact full prepared Markdown is checked at receipt/indexed saved part; no model-input/pixel/layout completeness claim."
+  }
+}

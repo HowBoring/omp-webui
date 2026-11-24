@@ -1,0 +1,63 @@
+{
+  "kind": "worker-loss-session-index-export",
+  "capturedAt": "2026-11-24T01:45:00Z",
+  "rows": [
+    {
+      "source": "4c923524d3d5345317789a5e892d212c413ad20394cf9abc09a9e1e3a5e002be",
+      "native": "01a20394-7c96-7299-b1ed-efbbadbd1d79",
+      "cwd": "/home/howboring/Projects/omp-webui",
+      "registeredAt": "2026-11-22T14:06:35.911Z",
+      "observedAt": "2026-11-23T17:31:08.186Z",
+      "attempt": {
+        "state": "closed"
+      },
+      "attemptRevision": 32
+    },
+    {
+      "source": "4c923524d3d5345317789a5e892d212c413ad20394cf9abc09a9e1e3a5e002be",
+      "native": "01a20918-d60d-7323-81d1-8d4bfae487c4",
+      "cwd": "/home/howboring/Projects/omp-webui",
+      "registeredAt": "2026-11-23T15:49:15.599Z",
+      "observedAt": "2026-11-23T16:01:39.918Z",
+      "attempt": {
+        "state": "closed"
+      },
+      "attemptRevision": 4
+    },
+    {
+      "source": "4c923524d3d5345317789a5e892d212c413ad20394cf9abc09a9e1e3a5e002be",
+      "native": "01a20976-2b1f-7304-afad-4ef4f4c7f870",
+      "cwd": "/home/howboring/Projects/omp-webui",
+      "registeredAt": "2026-11-23T17:31:12.623Z",
+      "observedAt": "2026-11-23T17:31:40.628Z",
+      "attempt": {
+        "state": "closed"
+      },
+      "attemptRevision": 3
+    },
+    {
+      "source": "4c923524d3d5345317789a5e892d212c413ad20394cf9abc09a9e1e3a5e002be",
+      "native": "01a20976-a8c9-7536-bad9-bdca82a09699",
+      "cwd": "/home/howboring/Projects/omp-webui",
+      "registeredAt": "2026-11-23T17:31:44.284Z",
+      "observedAt": "2026-11-23T17:44:38.725Z",
+      "attempt": {
+        "state": "failed",
+        "code": "SESSION_SELECTION_EXPIRED"
+      },
+      "attemptRevision": 4
+    },
+    {
+      "source": "4c923524d3d5345317789a5e892d212c413ad20394cf9abc09a9e1e3a5e002be",
+      "native": "01a2097b-1ea8-754b-adb8-a676bd92b68f",
+      "cwd": "/home/howboring/Projects/omp-webui",
+      "registeredAt": "2026-11-23T17:36:36.231Z",
+      "observedAt": "2026-11-23T17:39:51.110Z",
+      "attempt": {
+        "state": "outcome_unknown",
+        "code": "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED"
+      },
+      "attemptRevision": 2
+    }
+  ]
+}

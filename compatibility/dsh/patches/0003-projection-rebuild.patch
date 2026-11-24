@@ -1,0 +1,3147 @@
+diff --git a/docs/subsystems/conversation.i18n.yaml b/docs/subsystems/conversation.i18n.yaml
+index 54f5e781..d5d79aa8 100644
+--- a/docs/subsystems/conversation.i18n.yaml
++++ b/docs/subsystems/conversation.i18n.yaml
+@@ -6,8 +6,8 @@
+   en: 986c210044271162
+   zh: afe3372d8b68d963
+ /conversation-assembly/data-model-and-ownership:
+-  en: 9f86eaf987b4f631
+-  zh: b1ecc4c292715445
++  en: d372ef1d57c97e2d
++  zh: f6c39f6038e0cc24
+ /conversation-assembly/target-activation:
+   en: 41a32beb5c85354f
+   zh: 346f7c9a17cb1f67
+diff --git a/docs/subsystems/conversation.md b/docs/subsystems/conversation.md
+index abc9ec13..3981d450 100644
+--- a/docs/subsystems/conversation.md
++++ b/docs/subsystems/conversation.md
+@@ -8,6 +8,8 @@ This page defines the data model and the extension path for a business-owned Con
+ 
+ ## Data model and ownership
+ 
++A projection lifetime ends independently of the retained Session scope. Window replacement withdraws retired Contexts and target nodes; provider-mode input shells preserve their in-memory semantic document and unresolved attempts. Draft scope generation follows the public Session projection source, while storage ownership remains stable. Old asynchronous preparation cannot publish through a retired generation.
++
+ The Session Controller owns the contiguous loaded logical-event window. Each `SessionEventLikeEntry` is either `{ type: 'event', event: SessionEvent }` for one durable event or `{ type: 'transient', event: AssistantLiveChunkEvent }` for one Client-only `assistant/live-chunk` presentation. Both inner events expose `type`, `seq`, `time`, and `data`. `ui-conversation` passes these entries to the assembler without opening a second history stream. One `ConversationNodeAssembler` per Session applies every registered Definition and publishes an independent source for each registered view target.
+ 
+ | Concept | Owner and purpose |
+diff --git a/docs/subsystems/conversation.zh.md b/docs/subsystems/conversation.zh.md
+index 3c2d2f31..e045e222 100644
+--- a/docs/subsystems/conversation.zh.md
++++ b/docs/subsystems/conversation.zh.md
+@@ -8,6 +8,8 @@ Conversation 是 Client `SessionEventLikeEntry` window 与浏览器 view 之间
+ 
+ ## 数据模型与所有权
+ 
++投影生命周期可独立于保留的 Session scope 结束。Window 替换撤回已退休的 Context 与目标节点；provider 模式输入 shell 保留内存语义文档和未决尝试。草稿 scope 代次跟随公开 Session 投影来源，存储归属保持稳定。旧的异步准备不能通过已退休代次发布。
++
+ Session Controller 拥有连续的已加载逻辑 event window。每个 `SessionEventLikeEntry` 要么是表示一个持久事件的 `{ type: 'event', event: SessionEvent }`，要么是表示一个 Client-only `assistant/live-chunk` 呈现的 `{ type: 'transient', event: AssistantLiveChunkEvent }`；两种内部 event 都公开 `type`、`seq`、`time` 与 `data`。`ui-conversation` 把这些 entry 直接交给 assembler，不另开 history stream。每个 Session 对应一个 `ConversationNodeAssembler`，它应用所有已注册 Definition，并为每个已注册 view target 发布独立 source。
+ 
+ | 概念 | Owner 与用途 |
+diff --git a/docs/subsystems/web-client.i18n.yaml b/docs/subsystems/web-client.i18n.yaml
+index f2bc60cb..b0ef37f7 100644
+--- a/docs/subsystems/web-client.i18n.yaml
++++ b/docs/subsystems/web-client.i18n.yaml
+@@ -18,8 +18,8 @@
+   en: 13be17c2a2790ae9
+   zh: f5af715d0ae222be
+ /web-client-architecture/client-models/sessions:
+-  en: f1659138a4dd6f9d
+-  zh: 014111d146b8e2ae
++  en: ee6804b20a342e72
++  zh: 4c2df4ea57616790
+ /web-client-architecture/client-models/workspaces:
+   en: c063711f8247c240
+   zh: 5e54758bbaf1670c
+@@ -30,8 +30,8 @@
+   en: a254278432416473
+   zh: 567c2d3c6a20b304
+ /web-client-architecture/reconnection:
+-  en: 478f461e261b1ca5
+-  zh: 626791d04656faee
++  en: e69e50b4946bee13
++  zh: 2e76192c174d2232
+ /web-client-architecture/package-boundaries:
+   en: 3e64e8c28f0c4cb1
+   zh: 47aa81c2ace5ba89
+diff --git a/docs/subsystems/web-client.md b/docs/subsystems/web-client.md
+index cdcfb55f..ed8606b3 100644
+--- a/docs/subsystems/web-client.md
++++ b/docs/subsystems/web-client.md
+@@ -39,6 +39,8 @@ Each API controller package owns a paired Host and Client face. The Host side ow
+ 
+ ### Sessions
+ 
++Opted-in Session projections use `SessionProjectionBinding` with independently branded source and generation identities. `SessionBinding.projection` publishes readiness and a generation cancellation signal while the execution binding stays exact. Follow/page envelopes and every projection block carry the same authority; a control invalidation names its successor. Complete journal/projection/assistant baselines publish together, and all holders observe the same lifetime. The Session Controller README defines retries, provider support and bounded staging.
++
+ [`api/session-controller`](../../packages/api/session-controller/README.md) exposes Host commands for list, search, creation, prompt, queue, cancellation, pagination, and follow/control streams. Its Client side is organized as `ClientSessions → SessionManager → Session`:
+ 
+ - `ClientSessions` provides `ctx.sessions`, owns references, source counts, Session scopes, and stable `SessionBinding` objects, and projects catalog state without selecting a global current Session.
+@@ -80,6 +82,8 @@ Web and desktop share the [Coding Tools preference](../../packages/client/ui-set
+ 
+ Physical and logical recovery are separate. Gateway mux restores the physical WebSocket; each `RemoteStream` reopens its own logical source when the Connection publishes a usable generation. A carrier failure is retryable, while a business error, malformed opening item, or protocol violation is terminal for the owning logical stream.
+ 
++With Session Controller's opt-in `projectionRebuild` policy, terminal control loss withdraws retained presentation. `SessionControlStream.recover()` recreates only the domain observer and accepts its complete control baseline; public `ISessions.retryProjection()` awaits that recovery before opening the presentation baseline. Concurrent retries join, retired callbacks are fenced, and released references cannot recreate a scope. The exact SessionReference, AgentContext, worker and pending Interaction remain owned. Defaults keep Gateway's terminal stream behavior.
++
+ Recovery follows the data's semantics:
+ 
+ - A durable Session journal validates logical sequence ranges and replaces its window from every generation's opening snapshot; `page()` supplies older history and repairs any later range gap.
+diff --git a/docs/subsystems/web-client.zh.md b/docs/subsystems/web-client.zh.md
+index d17e4820..8a3254c7 100644
+--- a/docs/subsystems/web-client.zh.md
++++ b/docs/subsystems/web-client.zh.md
+@@ -39,6 +39,8 @@ Connection 拥有请求 URL 解析、request correlation、`/api` carrier、trus
+ 
+ ### Sessions
+ 
++显式启用的 Session 投影使用 `SessionProjectionBinding`，其来源和代次身份分别带品牌。`SessionBinding.projection` 发布就绪状态和代次取消信号，执行绑定仍保持精确。Follow/page envelope 与每个投影块携带同一权威身份；控制失效帧指定后继代次。完整 journal／projection／assistant 基线一起发布，所有持有者观察同一生命周期。Session Controller README 定义重试、provider 支持和有界暂存。
++
+ [`api/session-controller`](../../packages/api/session-controller/README.zh.md)公开 Session list、search、creation、prompt、queue、cancellation、pagination 及 follow/control stream 等 Host command。其 Client 侧按 `ClientSessions → SessionManager → Session` 组织：
+ 
+ - `ClientSessions` 提供 `ctx.sessions`，拥有 reference、source count、Session scope 与稳定的 `SessionBinding` object，并投影不含全局 current Session 选择的 catalog state。
+@@ -80,6 +82,8 @@ Web 和桌面端共享[代码工作工具偏好](../../packages/client/ui-settin
+ 
+ 物理恢复与逻辑恢复彼此独立。Gateway mux 恢复物理 WebSocket；Connection 发布可用 generation 后，每个 `RemoteStream` 分别重开自己的 logical source。Carrier failure 可以重试；business error、非法 opening item 或 protocol violation 会令所属 logical stream 终止。
+ 
++启用 Session Controller 的 `projectionRebuild` 策略时，控制流终止失联会撤回已保留的展示。`SessionControlStream.recover()` 只重建领域观察器并接收其完整控制基线；公开的 `ISessions.retryProjection()` 等待此恢复后才打开展示基线。并发重试共享恢复，已退休的回调被隔离，已释放的引用不能重建作用域。精确的 SessionReference、AgentContext、worker 与待处理 Interaction 保持其所有权。默认设置保留 Gateway 的流终止行为。
++
+ 恢复方式由数据语义决定：
+ 
+ - 持久 Session journal 校验逻辑 seq range，并根据每个 generation 的 opening snapshot 替换窗口；`page()` 提供更早历史并修复后续 range gap。
+diff --git a/packages/api/session-controller/README.i18n.yaml b/packages/api/session-controller/README.i18n.yaml
+index ef87103e..790d31f1 100644
+--- a/packages/api/session-controller/README.i18n.yaml
++++ b/packages/api/session-controller/README.i18n.yaml
+@@ -18,8 +18,8 @@
+   en: 50fa3dd0a2ce79c8
+   zh: 88bd7ea6058d2122
+ /session-controller/client-references:
+-  en: e8979a803ec3e194
+-  zh: c567efcd971728ba
++  en: c785f1fe75deb5a3
++  zh: 6a6308411818db4f
+ /session-controller/session-media-references:
+   en: 954923654eebe2dc
+   zh: 6bd9a7d2ea965aed
+diff --git a/packages/api/session-controller/README.md b/packages/api/session-controller/README.md
+index ec9c2d43..080bb9da 100644
+--- a/packages/api/session-controller/README.md
++++ b/packages/api/session-controller/README.md
+@@ -83,6 +83,10 @@ The controller composes `ArchivedSessionGate` through `ctx.plugin`: it loads onc
+ <a id="client-references"></a>
+ ## Client references
+ 
++`@deepseek-ai/dsh-api-session-controller/projection` exposes the React-free `parseProjectionBinding`, `projectionSource`, and `projectionGeneration` decoders to providers; decoding validates opaque identity, while authenticated source authority remains the provider’s responsibility.
++
++Opt-in `projectionRebuild: true` separates disposable presentation from the exact retained execution binding. `binding.projection` reports rebuilding, ready, or failed with a generation cancellation signal. Typed control invalidation names the next branded source/generation; duplicate and retired invalidations are ignored. A fresh journal, complete projections, and mandatory assistant baseline commit at one cut. Every page and projection writer must carry that identity; stock providers reject scoped reads. Old rows withdraw immediately, failed baselines stay visibly failed, and `sessions.retryProjection(id)` retries only the last authority. A terminal control failure withdraws scoped presentation before cancellation callbacks; retry explicitly recreates the Session-owned observer, accepts its complete control baseline, then opens the presentation baseline. Concurrent retries share observer recovery; old callbacks cannot publish and final release cannot resurrect a scope. It does not use physical reconnect as projection reset or change Gateway stream semantics. Stop, Agent Contexts, pending Interactions, and independent retains keep their lifetimes. Staging allows 512 combined baseline/update entries and 4 MiB of UTF-8 JSON for `{ baseline: baselineOrNull, updates: [[key, { value, seq }], ...] }`, including the complete baseline identity/cut, keys, sequences, wrappers and separators. These are serialized payload limits, not JavaScript heap limits; 256 retired generations per Client lifetime prevent authority replay, then require a visible reload failure. Defaults retain stock reconnect and pagination behavior.
++
+ `sessions.retain(target, { source, signal? })` immediately acquires one exact Client generation and starts its shared initial history opening. The target is a known Session id or a durable direct-parent subagent address; the Host validates an explicit address when history opens. The returned reference supports idempotent `release()` and `Symbol.dispose`; its `ready` Promise follows the shared `Session.open()` result and resolves to the exact binding when that attempt settles, including when a Remote failure is represented by `openState: 'error'`. It rejects when `Session.open()` rejects, its waiter is cancelled, or the reference is released early. Cancelling one waiter does not cancel another owner's opening. `sessions.using(target, options, operation)` waits for that settlement, holds its reference until the callback settles, and propagates rejected readiness and callback failures.
+ 
+ References keep local Session data, scoped Contexts, and history streams alive, not Host Agents. Ordinary Session retention never adds a catalog row. Retained subagents with a known direct-parent address keep a fallback row and notify list readers even before the parent catalog arrives; these rows do not join Host-list membership. Fork-title assignment sends rename directly and applies the returned title projection without retaining the child or opening its history. Final release withdraws the generation before teardown; later acquisition can create a new generation with the same id. `binding(id)` and `scope(id)` only borrow an existing generation. `retainInfo(id)` observes stable read-only source counts independently of catalog membership and performs no history I/O. Consumer source keys are declaration-merge extensible; navigation and completion acknowledgement belong to UI consumers, not this Controller. See [Client Session references](../../../.agents/notes/implemented/architecture/2026-09-15-client-session-references.md) for ownership and teardown rules. An unknown-mode subagent address permits history reads with direct-parent consistency validation; access is checked separately on the child Session. Successful descriptor restoration determines the displayed mode; failures remain local to the child. Control requests carry only the target id, and the Host checks continuation availability. Client snapshots retain only the subagent address; runtime admission owns continuation availability.
+diff --git a/packages/api/session-controller/README.zh.md b/packages/api/session-controller/README.zh.md
+index 85c71abd..d6716844 100644
+--- a/packages/api/session-controller/README.zh.md
++++ b/packages/api/session-controller/README.zh.md
+@@ -83,6 +83,10 @@ Client 的首次 `follow`、重连首屏与 `loadOlder()` 至少请求 50 条以
+ <a id="client-references"></a>
+ ## Client 引用
+ 
++`@deepseek-ai/dsh-api-session-controller/projection` 向 provider 提供不依赖 React 的 `parseProjectionBinding`、`projectionSource` 和 `projectionGeneration` 解码器；解码仅验证不透明身份，鉴权后的来源权威仍由 provider 负责。
++
++显式设置 `projectionRebuild: true` 后，可丢弃的展示状态与精确保留的执行绑定分离。`binding.projection` 携带代次取消信号，报告 rebuilding、ready 或 failed。类型化控制失效帧指定下一组带品牌的来源／代次；重复或已退休的失效通知被忽略。新 journal、完整 projections 与必需的 assistant baseline 在共同 cut 一起提交。每个历史页和投影写入方都必须携带该身份；stock provider 拒绝带代次的读取。旧行立即撤回，基线失败持续可见，`sessions.retryProjection(id)` 仅重试最后的权威代次。控制流终止失败会先撤回带代次的展示，再触发取消回调；重试显式重建 Session 所拥有的观察器，接收完整控制基线后才打开展示基线。并发重试共享观察器恢复；旧回调不能发布，最后一次释放后不能复活作用域。此过程不把物理重连当作投影重置，也不改变 Gateway 流语义。Stop、Agent Context、待处理 Interaction 和独立引用保持各自生命周期。暂存基线与更新合计最多 512 个条目；`{ baseline: baselineOrNull, updates: [[key, { value, seq }], ...] }` 的 UTF-8 JSON 最多 4 MiB，包括完整基线身份与 cut、键、序号、包装和分隔符。这是序列化载荷限制，并非 JavaScript 堆限制；每个 Client 生命周期保留 256 个已退休代次以拒绝权威重放，超过后明确提示重新加载。默认设置保持 stock 重连与分页行为。
++
+ `sessions.retain(target, { source, signal? })` 立即获取一个精确 Client generation 的引用，并启动其共享的首次历史打开。目标是已知 Session id 或持久的直接父子 subagent 地址；Host 在打开历史时校验显式地址。返回引用支持幂等的 `release()` 和 `Symbol.dispose`；其 `ready` Promise 跟随共享的 `Session.open()` 结果，并在该次尝试结算时解析为确切 binding，包括 Remote failure 以 `openState: 'error'` 表示的情况。仅当 `Session.open()` 拒绝、等待方取消或引用提前释放时，`ready` 才拒绝。取消一个等待方不会取消其他 owner 的打开。`sessions.using(target, options, operation)` 等待该次结算，持有引用直到回调结束，并传播被拒绝的就绪与回调失败。
+ 
+ 引用保活本地会话数据、作用域 Context 和历史流，不保活 Host Agent。普通 Session 不因保留引用而添加目录行。已保留且具有明确直接父子地址的 subagent 即使尚未收到父目录，也会保留兜底行并通知列表读取方；这些行不加入 Host 列表成员集合。Fork 标题设置直接发送 rename 并应用返回的标题投影，不 retain 子会话，也不打开其历史。最后一个引用释放时，generation 先退出可访问映射，再执行清理；后续获取可以为同一 id 创建新 generation。`binding(id)` 和 `scope(id)` 只借用已有 generation。`retainInfo(id)` 独立于目录成员关系观察稳定的只读来源计数，不执行历史 I/O。消费方来源键可通过声明合并扩展；导航和完成确认属于 UI 消费方，不属于本控制器。所有权与清理规则见 [Client 会话引用](../../../.agents/notes/implemented/architecture/2026-09-15-client-session-references.zh.md)。 模式未知的子代理地址允许读取历史，但仍校验直接父级的一致性；访问权单独按子 Session 检查。成功恢复 descriptor 后确定展示模式；失败只影响该子会话。控制请求仅携带目标 id，由 Host 检查是否支持继续执行。Client 快照仅保留子代理地址；是否能接收续接输入由运行时校验。
+diff --git a/packages/api/session-controller/package.json b/packages/api/session-controller/package.json
+index ad5a3333..4e9093f0 100644
+--- a/packages/api/session-controller/package.json
++++ b/packages/api/session-controller/package.json
+@@ -40,7 +40,11 @@
+     },
+     "./src/*": "./src/*",
+     "./package.json": "./package.json",
+-    "./locale/*.json": "./locale/*.json"
++    "./locale/*.json": "./locale/*.json",
++    "./projection": {
++      "types": "./lib/types/projection-binding.d.ts",
++      "default": "./lib/types/projection-binding.js"
++    }
+   },
+   "dsh": {
+     "client": {
+diff --git a/packages/api/session-controller/src/client/contract/policy.ts b/packages/api/session-controller/src/client/contract/policy.ts
+index 21135b36..66e754eb 100644
+--- a/packages/api/session-controller/src/client/contract/policy.ts
++++ b/packages/api/session-controller/src/client/contract/policy.ts
+@@ -5,6 +5,8 @@ export type ClientSessionAction = 'create' | 'prompt' | 'rename' | 'fork' | 'que
+ 
+ /** Deployment-selected Client behavior; Host authorization is always independent. */
+ export interface ClientSessionPolicy {
++  /** Opt in to authoritative same-ID projection invalidation; omission preserves stock streams. */
++  readonly projectionRebuild?: boolean
+   /** Operations this Client must not present or send. Omission leaves the standard action set available. */
+   readonly disabledActions?: readonly ClientSessionAction[]
+   /** False refuses prompt admission while the Host reports this Session running. Omission preserves queueing. */
+diff --git a/packages/api/session-controller/src/client/contract/projection.ts b/packages/api/session-controller/src/client/contract/projection.ts
+new file mode 100644
+index 00000000..e1166fd1
+--- /dev/null
++++ b/packages/api/session-controller/src/client/contract/projection.ts
+@@ -0,0 +1,10 @@
++/** Projection readiness never owns an Agent scope or extends a pending Interaction deadline. */
++import type { SessionProjectionBinding } from '../../types.ts'
++import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
++
++/** Captured generation signal aborts synchronously on invalidation or final release. */
++export type SessionProjectionState =
++  | { readonly phase: 'stock' }
++  | { readonly phase: 'rebuilding'; readonly binding?: SessionProjectionBinding; readonly signal: AbortSignal }
++  | { readonly phase: 'ready'; readonly binding: SessionProjectionBinding; readonly signal: AbortSignal }
++  | { readonly phase: 'failed'; readonly binding?: SessionProjectionBinding; readonly signal: AbortSignal; readonly error: RemoteFailure }
+diff --git a/packages/api/session-controller/src/client/contract/sessions.ts b/packages/api/session-controller/src/client/contract/sessions.ts
+index 5bed96af..9ea57ea9 100644
+--- a/packages/api/session-controller/src/client/contract/sessions.ts
++++ b/packages/api/session-controller/src/client/contract/sessions.ts
+@@ -107,6 +107,14 @@ export interface ISessions {
+    * @returns completion of the current or newly started refresh.
+    */
+   refreshProjections(sessionId: SessionId): Promise<void>
++  /**
++   * Retry the last authority without retaining, replaying execution or replacing references. Scoped policy first
++   * restores a terminal control observer and accepts its baseline, then opens the coherent presentation baseline.
++   * Failure or final scope release prevents readiness; concurrent retries share observer recovery.
++   * @param sessionId - currently retained Session.
++   * @returns completion of restored observation and the current presentation rebuild; rejects on failure or release.
++   */
++  retryProjection(sessionId: SessionId): Promise<void>
+ 
+   /**
+    * Refresh the Host-authoritative Session list.
+diff --git a/packages/api/session-controller/src/client/contract/snapshot.ts b/packages/api/session-controller/src/client/contract/snapshot.ts
+index b6ba71b9..f7a169ee 100644
+--- a/packages/api/session-controller/src/client/contract/snapshot.ts
++++ b/packages/api/session-controller/src/client/contract/snapshot.ts
+@@ -3,6 +3,7 @@ import type { FileAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
++import type { SessionProjectionGeneration } from '../../types.ts'
+ import type { SessionRequestId } from '../../types.ts'
+ 
+ /** One image displayed by a local submission echo before durable admission. */
+@@ -68,6 +69,8 @@ export interface PromptError {
+ /** Immutable Session lifecycle and control snapshot. */
+ export interface SessionSnapshot {
+   readonly sessionId: SessionId
++  /** Disposable presentation identity; omitted for stock unscoped streams. */
++  readonly projectionGeneration?: SessionProjectionGeneration
+   /** Local prompt-submission echoes the Host accepted and that are not yet observed as durable events or queue occurrences. */
+   readonly pendingSubmissions: readonly PendingSubmission[]
+   readonly running: boolean
+diff --git a/packages/api/session-controller/src/client/index.ts b/packages/api/session-controller/src/client/index.ts
+index 56c7193d..1aa7daea 100644
+--- a/packages/api/session-controller/src/client/index.ts
++++ b/packages/api/session-controller/src/client/index.ts
+@@ -27,6 +27,8 @@ export type {
+   SessionRemote,
+ } from './transport.ts'
+ export { createScope, scopeOf } from './scope.ts'
++export { parseProjectionBinding, projectionSource, projectionGeneration } from '../projection-binding.ts'
++export type { SessionProjectionState } from './contract/projection.ts'
+ export type { AgentContext, AgentScopeHandle } from './scope.ts'
+ export { SessionCreateError, SessionForkError } from './sessions/service.ts'
+ export type { SessionBinding, SessionListState, SessionSummary } from './sessions/service.ts'
+@@ -88,6 +90,7 @@ export interface Config extends ClientSessionPolicy {
+ export const Config: z<Config> = z.object({
+   disabledActions: z.array(z.union(['create', 'prompt', 'rename', 'fork', 'queue'])).default([]),
+   allowPromptWhileRunning: z.boolean().default(true),
++  projectionRebuild: z.boolean().default(false),
+ })
+ 
+ /** Consumer-owned reference labels; extend this map through the package's canonical /client entry. */
+@@ -127,7 +130,7 @@ export const inject = [
+ export function apply(ctx: Context, config: Config = Config({})): void {
+   const remotes = ctx.remote as unknown as SessionRemotes
+   const connection = ctx.get('connection') as ConnectionHandle
+-  const sessions = new ClientSessions(ctx, remotes, config)
++  const sessions = new ClientSessions(ctx, remotes, config, () => control.recover())
+   ctx.remote.$on('api-session/added', (summary) => { sessions.handleSessionAdded(summary) })
+   ctx.remote.$on('api-session/removed', (sessionId) => { sessions.handleSessionRemoved(sessionId) })
+   ctx.remote.$on('api-session/status', (sessionId, running) => {
+@@ -142,7 +145,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+ 
+   const control = createSessionControlStream(remotes, {
+     accept: (frame) => { sessions.handleControlFrame(frame) },
+-    failed: (error) => { console.error('[session-controller] control stream failed:', error) },
++    failed: (error) => { sessions.handleControlFailure(error); console.error('[session-controller] control stream failed:', error) },
+   })
+   const connected = (): void => {
+     if (connection.generation.getSnapshot() === undefined) return
+diff --git a/packages/api/session-controller/src/client/sessions/manager.ts b/packages/api/session-controller/src/client/sessions/manager.ts
+index b5a2e048..a1473e88 100644
+--- a/packages/api/session-controller/src/client/sessions/manager.ts
++++ b/packages/api/session-controller/src/client/sessions/manager.ts
+@@ -1,6 +1,8 @@
+ /** Host catalog, durable projection caches, and explicitly retained Client instances. */
+ 
+ import type { ClientSessionPolicy } from '../contract/policy.ts'
++import { parseProjectionBinding, sameProjection } from '../../projection-binding.ts'
++import type { SessionProjectionBinding } from '../../types.ts'
+ import { sessionActionFailure } from './policy.ts'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import { SessionSeq, type SessionId, type SessionSeqCursor } from '@deepseek-ai/dsh-session/types'
+@@ -16,6 +18,7 @@ import type {
+ import { mergeOrderedBaseline } from '../ordered-baseline.ts'
+ import { isRemoteFailure } from '@deepseek-ai/dsh-api-gateway/client'
+ import { assertNever } from '@deepseek-ai/dsh-util-values'
++import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+ import type { RemoteFailure, RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+ import type { SessionListEntry, TitledSessionSummary } from './lineage.ts'
+ import { flattenLineage } from './lineage.ts'
+@@ -321,7 +324,8 @@ export class SessionManager {
+   private projectionStore(sessionId: SessionId): ProjectionValueStore {
+     let store = this.projectionStores.get(sessionId)
+     if (store === undefined) {
+-      store = new ProjectionValueStore()
++      store = new ProjectionValueStore(error => this.sessions.get(sessionId)?.rejectProjection(error))
++      store.configure(this.policy?.projectionRebuild === true)
+       const projections = store
+       store.subscribeAny(() => {
+         // Newer history or control metadata corrects a resident Session's stale list hint.
+@@ -347,18 +351,20 @@ export class SessionManager {
+     const controller = new AbortController()
+     const store = this.projectionStore(sessionId)
+     const initialValues = store.values()
++    const initialBinding = store.current()
+     this.projectionLoads.set(sessionId, { state: 'loading', error: null })
+     this.notifier.markDirty()
+     const operation = (async () => {
+       try {
+-        const result = await this.remote.session.projections({ sessionId }, controller.signal)
+-        if (controller.signal.aborted) return
++        const request = { sessionId, ...(initialBinding === undefined ? {} : { projection: initialBinding }) }
++        const result = await this.remote.session.projections(request, controller.signal)
++        if (controller.signal.aborted || !sameProjection(initialBinding, store.current())) return
+         if (result.ok) {
+           const value = result.value
+           if (value !== null) {
+             switch (value.kind) {
+               case 'sequenced':
+-                store.seed({ values: value.values, asOfSeq: sessionSeqCursor(value.asOfSeq) })
++                store.seed({ ...value, asOfSeq: sessionSeqCursor(value.asOfSeq) })
+                 break
+               case 'migration-required':
+                 store.applyCached(value.values)
+@@ -543,11 +549,13 @@ export class SessionManager {
+   async fork(
+     opts: { sessionId: SessionId; atSeq?: SessionSeq; allowMigration?: boolean },
+   ): Promise<RemoteResult<{ sessionId: SessionId }>> {
+-    const unavailable = sessionActionFailure(this.policy, 'fork')
++    const unavailable = this.mutationFailure(opts.sessionId) ?? sessionActionFailure(this.policy, 'fork')
+     if (unavailable !== undefined) return { ok: false, error: unavailable }
+     const source = this.summaries.find(s => s.sessionId === opts.sessionId)
++    const projection = this.projectionStore(opts.sessionId).current()
+     const result = await this.remote.session.fork({
+       sessionId: opts.sessionId,
++      ...(projection === undefined ? {} : { projection }),
+       ...opts.atSeq === undefined ? {} : { atSeq: opts.atSeq },
+       ...opts.allowMigration === undefined ? {} : { allowMigration: opts.allowMigration },
+     })
+@@ -570,11 +578,13 @@ export class SessionManager {
+    * @returns the accepted title and event position, or the Remote failure.
+    */
+   async rename(sessionId: SessionId, title: string): Promise<RemoteResult<SessionRenameValue>> {
+-    const unavailable = sessionActionFailure(this.policy, 'rename')
++    const unavailable = this.mutationFailure(sessionId) ?? sessionActionFailure(this.policy, 'rename')
+     if (unavailable !== undefined) return { ok: false, error: unavailable }
+-    const result = await this.remote.session.rename({ sessionId, title })
+-    if (result.ok) {
+-      this.projectionStore(sessionId).apply('title', result.value.title, SessionSeq(result.value.seq))
++    const store = this.projectionStore(sessionId)
++    const projection = store.current()
++    const result = await this.remote.session.rename({ sessionId, title, ...(projection === undefined ? {} : { projection }) })
++    if (result.ok && sameProjection(projection, store.current())) {
++      store.apply('title', result.value.title, SessionSeq(result.value.seq), result.value.projection)
+     }
+     return result
+   }
+@@ -583,6 +593,11 @@ export class SessionManager {
+    * Merge a Host summary, replacing live state and filling missing metadata.
+    * Local create/fork placeholders only fill metadata on an existing row.
+    */
++  private mutationFailure(sessionId: SessionId): RemoteFailure | undefined {
++    if (this.policy?.projectionRebuild !== true || this.sessions.get(sessionId)?.projection.getSnapshot().phase === 'ready') return undefined
++    return new RemoteError('gateway/internal', 'retain a ready projection before changing its history', {})
++  }
++
+   private mergeSummary(summary: SessionSummary): void {
+     this.recordMutation({ kind: 'upsert', summary })
+   }
+@@ -631,13 +646,40 @@ export class SessionManager {
+    * @param frame - baseline or live per-event projection change from Session Controller.
+    */
+   handleControlFrame(frame: SessionControlFrame): void {
++    if (frame.type === 'projection-invalidated') {
++      if (this.policy?.projectionRebuild !== true) return
++      try { this.invalidateProjection(frame.sessionId, parseProjectionBinding(frame.projection)) } catch (error: unknown) {
++        this.projectionStore(frame.sessionId).block()
++        this.sessions.get(frame.sessionId)?.rejectProjection(new RemoteError('gateway/internal', 'invalid projection identity', {}, { cause: error }))
++      }
++      return
++    }
+     if (frame.type === 'baseline') {
+       this.replaceControlBaseline(frame.value)
+       return
+     }
+     const store = this.projectionStore(frame.sessionId)
+     const seq = SessionSeq(frame.seq)
+-    for (const change of frame.changes) store.apply(change.key, change.val, seq)
++    try {
++      for (const change of frame.changes) store.apply(change.key, change.val, seq, frame.projection)
++    } catch (error: unknown) {
++      store.block()
++      this.sessions.get(frame.sessionId)?.rejectProjection(new RemoteError('gateway/internal', 'projection control staging failed', {}, { cause: error }))
++    }
++    this.notifier.markDirty()
++  }
++
++  private invalidateProjection(sessionId: SessionId, binding: SessionProjectionBinding): void {
++    const store = this.projectionStore(sessionId)
++    try { if (!store.invalidate(binding)) return } catch (error: unknown) {
++      store.block()
++      this.sessions.get(sessionId)?.rejectProjection(new RemoteError('gateway/internal', 'projection invalidation failed', {}, { cause: error }))
++      return
++    }
++    this.projectionInflight.get(sessionId)?.controller.abort()
++    this.projectionInflight.delete(sessionId)
++    this.projectionLoads.delete(sessionId)
++    this.sessions.get(sessionId)?.invalidateProjection(binding)
+     this.notifier.markDirty()
+   }
+ 
+@@ -645,8 +687,12 @@ export class SessionManager {
+ 
+     for (const [sessionId, block] of Object.entries(baseline.projections)) {
+       const store = this.projectionStore(sessionId as SessionId)
++      if (this.policy?.projectionRebuild === true && block.projection !== undefined) {
++        this.invalidateProjection(sessionId as SessionId, parseProjectionBinding(block.projection))
++      }
+       const asOfSeq = sessionSeqCursor(block.asOfSeq)
+       store.seed({ ...block, asOfSeq })
++      this.sessions.get(sessionId as SessionId)?.confirmProjectionBaseline(block.projection)
+     }
+     this.notifier.markDirty()
+   }
+@@ -675,11 +721,11 @@ export class SessionManager {
+     switch (block.kind) {
+       case 'sequenced': {
+         const seq = sessionSeqCursor(block.asOfSeq)
+-        for (const [key, value] of Object.entries(block.values)) store.apply(key, value, seq)
++        for (const [key, value] of Object.entries(block.values)) store.apply(key, value, seq, block.projection)
+         return
+       }
+       case 'cached':
+-        store.applyCached(block.values)
++        store.applyCached(block.values, block.projection)
+         return
+       default:
+         assertNever(block.kind, 'session list projection block kind')
+@@ -744,6 +790,7 @@ export class SessionManager {
+    * Opened Session follow streams resume independently through API Gateway.
+    */
+   handleConnected(): void {
++    for (const session of this.sessions.values()) session.requireProjectionBaseline()
+     for (const store of this.projectionStores.values()) store.clear()
+     this.listMutations = null
+     this.listInflight = null
+diff --git a/packages/api/session-controller/src/client/sessions/projection-store.ts b/packages/api/session-controller/src/client/sessions/projection-store.ts
+index c10c81c4..a59f300f 100644
+--- a/packages/api/session-controller/src/client/sessions/projection-store.ts
++++ b/packages/api/session-controller/src/client/sessions/projection-store.ts
+@@ -16,6 +16,10 @@ import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/t
+ import type { SessionSeqCursor } from '@deepseek-ai/dsh-session/types'
+ import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
+ import { Notifier } from './notifier.ts'
++import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
++import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
++import type { SessionProjectionBinding } from '../../types.ts'
++import { sameProjection } from '../../projection-binding.ts'
+ 
+ // The single projection type table, typed end to end (host unit, wire block,
+ // client store, React hook) — the Service Definition package's pure-type outlet
+@@ -51,6 +55,7 @@ export type UseProjection = {
+  */
+ export interface ProjectionsBaseline {
+   /** The consistent-cut seq (equals the window tail seq by construction). */
++  projection?: SessionProjectionBinding
+   asOfSeq: SessionSeqCursor
+   /** Whole current values by key; a registered key absent here means the capability is absent. */
+   values: Readonly<Record<string, unknown>>
+@@ -69,6 +74,11 @@ type Row =
+   | { kind: 'cached'; value: unknown }
+   | { kind: 'sequenced'; value: unknown; seq: SessionSeqCursor }
+ 
++/** UTF-8 JSON payload cost; bookkeeping and engine heap allocations are not serialized. */
++function projectionBytes(value: unknown): number {
++  return new TextEncoder().encode(JSON.stringify(value)).byteLength
++}
++
+ /** Per-key notification channel: the bare face plus its batching notifier. */
+ interface Channel {
+   face: ObservableSnapshot<unknown>
+@@ -86,10 +96,115 @@ interface Channel {
+  * Session is the truth and a cached value never outranks it. A key the store
+  * has never seen reads `undefined` (capability absent). Faces are identity-stable
+  * per key (create-on-demand, cached) so the React side binds each exactly
+- * once; the store-level channel (`subscribeAny`) serves coarse consumers (the
++ * once. During rebuild the canonical staged payload includes the complete baseline,
++ * update keys, values, sequences, tuple/object wrappers and commas; its UTF-8 JSON
++ * encoding is capped at 4 MiB and 512 combined baseline/update entries. This is a
++ * serialized payload bound, not a JavaScript heap limit. Overflow withdraws all
++ * values and reports failure to the presentation owner before throwing.
++ * The store-level channel (`subscribeAny`) serves coarse consumers (the
+  * manager's list projection reads the `title` key).
+  */
+ export class ProjectionValueStore {
++  private scoped = false
++  private binding: SessionProjectionBinding | undefined
++  private staging = false
++  private blocked = false
++  private readonly retired = new Set<string>()
++  private readonly staged = new Map<string, { value: unknown; seq: SessionSeqCursor }>()
++  // Canonical payload: { baseline: <complete baseline or null>, updates: [[key, { value, seq }], ...] }.
++  // The empty envelope is 30 bytes, including null and []; row commas add one byte each.
++  private stagedBytes = 0
++  private stagedBaselineBytes = 4
++  private stagedBaselineCount = 0
++  private stagedBaseline: ProjectionsBaseline | undefined
++
++  /** @param failed - presentation owner notified before a bounded staging failure escapes. */
++  constructor(private readonly failed?: (error: RemoteFailure) => void) {}
++
++  private overflow(message: string): never {
++    const error = new RemoteError('gateway/internal', message, {})
++    this.block()
++    this.failed?.(error)
++    throw error
++  }
++
++  /**
++   * Select stock or generation-scoped projection writers before opening.
++   * @param enabled - require generation identities on every projection writer.
++   */
++  configure(enabled: boolean): void { this.scoped = enabled }
++  /**
++   * Read authority without retaining a Session or starting history work.
++   * @returns the last authoritative binding, including while unretained.
++   */
++  current(): SessionProjectionBinding | undefined { return this.binding }
++  /**
++   * Withdraw values and fence every writer of the retired generation.
++   * @param binding - next authoritative generation.
++   * @returns whether authority changed.
++   */
++  invalidate(binding: SessionProjectionBinding): boolean {
++    const key = JSON.stringify([binding.source, binding.generation])
++    if (sameProjection(this.binding, binding) || this.retired.has(key)) return false
++    if (this.retired.size >= 256) this.overflow('projection generation budget exceeded; reload this view')
++    if (this.binding !== undefined) this.retired.add(JSON.stringify([this.binding.source, this.binding.generation]))
++    this.binding = binding
++    this.blocked = false
++    this.staging = true
++    this.staged.clear()
++    this.stagedBytes = 0
++    this.stagedBaselineBytes = 4
++    this.stagedBaselineCount = 0
++    this.stagedBaseline = undefined
++    this.clear()
++    return true
++  }
++  /** Stop publication after a failed baseline or bounded staging overflow. */
++  block(): void {
++    this.blocked = true
++    this.staged.clear()
++    this.stagedBytes = 0
++    this.stagedBaselineBytes = 4
++    this.stagedBaselineCount = 0
++    this.stagedBaseline = undefined
++    this.clear()
++  }
++  /** Explicit retry withdraws every old value before staging the same authority again. */
++  retry(): void {
++    this.blocked = false
++    this.staging = true
++    this.staged.clear()
++    this.stagedBytes = 0
++    this.stagedBaselineBytes = 4
++    this.stagedBaselineCount = 0
++    this.stagedBaseline = undefined
++    this.clear()
++  }
++  /**
++   * Check a projection writer against current authority.
++   * @param binding - received writer identity.
++   * @returns whether it belongs to this generation.
++   */
++  accepts(binding: SessionProjectionBinding | undefined): boolean {
++    return !this.scoped || (this.binding !== undefined && sameProjection(this.binding, binding))
++  }
++  /** Commit a follow baseline and buffered later control values at one publication boundary.
++   * @param baseline - complete current-generation consistent cut. */
++  commit(baseline: ProjectionsBaseline): void {
++    if (this.blocked || !this.accepts(baseline.projection)) throw new RemoteError('gateway/internal', 'stale projection baseline', {})
++    this.staging = false
++    this.seed(baseline)
++    if (this.stagedBaseline !== undefined && this.stagedBaseline.asOfSeq >= baseline.asOfSeq) {
++      this.seed(this.stagedBaseline)
++    }
++    for (const [key, row] of this.staged) this.apply(key, row.value, row.seq, baseline.projection)
++    this.staged.clear()
++    this.stagedBytes = 0
++    this.stagedBaselineBytes = 4
++    this.stagedBaselineCount = 0
++    this.stagedBaseline = undefined
++  }
++
+   private readonly rows = new Map<string, Row>()
+   private readonly channels = new Map<string, Channel>()
+   private valuesCache: Readonly<Partial<SessionProjectionMap>> | undefined
+@@ -155,8 +270,26 @@ export class ProjectionValueStore {
+    * @param key - projection key.
+    * @param value - whole value computed by the host unit.
+    * @param seq - the unit's watermark at emission.
++   * @param projection - source/generation identity, omitted only for stock streams.
+    */
+-  apply(key: string, value: unknown, seq: SessionSeqCursor): void {
++  apply(key: string, value: unknown, seq: SessionSeqCursor, projection?: SessionProjectionBinding): void {
++    if (this.blocked || !this.accepts(projection)) return
++    if (this.staging) {
++      if (this.stagedBaseline !== undefined && seq <= this.stagedBaseline.asOfSeq) return
++      const previous = this.staged.get(key)
++      if (previous !== undefined && previous.seq >= seq) return
++      const bytes = projectionBytes([key, { value, seq }])
++      const oldBytes = previous === undefined ? 0 : projectionBytes([key, previous])
++      const count = this.staged.size + (previous === undefined ? 1 : 0)
++      if (count + this.stagedBaselineCount > 512
++        || 26 + this.stagedBaselineBytes + this.stagedBytes + bytes - oldBytes + Math.max(0, count - 1)
++          > 4 * 1024 * 1024) {
++        this.overflow('projection staging budget exceeded')
++      }
++      this.stagedBytes += bytes - oldBytes
++      this.staged.set(key, { value, seq })
++      return
++    }
+     const row = this.rows.get(key)
+     // higher seq wins among sequenced rows; replays and stale frames drop. A
+     // cached row has no comparable seq and always yields.
+@@ -172,8 +305,10 @@ export class ProjectionValueStore {
+    * a key, and the list's view of the persisted checkpoint cannot be newer
+    * than it.
+    * @param values - whole values by key viewed from the persisted checkpoint.
++   * @param projection - identity of the checkpoint producer, when scoped.
+    */
+-  applyCached(values: Readonly<Record<string, unknown>>): void {
++  applyCached(values: Readonly<Record<string, unknown>>, projection?: SessionProjectionBinding): void {
++    if (!this.accepts(projection) || this.scoped) return
+     for (const key of Object.keys(values)) {
+       if (this.rows.get(key)?.kind === 'sequenced') continue
+       this.rows.set(key, { kind: 'cached', value: values[key] })
+@@ -192,6 +327,26 @@ export class ProjectionValueStore {
+    * @param baseline - the response's projections block.
+    */
+   seed(baseline: ProjectionsBaseline): void {
++    if (this.blocked || !this.accepts(baseline.projection)) return
++    if (this.staging) {
++      if (this.stagedBaseline !== undefined && this.stagedBaseline.asOfSeq >= baseline.asOfSeq) return
++      for (const [key, row] of this.staged) {
++        if (row.seq <= baseline.asOfSeq) {
++          this.staged.delete(key)
++          this.stagedBytes -= projectionBytes([key, row])
++        }
++      }
++      const bytes = projectionBytes(baseline)
++      const count = Object.keys(baseline.values).length
++      if (count + this.staged.size > 512
++        || 26 + bytes + this.stagedBytes + Math.max(0, this.staged.size - 1) > 4 * 1024 * 1024) {
++        this.overflow('projection staging budget exceeded')
++      }
++      this.stagedBaseline = baseline
++      this.stagedBaselineBytes = bytes
++      this.stagedBaselineCount = count
++      return
++    }
+     for (const [key, row] of this.rows) {
+       if (row.kind !== 'cached') continue
+       this.rows.delete(key)
+@@ -200,7 +355,7 @@ export class ProjectionValueStore {
+     // Erased walk: the framework crosses the open key space; per-key typing
+     // is re-established at the consumer (useProjection's map lookup).
+     const values = baseline.values as Record<string, unknown>
+-    for (const key of Object.keys(values)) this.apply(key, values[key], baseline.asOfSeq)
++    for (const key of Object.keys(values)) this.apply(key, values[key], baseline.asOfSeq, baseline.projection)
+     for (const [key, row] of this.rows) {
+       if (Object.hasOwn(values, key)) continue
+       // Every cached row was deleted above; the kind test only narrows the
+diff --git a/packages/api/session-controller/src/client/sessions/service.ts b/packages/api/session-controller/src/client/sessions/service.ts
+index 2d2da2a2..7f9592eb 100644
+--- a/packages/api/session-controller/src/client/sessions/service.ts
++++ b/packages/api/session-controller/src/client/sessions/service.ts
+@@ -1,5 +1,6 @@
+ /** Client catalog and source-labelled ownership of exact Session generations. */
+ import type { ClientSessionPolicy } from '../contract/policy.ts'
++import type { SessionProjectionState } from '../contract/projection.ts'
+ import type { Context, Fiber } from '@deepseek-ai/cordis'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
+@@ -10,6 +11,7 @@ import type { SessionProjectionSummaryValues } from '@deepseek-ai/dsh-session-pr
+ import {
+   createSnapshotStore, notifySubscribers, type ObservableSnapshot, type SnapshotStore,
+ } from '@deepseek-ai/dsh-client-store'
++import { remoteErrorOf, RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+ import type { RemoteFailure, RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+ import type { SessionEventSource } from '../contract/events.ts'
+ import type { SessionFace } from '../contract/session.ts'
+@@ -109,6 +111,8 @@ export interface SessionBinding {
+   readonly session: SessionFace
+   /** Contiguous event window reserved for Conversation assembly. */
+   readonly eventSource: SessionEventSource
++  /** Presentation lifecycle shared by all holders; execution binding remains exact and stable. */
++  readonly projection: ObservableSnapshot<SessionProjectionState>
+   readonly ctx: AgentContext
+ }
+ 
+@@ -267,16 +271,19 @@ export class ClientSessions implements ISessions {
+   private readonly retainObservers = new Map<SessionId, RetentionObserver>()
+   private readonly scopeDrops = new Set<Promise<void>>()
+   private closed = false
++  private controlFailure: RemoteFailure | undefined
+ 
+   /**
+    * @param ctx - client root context (scope fibers mount under it).
+    * @param remote - generated Remote namespaces shared with every Session.
+    * @param policy - deployment selection; omission preserves standard Client behavior.
++   * @param recoverControl - await a restored control baseline before scoped retry; omission requires callers to supply control frames.
+    */
+   constructor(
+     private readonly rootCtx: Context,
+     remote: SessionRemotes,
+     policy: ClientSessionPolicy = {},
++    private readonly recoverControl?: () => Promise<void>,
+   ) {
+     this.policy = Object.freeze({ ...policy, disabledActions: Object.freeze([...(policy.disabledActions ?? [])]) })
+     this.manager = new SessionManager(remote, this.policy)
+@@ -311,7 +318,11 @@ export class ClientSessions implements ISessions {
+     const id = this.manager.resolveTarget(target)
+     const reference = this.retainScope(id, source)
+     try {
+-      reference.attachOpening(this.manager.get(id).open(), signal)
++      const session = this.manager.get(id)
++      if (this.controlFailure !== undefined) {
++        session.rejectProjection(this.controlFailure)
++        reference.attachOpening(Promise.reject(this.controlFailure), signal)
++      } else reference.attachOpening(session.open(), signal)
+       return reference
+     } catch (error) {
+       reference.release()
+@@ -399,6 +410,20 @@ export class ClientSessions implements ISessions {
+    */
+   handleControlFrame(frame: Parameters<SessionManager['handleControlFrame']>[0]): void {
+     this.manager.handleControlFrame(frame)
++    if (frame.type === 'baseline') this.controlFailure = undefined
++  }
++
++  /**
++   * Withdraw scoped presentation after terminal control loss; exact references and execution remain owned.
++   * @param error - terminal failure; stock policy retains its existing diagnostics-only behavior.
++   */
++  handleControlFailure(error: unknown): void {
++    if (this.policy.projectionRebuild !== true) return
++    const failure = remoteErrorOf(error) ?? new RemoteError(
++      'gateway/internal', 'Session control observation failed', {}, { cause: error },
++    )
++    this.controlFailure = failure
++    for (const record of this.scopes.values()) record.session.rejectProjection(failure)
+   }
+ 
+   /**
+@@ -608,6 +633,17 @@ export class ClientSessions implements ISessions {
+     notifySubscribers(observer.listeners, '[session-controller] reference sources')
+   }
+ 
++  async retryProjection(sessionId: SessionId): Promise<void> {
++    const record = this.scopes.get(sessionId)
++    if (record === undefined) throw new Error('projection retry requires a retained Session')
++    if (this.policy.projectionRebuild === true) {
++      if (this.recoverControl !== undefined) await this.recoverControl()
++      if (this.controlFailure !== undefined) throw this.controlFailure
++    }
++    if (this.closed || this.scopes.get(sessionId) !== record) throw new Error('projection retry owner released')
++    await record.session.retryProjection()
++  }
++
+   private retireScope(id: SessionId, record: ScopeRecord, disposeFiber = true): void {
+     if (!record.live) return
+     record.live = false
+@@ -626,7 +662,7 @@ export class ClientSessions implements ISessions {
+     // The Session owns its scoped dispatch point (host Agent.loopCtx mirror);
+     // mint and bind are one step so a live scope record implies a bound actx.
+     session.bindScope(ctx)
+-    const binding: SessionBinding = { sessionId: id, session, eventSource: session.eventSource, ctx }
++    const binding: SessionBinding = { sessionId: id, session, eventSource: session.eventSource, projection: session.projection, ctx }
+     const record: ScopeRecord = {
+       fiber,
+       ctx,
+diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
+index 735ee75f..fbdb95e7 100644
+--- a/packages/api/session-controller/src/client/sessions/session.ts
++++ b/packages/api/session-controller/src/client/sessions/session.ts
+@@ -10,6 +10,10 @@ import type { UserMessage } from '@deepseek-ai/dsh-llm/types'
+ import { SessionLogOffset, SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
+ import { SessionEventStream } from '../transport.ts'
+ import type { SessionJournalChange } from '../transport.ts'
++import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
++import type { SessionProjectionState } from '../contract/projection.ts'
++import type { SessionProjectionBinding } from '../../types.ts'
++import { sameProjection } from '../../projection-binding.ts'
+ import type { ClientSessionPolicy } from '../contract/policy.ts'
+ import { sessionActionFailure } from './policy.ts'
+ import type {
+@@ -148,9 +152,11 @@ export class Session implements SessionFace {
+   /** Per-echo settlement state; `retiring` latches the first observation so a
+    *  Inbox projection and its durable event cannot both retire one echo. */
+   private readonly submissionSettlements = new Map<SessionRequestId, {
++    readonly projection?: SessionProjectionBinding
+     readonly placement: PendingSubmission['placement']
+     /** Latest received Inbox position; null means removed from that queue. */
+     receipt?: {
++      readonly projection?: SessionProjectionBinding
+       readonly target: InboxTarget
+       readonly seq: number
+       readonly index: number | null
+@@ -166,6 +172,67 @@ export class Session implements SessionFace {
+   }>()
+   /** Owns the addressed page/follow lifecycle while this Session is open. */
+   private events: SessionEventStream | undefined
++  private projectionController = new AbortController()
++  private projectionState: SessionProjectionState = { phase: 'stock' }
++  /** Readiness of disposable presentation, independent of retained execution scope. */
++  readonly projection: ObservableSnapshot<SessionProjectionState> = {
++    getSnapshot: () => this.projectionState,
++    subscribe: listener => this.notifier.subscribe(listener),
++  }
++
++  /** Withdraw the retired generation before opening its authoritative successor.
++   * @param binding - next authority received through the typed control stream. */
++  invalidateProjection(binding: SessionProjectionBinding): void {
++    const current = this.projectionState
++    if (current.phase !== 'stock' && sameProjection(current.binding, binding)) return
++    const retiredController = this.projectionController
++    this.projectionController = new AbortController()
++    this.projectionState = { phase: 'rebuilding', binding, signal: this.projectionController.signal }
++    this.openGeneration++
++    this.refreshAcceptedSubmissions()
++    this.pendingHistory = null
++    this.jumpPromise = null
++    this.jumpTargetSeq = null
++    this.clearOlderHistory()
++    const events = this.events
++    this.events = undefined
++    void events?.dispose()
++    this.openPromise = null
++    this.openState = 'cold'
++    this.openError = null
++    this.baseSeq = SessionLogOffset(0)
++    this.hasMore = false
++    this.assistantStream.replace([], undefined)
++    this.eventSource.replace([], false)
++    retiredController.abort()
++    this.notifier.markDirty()
++    if (this.actx !== undefined) void this.open()
++  }
++
++  /** Wait for fresh authority after transport readiness without treating it as domain invalidation. */
++  requireProjectionBaseline(): void {
++    if (this.projectionState.phase !== 'ready') return
++    this.projectionState = { ...this.projectionState, phase: 'rebuilding' }
++    this.notifier.markDirty()
++  }
++
++  /** Confirm a fresh control baseline without replacing a valid same-generation journal.
++   * @param binding - authority supplied by the complete control baseline. */
++  confirmProjectionBaseline(binding: SessionProjectionBinding | undefined): void {
++    const current = this.projectionState
++    if (current.phase !== 'rebuilding' || binding === undefined
++      || !sameProjection(current.binding, binding) || this.openState !== 'open') return
++    this.projectionState = { phase: 'ready', binding, signal: this.projectionController.signal }
++    this.notifier.markDirty()
++  }
++
++  /** Retry only the current authoritative presentation; execution is never replayed.
++   * @returns completion of the existing or newly started history open. */
++  retryProjection(): Promise<void> {
++    if (this.options.policy?.projectionRebuild !== true) return Promise.reject(new Error('projection rebuild is disabled'))
++    if (this.projectionState.phase === 'failed') this.projections.retry()
++    return this.open()
++  }
+ 
+   /**
+    * Per-session projection value store (push model; see the session-projection
+@@ -206,6 +273,12 @@ export class Session implements SessionFace {
+     private readonly options: SessionOptions = {},
+   ) {
+     this.projections = options.projections ?? new ProjectionValueStore()
++    this.projections.configure(options.policy?.projectionRebuild === true)
++    if (options.policy?.projectionRebuild === true) {
++      const binding = this.projections.current()
++      this.projectionState = { phase: 'rebuilding', signal: this.projectionController.signal,
++        ...(binding === undefined ? {} : { binding }) }
++    }
+     this.address = options.address
+     this.notifier = new Notifier(() => {
+       this.snapshotCache = this.buildSnapshot()
+@@ -254,7 +327,9 @@ export class Session implements SessionFace {
+       text: input.text,
+       attachments: input.attachments,
+     }]
++    const projection = this.projections.current()
+     this.submissionSettlements.set(requestId, {
++      ...(projection === undefined ? {} : { projection }),
+       placement, accepted: false, onAccept: input.onAccept, onRetire: input.onRetire, retiring: false,
+     })
+     return { requestId, abandon: () => { this.retireFailedSubmission(requestId) } }
+@@ -279,7 +354,9 @@ export class Session implements SessionFace {
+   ): Promise<RemoteResult<{ accepted: true }>> {
+     this.promptError = null
+     this.lastAgentError = null
+-    const unavailable = sessionActionFailure(this.options.policy, 'prompt')
++    const unavailable = this.projectionState.phase !== 'stock' && this.projectionState.phase !== 'ready'
++      ? new RemoteError('gateway/internal', 'projection is synchronizing; retry input after it is ready', {})
++      : sessionActionFailure(this.options.policy, 'prompt')
+     if (unavailable !== undefined || (this.running && this.options.policy?.allowPromptWhileRunning === false)) {
+       const error = unavailable ?? new RemoteError('client/session-busy', 'client/session-busy', { sessionId: this.sessionId, mode })
+       if (requestId !== undefined) this.retireFailedSubmission(requestId)
+@@ -293,12 +370,14 @@ export class Session implements SessionFace {
+     let result: RemoteResult<{ accepted: true }>
+     if (this.address === undefined) {
+       const clientTimeZone = resolvedClientTimeZone()
++      const projection = this.projections.current()
+       result = await this.remote.session.prompt({
+         requestId: requestId ?? randomUUID() as SessionRequestId,
+         sessionId: this.sessionId,
+         mode,
+         content,
+         clientTimeZone,
++        ...(projection === undefined ? {} : { projection }),
+       }, signal)
+     } else if (content.some(part => part.type === 'file')) {
+       result = {
+@@ -376,12 +455,14 @@ export class Session implements SessionFace {
+ 
+   /** Apply one operation to a still-pending queue occurrence. */
+   async updateQueue(itemId: MessageId, action: QueueAction): Promise<RemoteResult<{ accepted: true }>> {
+-    const unavailable = sessionActionFailure(this.options.policy, 'queue')
++    const unavailable = this.projectionUnavailable() ?? sessionActionFailure(this.options.policy, 'queue')
+     if (unavailable !== undefined) return { ok: false, error: unavailable }
+     if (action.kind === 'steer' && this.running && this.options.policy?.allowPromptWhileRunning === false) {
+       return { ok: false, error: new RemoteError('client/session-busy', 'client/session-busy', { sessionId: this.sessionId, mode: 'steer' }) }
+     }
+-    return this.remote.session.updateQueue({ sessionId: this.sessionId, itemId, action })
++    const projection = this.projections.current()
++    return this.remote.session.updateQueue({ sessionId: this.sessionId, itemId, action,
++      ...(projection === undefined ? {} : { projection }) })
+   }
+ 
+   /**
+@@ -413,12 +494,16 @@ export class Session implements SessionFace {
+    * @returns the rename result (normalized accepted title + title event seq).
+    */
+   async rename(title: string): Promise<RemoteResult<{ title: string; seq: SessionSeq }>> {
+-    const unavailable = sessionActionFailure(this.options.policy, 'rename')
++    const unavailable = this.projectionUnavailable() ?? sessionActionFailure(this.options.policy, 'rename')
+     if (unavailable !== undefined) return { ok: false, error: unavailable }
+-    const result = await this.remote.session.rename({ sessionId: this.sessionId, title })
++    const projection = this.projections.current()
++    const request = { sessionId: this.sessionId, title, ...(projection === undefined ? {} : { projection }) }
++    const result = await this.remote.session.rename(request)
+     if (!result.ok) return result
+     const seq = SessionSeq(result.value.seq)
+-    this.projections.apply('title', result.value.title, seq)
++    if (sameProjection(projection, this.projections.current())) {
++      this.projections.apply('title', result.value.title, seq, result.value.projection)
++    }
+     return { ok: true, value: { title: result.value.title, seq } }
+   }
+ 
+@@ -430,6 +515,8 @@ export class Session implements SessionFace {
+    * @returns the admission result.
+    */
+   async command(line: string): Promise<RemoteResult<{ matched: boolean }>> {
++    const unavailable = this.projectionUnavailable()
++    if (unavailable !== undefined) return { ok: false, error: unavailable }
+     const result = await this.remote.commands.execute(this.sessionId, line, [])
+     if (!result.ok) return result
+     return { ok: true, value: { matched: result.value !== undefined } }
+@@ -711,6 +798,7 @@ export class Session implements SessionFace {
+       if (settlement.admitted !== undefined) this.scheduleObservedRetirement(requestId, settlement.admitted)
+       else this.retireFailedSubmission(requestId)
+     }
++    this.projectionController.abort()
+     this.openGeneration++
+     this.clearOlderHistory()
+     const events = this.events
+@@ -723,9 +811,19 @@ export class Session implements SessionFace {
+   /** @param generation - openGeneration at launch; stale passes cannot publish after replacement. */
+   private async doOpen(generation: number): Promise<void> {
+     this.openState = 'loading'
++    if (this.projectionState.phase === 'failed') {
++      this.projectionController.abort()
++      this.projectionController = new AbortController()
++      const binding = this.projections.current()
++      this.projectionState = { phase: 'rebuilding', signal: this.projectionController.signal,
++        ...(binding === undefined ? {} : { binding }) }
++    }
+     this.openError = null
+     this.notifier.markDirty()
++    const projection = this.projections.current()
+     const events = new SessionEventStream(this.remote, this.sessionAddress(), {
++      ...(this.options.policy?.projectionRebuild === true ? { projectionRebuild: true } : {}),
++      ...(projection === undefined ? {} : { projection }),
+       publish: (change) => {
+         if (generation !== this.openGeneration || this.events !== events) return
+         this.acceptEventChange(change)
+@@ -745,6 +843,7 @@ export class Session implements SessionFace {
+       this.events = undefined
+       this.openState = 'error'
+       this.openError = error
++      this.failProjection(error)
+     } finally {
+       if (generation === this.openGeneration) this.notifier.markDirty()
+     }
+@@ -798,13 +897,20 @@ export class Session implements SessionFace {
+       this.pendingHistory.pages.length = 0
+     }
+     if (visible.some(entry => entry.event.type === 'turn/start')) this.firstPromptPendingTurn = false
+-    if (projections !== undefined) this.projections.seed(projections)
++    if (projections !== undefined) {
++      if (this.options.policy?.projectionRebuild === true) {
++        if (projections.projection === undefined) throw new RemoteError('gateway/internal', 'missing projection identity', {})
++        if (this.projections.current() === undefined) this.projections.invalidate(projections.projection)
++        this.projections.commit(projections)
++        this.projectionState = { phase: 'ready', binding: projections.projection, signal: this.projectionController.signal }
++      } else this.projections.seed(projections)
++    }
+     this.eventSource.replace(visible, hasMore)
+     // A new follow baseline replaces confirmed optimistic inputs with Host-owned rows.
+     // Receipt-backed inputs are accepted, not failed, even if their history is outside this window.
+     if (projections !== undefined) {
+       for (const [requestId, { receipt }] of this.submissionSettlements) {
+-        if (receipt !== undefined && receipt.seq <= projections.asOfSeq) {
++        if (receipt !== undefined && sameProjection(receipt.projection, this.projections.current()) && receipt.seq <= projections.asOfSeq) {
+           this.scheduleObservedRetirement(requestId, receipt.attachments)
+         }
+       }
+@@ -883,7 +989,8 @@ export class Session implements SessionFace {
+       const { target, start, removedCount = 0, inserted, outcome } = event.data
+       for (const [requestId, settlement] of this.submissionSettlements) {
+         const receipt = settlement.receipt
+-        if (receipt?.target !== target || receipt.index === null || receipt.seq >= event.seq) continue
++        if (receipt?.target !== target || !sameProjection(receipt.projection, this.projections.current())
++          || receipt.index === null || receipt.seq >= event.seq) continue
+         const removed = receipt.index >= start && receipt.index < start + removedCount
+         if (removed && outcome === 'canceled') this.retireFailedSubmission(requestId)
+         else settlement.receipt = {
+@@ -901,7 +1008,8 @@ export class Session implements SessionFace {
+     }
+     if (event.type === 'request/context' || event.type === 'turn/end') {
+       for (const [requestId, settlement] of this.submissionSettlements) {
+-        if (settlement.admitted === undefined && settlement.receipt?.index === null
++        if (settlement.admitted === undefined && sameProjection(settlement.receipt?.projection, this.projections.current())
++          && settlement.receipt?.index === null
+           && settlement.receipt.seq < event.seq) this.retireFailedSubmission(requestId)
+       }
+       return
+@@ -914,11 +1022,14 @@ export class Session implements SessionFace {
+       const source = message.source
+       if (source.kind !== 'user' || !('rpcId' in source)) continue
+       const settlement = this.submissionSettlements.get(source.rpcId)
+-      if (settlement === undefined || settlement.retiring || (settlement.receipt?.seq ?? -1) > seq) continue
++      if (settlement === undefined || settlement.retiring || (sameProjection(settlement.receipt?.projection, this.projections.current())
++        && (settlement.receipt?.seq ?? -1) > seq)) continue
+       // Either proof accepts a prompt; an Inbox row can reach the Client before the prompt receipt. Later splices
+       // move the recorded position, so a canceled splice that removes the row retires its echo, queued ones
+       // included; a queued echo otherwise leaves once the queue dock renders its row or its message is admitted.
+-      settlement.receipt = { target, seq, index: start + index, attachments: attachmentRefsIn(message.content) }
++      const projection = this.projections.current()
++      settlement.receipt = { ...(projection === undefined ? {} : { projection }),
++        target, seq, index: start + index, attachments: attachmentRefsIn(message.content) }
+       this.acceptPrompt(source.rpcId)
+     }
+   }
+@@ -943,7 +1054,7 @@ export class Session implements SessionFace {
+     const settlement = this.submissionSettlements.get(requestId)
+     if (settlement?.admitted === undefined) return
+     const receipt = settlement.receipt
+-    if (receipt?.index === null
++    if (receipt?.index === null && sameProjection(receipt.projection, this.projections.current())
+       && (this.projections.seqOf('inbox') ?? -1) < receipt.seq) return
+     this.scheduleObservedRetirement(requestId, settlement.admitted)
+   }
+@@ -987,7 +1098,10 @@ export class Session implements SessionFace {
+ 
+   private refreshAcceptedSubmissions(): void {
+     this.acceptedSubmissions = this.pendingSubmissions
+-      .filter(echo => this.submissionSettlements.get(echo.requestId)?.accepted === true)
++      .filter((echo) => {
++        const settlement = this.submissionSettlements.get(echo.requestId)
++        return settlement?.accepted === true && sameProjection(settlement.projection, this.projections.current())
++      })
+   }
+ 
+   /** Single removal point: drop the echo, publish, then notify the owner. */
+@@ -1012,14 +1126,48 @@ export class Session implements SessionFace {
+     this.openPromise = null
+     this.openState = 'error'
+     this.openError = error
++    this.failProjection(error)
+     void events.dispose()
+     this.notifier.markDirty()
+   }
+ 
++  /** Withdraw failed presentation before cancellation callbacks, without ending Agent execution.
++   * @param error - structured failure shown to all retained holders. */
++  rejectProjection(error: RemoteFailure): void {
++    this.openGeneration++
++    const retiredController = this.projectionController
++    const events = this.events
++    this.events = undefined
++    this.openPromise = null
++    this.openState = 'error'
++    this.openError = error
++    this.failProjection(error)
++    this.clearOlderHistory()
++    this.eventSource.replace([], false)
++    this.notifier.markDirty()
++    retiredController.abort()
++    void events?.dispose()
++  }
++
++  private projectionUnavailable(): RemoteFailure | undefined {
++    return this.projectionState.phase === 'stock' || this.projectionState.phase === 'ready' ? undefined
++      : new RemoteError('gateway/internal', 'projection is synchronizing', {})
++  }
++
++  private failProjection(error: RemoteFailure): void {
++    if (this.projectionState.phase === 'stock') return
++    this.projections.block()
++    const binding = this.projections.current()
++    this.projectionState = { phase: 'failed', signal: this.projectionController.signal, error,
++      ...(binding === undefined ? {} : { binding }) }
++  }
++
+   private buildSnapshot(): SessionSnapshot {
+     const identity = this.projections.values().subagent
+     return {
+       sessionId: this.sessionId,
++      ...(this.projectionState.phase === 'stock' || this.projectionState.binding === undefined ? {}
++        : { projectionGeneration: this.projectionState.binding.generation }),
+       pendingSubmissions: this.acceptedSubmissions,
+       running: this.running,
+       subagent: this.address === undefined
+diff --git a/packages/api/session-controller/src/client/transport.ts b/packages/api/session-controller/src/client/transport.ts
+index 554eec51..66bc8ff7 100644
+--- a/packages/api/session-controller/src/client/transport.ts
++++ b/packages/api/session-controller/src/client/transport.ts
+@@ -1,6 +1,8 @@
+ /** Session-specific adapters for Gateway-owned Remote stream lifecycles. */
+ 
+ import type {} from '@deepseek-ai/dsh-api-session-controller/remote'
++import { parseProjectionBinding, sameProjection } from '../projection-binding.ts'
++import type { SessionProjectionBinding } from '../types.ts'
+ import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+ import {
+   RemoteJournalStream,
+@@ -80,11 +82,98 @@ function toSessionJournalChange(
+ type SessionControlBaselineFrame = Extract<SessionControlFrame, { type: 'baseline' }>
+ type SessionControlDeltaFrame = Exclude<SessionControlFrame, SessionControlBaselineFrame>
+ 
+-/** Gateway-owned control snapshot stream configured for Session frames. */
+-export type SessionControlStream = RemoteSnapshotStream<
+-  SessionControlBaselineFrame,
+-  SessionControlDeltaFrame
+->
++/** Session-owned control observer; terminal recovery is explicit and preserves retained execution. */
++export interface SessionControlStream {
++  /** Start the current observer once. */
++  start(): void
++  /** Repair only a physical generation; terminal failures require recover(). */
++  restart(): void
++  /** Recreate a terminal observer and await its accepted baseline; concurrent calls join.
++   * Reject on baseline failure or disposal. */
++  recover(): Promise<void>
++  /** Cancel pending recovery and await every owned observer's cleanup. */
++  dispose(): Promise<void>
++}
++
++type ControlObservation =
++  | { kind: 'observing' }
++  | { kind: 'failed' }
++  | { kind: 'recovering'; done: PromiseWithResolvers<void>; cleanup?: Promise<void> }
++  | { kind: 'disposed' }
++
++class SessionControlObserver implements SessionControlStream {
++  private revision = 0
++  private observation: ControlObservation = { kind: 'observing' }
++  private stream: RemoteSnapshotStream<SessionControlBaselineFrame, SessionControlDeltaFrame>
++
++  constructor(private readonly remote: SessionRemotes, private readonly options: SessionControlStreamOptions) {
++    this.stream = this.createObserver()
++  }
++
++  start(): void { this.stream.start() }
++  restart(): void { if (this.observation.kind === 'observing') this.stream.restart() }
++
++  recover(): Promise<void> {
++    if (this.observation.kind === 'disposed') return Promise.reject(new Error('Session control observer disposed'))
++    if (this.observation.kind === 'observing') return Promise.resolve()
++    if (this.observation.kind === 'recovering') return this.observation.done.promise
++    const operation: Extract<ControlObservation, { kind: 'recovering' }> = {
++      kind: 'recovering', done: Promise.withResolvers<void>(),
++    }
++    this.observation = operation
++    this.revision++
++    const previous = this.stream
++    operation.cleanup = (async () => {
++      await previous.dispose()
++      if (this.observation !== operation) return
++      this.stream = this.createObserver()
++      this.stream.start()
++    })().catch((error: unknown) => { if (this.observation === operation) this.failed(error) })
++    return operation.done.promise
++  }
++
++  async dispose(): Promise<void> {
++    const observation = this.observation
++    this.observation = { kind: 'disposed' }
++    this.revision++
++    if (observation.kind === 'recovering') observation.done.reject(new Error('Session control observer disposed'))
++    await this.stream.dispose()
++    if (observation.kind === 'recovering') await observation.cleanup
++  }
++
++  private failed(error: unknown): void {
++    const observation = this.observation
++    this.observation = { kind: 'failed' }
++    if (observation.kind === 'recovering') observation.done.reject(error)
++    this.options.failed(error)
++  }
++
++  private createObserver(): RemoteSnapshotStream<SessionControlBaselineFrame, SessionControlDeltaFrame> {
++    const revision = ++this.revision
++    const stream = this.remote.$stream<SessionControlFrame>({
++      name: 'session control stream', open: signal => this.remote.session.control(signal),
++      ended: accepted => accepted
++        ? new RemoteStreamCarrierError('session control stream ended without a terminal result')
++        : new Error('session control stream ended before its opening snapshot'),
++      ...(this.options.carrierFailed === undefined ? {} : { carrierFailed: this.options.carrierFailed }),
++    })
++    return new RemoteSnapshotStream(stream, {
++      name: 'session control stream',
++      isSnapshot: (frame): frame is SessionControlBaselineFrame => frame.type === 'baseline',
++      replace: (frame) => {
++        if (revision !== this.revision) return
++        this.options.accept(frame)
++        const observation = this.observation
++        if (observation.kind === 'recovering') {
++          this.observation = { kind: 'observing' }
++          observation.done.resolve()
++        }
++      },
++      update: (frame) => { if (revision === this.revision) this.options.accept(frame) },
++      failed: (error) => { if (revision === this.revision) this.failed(error) },
++    })
++  }
++}
+ 
+ /** Domain sinks used by the Host-wide Session control stream. */
+ export interface SessionControlStreamOptions {
+@@ -104,6 +193,10 @@ export interface SessionEventStreamOptions {
+   readonly carrierFailed?: (error: RemoteStreamCarrierError) => void
+   /** Publish a terminal stream, page, or protocol failure after opening. */
+   readonly failed: (error: unknown) => void
++  /** Require generation-scoped metadata; omission preserves stock behavior. */
++  readonly projectionRebuild?: boolean
++  /** Authoritative target captured when this journal lifetime starts. */
++  readonly projection?: SessionProjectionBinding
+ }
+ 
+ /**
+@@ -116,21 +209,7 @@ export function createSessionControlStream(
+   remote: SessionRemotes,
+   options: SessionControlStreamOptions,
+ ): SessionControlStream {
+-  const stream = remote.$stream<SessionControlFrame>({
+-    name: 'session control stream',
+-    open: signal => remote.session.control(signal),
+-    ended: accepted => accepted
+-      ? new RemoteStreamCarrierError('session control stream ended without a terminal result')
+-      : new Error('session control stream ended before its opening snapshot'),
+-    ...(options.carrierFailed === undefined ? {} : { carrierFailed: options.carrierFailed }),
+-  })
+-  return new RemoteSnapshotStream(stream, {
+-    name: 'session control stream',
+-    isSnapshot: (frame): frame is SessionControlBaselineFrame => frame.type === 'baseline',
+-    replace: options.accept,
+-    update: options.accept,
+-    failed: options.failed,
+-  })
++  return new SessionControlObserver(remote, options)
+ }
+ 
+ /** Gateway-owned event journal bound to one ordinary or direct-subagent Session address. */
+@@ -146,6 +225,9 @@ export class SessionEventStream extends RemoteJournalStream<
+    * @param address - durable ordinary-Session or direct-subagent address.
+    * @param options - Session event-window destinations.
+    */
++  private projection: SessionProjectionBinding | undefined
++  private readonly projectionRebuild: boolean
++
+   constructor(
+     private readonly remote: SessionRemotes,
+     private readonly address: SessionAddress,
+@@ -166,6 +248,8 @@ export class SessionEventStream extends RemoteJournalStream<
+         : { carrierFailed: options.carrierFailed }),
+       failed: options.failed,
+     })
++    this.projection = options.projection
++    this.projectionRebuild = options.projectionRebuild === true
+   }
+ 
+   /** @inheritdoc */
+@@ -180,9 +264,23 @@ export class SessionEventStream extends RemoteJournalStream<
+       address: this.address,
+       activate: true,
+       assistantStream: true,
++      ...(this.projectionRebuild ? { projectionRebuild: true as const } : {}),
++      ...(this.projection === undefined ? {} : { projection: this.projection }),
+       ...this.repairRequest(request),
+     }, signal)) {
+       if (frame.type === 'snapshot') {
++        if (this.projectionRebuild) {
++          let projection: SessionProjectionBinding
++          try { projection = parseProjectionBinding(frame.projection) } catch (error: unknown) {
++            throw new RemoteError('gateway/internal', 'invalid projection opening identity', {}, { cause: error })
++          }
++          if (this.projection !== undefined && !sameProjection(this.projection, projection)
++            || !sameProjection(projection, frame.projections.projection)
++            || frame.projections.asOfSeq !== frame.cursor) {
++            throw new RemoteError('gateway/internal', 'incoherent projection opening', {})
++          }
++          this.projection = projection
++        }
+         for (const record of frame.records) assertSessionWireEvent(record.event)
+         if (frame.assistantStream === undefined) {
+           throw new RemoteError(
+@@ -196,6 +294,7 @@ export class SessionEventStream extends RemoteJournalStream<
+           type: 'opened',
+           cursor: frame.cursor,
+           page: {
++            ...(frame.projection === undefined ? {} : { projection: frame.projection }),
+             records: frame.records,
+             hasMore: frame.hasMore,
+             projections: frame.projections,
+@@ -204,6 +303,7 @@ export class SessionEventStream extends RemoteJournalStream<
+         }
+         continue
+       }
++      if (this.projectionRebuild && !sameProjection(this.projection, frame.projection)) continue
+       if (frame.type === 'assistant-stream') {
+         const expected = (assistantRevision ?? 0) + 1
+         if (frame.frame.revision !== expected) {
+@@ -227,10 +327,13 @@ export class SessionEventStream extends RemoteJournalStream<
+     signal: AbortSignal,
+   ): Promise<SessionJournalPage> {
+     const result = await this.remote.session.page(
+-      { address: this.address, throughSeq, ...request },
++      { address: this.address, throughSeq, ...request, ...(this.projection === undefined ? {} : { projection: this.projection }) },
+       signal,
+     )
+     if (!result.ok) throw result.error
++    if (this.projectionRebuild && !sameProjection(this.projection, result.value.projection)) {
++      throw new RemoteError('gateway/internal', 'stale projection page', {})
++    }
+     for (const record of result.value.records) assertSessionWireEvent(record.event)
+     return result.value
+   }
+diff --git a/packages/api/session-controller/src/index.ts b/packages/api/session-controller/src/index.ts
+index 6303340c..95eb4a53 100644
+--- a/packages/api/session-controller/src/index.ts
++++ b/packages/api/session-controller/src/index.ts
+@@ -435,6 +435,7 @@ export class SessionController extends TypertRemoteService {
+    */
+   @Remote('rename')
+   rename(request: SessionRenameRequest): Promise<SessionRenameValue> {
++    if (request.projection !== undefined) throw new RemoteError('session/projections-unavailable', 'stock Session mutations do not implement projection generations', {})
+     return this.commands.rename(request)
+   }
+ 
+@@ -447,6 +448,7 @@ export class SessionController extends TypertRemoteService {
+    */
+   @Remote('fork')
+   async fork(request: SessionForkRequest): Promise<SessionForkValue> {
++    if (request.projection !== undefined) throw new RemoteError('session/projections-unavailable', 'stock Session mutations do not implement projection generations', {})
+     if (request.allowMigration === false && this.ctx.sessions.get(request.sessionId) === undefined) {
+       const stored = await this.ctx.get('sessionPersistence')?.stat(request.sessionId)
+       if (stored?.formatStatus === 'migration-required' && this.ctx.sessions.get(request.sessionId) === undefined) {
+@@ -466,6 +468,7 @@ export class SessionController extends TypertRemoteService {
+    */
+   @Remote('prompt')
+   async prompt(request: SessionPromptRequest, signal: AbortSignal): Promise<SessionPromptValue> {
++    if (request.projection !== undefined) throw new RemoteError('session/projections-unavailable', 'stock Session mutations do not implement projection generations', {})
+     signal.throwIfAborted()
+     if (request.content.length > 0 && !hasPromptContent(request.content)) {
+       throw new RemoteError('gateway/bad-request', 'prompt content must include non-whitespace text or an attachment', {})
+@@ -508,6 +511,7 @@ export class SessionController extends TypertRemoteService {
+    */
+   @Remote('updateQueue')
+   updateQueue(request: SessionUpdateQueueRequest): Promise<SessionUpdateQueueValue> {
++    if (request.projection !== undefined) throw new RemoteError('session/projections-unavailable', 'stock Session mutations do not implement projection generations', {})
+     return this.commands.updateQueue(request)
+   }
+ 
+@@ -530,6 +534,7 @@ export class SessionController extends TypertRemoteService {
+    */
+   @Remote('page')
+   page(request: SessionPageRequest, signal: AbortSignal): Promise<SessionEventsPage> {
++    if (request.projection !== undefined) throw new RemoteError('session/projections-unavailable', 'stock Session storage does not implement projection generations', {})
+     return this.historyController.events(request, signal)
+   }
+ 
+@@ -541,6 +546,7 @@ export class SessionController extends TypertRemoteService {
+    */
+   @Remote
+   events(request: SessionPageRequest, signal: AbortSignal): Promise<SessionEventsPage> {
++    if (request.projection !== undefined) throw new RemoteError('session/projections-unavailable', 'stock Session storage does not implement projection generations', {})
+     return this.historyController.events(request, signal)
+   }
+ 
+@@ -608,6 +614,9 @@ export class SessionController extends TypertRemoteService {
+    */
+   @Remote({ mode: 'stream' })
+   follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame> {
++    if (request.projectionRebuild === true || request.projection !== undefined) {
++      throw new RemoteError('session/projections-unavailable', 'stock Session storage does not implement projection rebuild', {})
++    }
+     return this.webController.follow(request, signal)
+   }
+ 
+@@ -619,6 +628,7 @@ export class SessionController extends TypertRemoteService {
+    */
+   @Remote('projections')
+   projections(request: SessionProjectionsRequest, signal: AbortSignal): Promise<SessionProjectionsValue> {
++    if (request.projection !== undefined) throw new RemoteError('session/projections-unavailable', 'stock Session storage does not implement projection generations', {})
+     return this.historyController.projections(request, signal)
+   }
+ 
+@@ -637,6 +647,7 @@ export class SessionController extends TypertRemoteService {
+           yield { type: 'baseline', value: { ...frame.value, projections } }
+           break
+         }
++        case 'projection-invalidated':
+         case 'projection':
+           if (this.ctx.remoteAccess.allows({ kind: 'session', id: frame.sessionId })) yield frame
+           break
+diff --git a/packages/api/session-controller/src/projection-binding.ts b/packages/api/session-controller/src/projection-binding.ts
+new file mode 100644
+index 00000000..c0acd751
+--- /dev/null
++++ b/packages/api/session-controller/src/projection-binding.ts
+@@ -0,0 +1,43 @@
++/** Runtime admission of opaque projection identities at provider and wire boundaries. */
++import { z } from 'zod'
++import { brandString } from '@deepseek-ai/dsh-brand'
++import type {
++  SessionProjectionBinding, SessionProjectionSource, SessionProjectionGeneration,
++} from './types.ts'
++
++const identity = z.string().min(1).max(512)
++const bindingSchema = z.object({ source: identity, generation: identity }).strict()
++
++/**
++ * Validate an opaque verified source identity without asserting its authenticity.
++ * @param value - opaque verified source identity.
++ * @returns validated source brand.
++ */
++export const projectionSource = (value: string): SessionProjectionSource =>
++  brandString<SessionProjectionSource>(identity.parse(value))
++/**
++ * Validate an opaque authoritative presentation generation.
++ * @param value - opaque authoritative generation.
++ * @returns validated generation brand.
++ */
++export const projectionGeneration = (value: string): SessionProjectionGeneration =>
++  brandString<SessionProjectionGeneration>(identity.parse(value))
++/**
++ * Decode a detached presentation identity at a provider or wire boundary.
++ * @param value - decoded provider or wire value.
++ * @returns detached validated identity.
++ */
++export function parseProjectionBinding(value: unknown): SessionProjectionBinding {
++  const parsed = bindingSchema.parse(value)
++  return Object.freeze({ source: projectionSource(parsed.source), generation: projectionGeneration(parsed.generation) })
++}
++/**
++ * Compare complete presentation identities, including the stock unscoped case.
++ * @param left - expected identity.
++ * @param right - received identity.
++ * @returns exact generation equality.
++ */
++export function sameProjection(left: SessionProjectionBinding | undefined,
++  right: SessionProjectionBinding | undefined): boolean {
++  return left?.source === right?.source && left?.generation === right?.generation
++}
+diff --git a/packages/api/session-controller/src/types.ts b/packages/api/session-controller/src/types.ts
+index 49cd7c0f..2da21c15 100644
+--- a/packages/api/session-controller/src/types.ts
++++ b/packages/api/session-controller/src/types.ts
+@@ -29,6 +29,16 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
+   }
+ }
+ 
++/** Opaque verified source-and-Session identity for a disposable projection. */
++export type SessionProjectionSource = Branded<'session-projection-source'>
++/** Opaque projection generation; sequence numbers are comparable only within it. */
++export type SessionProjectionGeneration = Branded<'session-projection-generation'>
++/** Authoritative presentation identity, independent of Agent execution ownership. */
++export interface SessionProjectionBinding {
++  readonly source: SessionProjectionSource
++  readonly generation: SessionProjectionGeneration
++}
++
+ /** Persisted hints used to summarize a cold Session. */
+ export interface SessionListMetadata {
+   /** Whether the folded prefix contains no turn. */
+@@ -46,6 +56,8 @@ export interface SessionListMetadata {
+  * merge the block; `asOfSeq` is the producer's watermark in that space.
+  */
+ export interface SessionProjectionHints {
++  /** Present only for an opted-in, generation-scoped projection. */
++  readonly projection?: SessionProjectionBinding
+   /**
+    * `sequenced`: the Host's live registry produced the block for an attached
+    * Session, so `asOfSeq` is comparable with baselines and frames of the same
+@@ -62,6 +74,8 @@ export interface SessionProjectionHints {
+ 
+ /** Complete projection values at an exact Session event cursor. */
+ export interface SessionProjectionBaseline {
++  /** Present only for an opted-in, generation-scoped projection. */
++  readonly projection?: SessionProjectionBinding
+   readonly asOfSeq: number
+   /** Provider-validated values; omitted keys are absent capabilities at this cut. */
+   readonly values: SessionProjectionValues
+@@ -296,18 +310,23 @@ export interface SessionSelectModelValue {
+ 
+ /** Session rename request. */
+ export interface SessionRenameRequest {
++  /** Reject if the caller’s presentation authority is no longer current. */
++  readonly projection?: SessionProjectionBinding
+   readonly sessionId: SessionId
+   readonly title: string
+ }
+ 
+ /** Normalized title and the durable event position that committed it. */
+ export interface SessionRenameValue {
++  readonly projection?: SessionProjectionBinding
+   readonly title: string
+   readonly seq: number
+ }
+ 
+ /** Session fork request. */
+ export interface SessionForkRequest {
++  /** Reject if the caller’s presentation authority is no longer current. */
++  readonly projection?: SessionProjectionBinding
+   readonly sessionId: SessionId
+   /** Exact inclusive source event seq; omission selects the latest completed-turn prefix. */
+   readonly atSeq?: number
+@@ -322,6 +341,8 @@ export interface SessionForkValue {
+ 
+ /** Session prompt request. */
+ export interface SessionPromptRequest {
++  /** Reject if the caller’s presentation authority is no longer current. */
++  readonly projection?: SessionProjectionBinding
+   /** Client-minted identity persisted on the accepted inbox input, including empty continuation. */
+   readonly requestId: SessionRequestId
+   readonly sessionId: SessionId
+@@ -352,6 +373,8 @@ export interface SessionAttachmentValue {
+ 
+ /** Pending queue mutation request. */
+ export interface SessionUpdateQueueRequest {
++  /** Reject if the caller’s presentation authority is no longer current. */
++  readonly projection?: SessionProjectionBinding
+   readonly sessionId: SessionId
+   readonly itemId: MessageId
+   readonly action: QueueAction
+@@ -415,6 +438,8 @@ export type SessionAddress =
+ 
+ /** One non-activating Session projection read. */
+ export interface SessionProjectionsRequest {
++  /** Present only for an opted-in, generation-scoped projection. */
++  readonly projection?: SessionProjectionBinding
+   readonly sessionId: SessionId
+ }
+ 
+@@ -471,6 +496,8 @@ export interface SessionWireEvent {
+ 
+ /** One message-aligned backwards-history request. */
+ export interface SessionPageRequest {
++  /** Present only for an opted-in, generation-scoped projection. */
++  readonly projection?: SessionProjectionBinding
+   readonly address: SessionAddress
+   /**
+    * Inclusive log cut; omission selects the observed log end. A follow opening
+@@ -489,7 +516,9 @@ export interface SessionPageRequest {
+ }
+ 
+ /** One live event request for a durable Session address. */
+-export interface SessionFollowRequest extends Pick<SessionPageRequest, 'maxMessages' | 'turnWindow'> {
++export interface SessionFollowRequest extends Pick<SessionPageRequest, 'maxMessages' | 'turnWindow' | 'projection'> {
++  /** Require a complete generation-scoped baseline; unsupported providers must refuse. */
++  readonly projectionRebuild?: true
+   readonly address: SessionAddress
+   /** Request background activation; omission leaves the read passive. */
+   readonly activate?: boolean
+@@ -551,6 +580,8 @@ export type SessionAssistantStreamFrame =
+ 
+ /** One contiguous backwards page of a Session log. */
+ export interface SessionPage {
++  /** Present only for an opted-in, generation-scoped projection. */
++  readonly projection?: SessionProjectionBinding
+   readonly records: readonly SessionHistoryRecord[]
+   readonly hasMore: boolean
+ }
+@@ -559,6 +590,7 @@ export interface SessionPage {
+ export type SessionFollowFrame =
+   | {
+     readonly type: 'snapshot'
++    readonly projection?: SessionProjectionBinding
+     readonly header: SessionWireHeader
+     readonly cursor: number
+     readonly records: readonly SessionHistoryRecord[]
+@@ -566,8 +598,8 @@ export type SessionFollowFrame =
+     readonly projections: SessionProjectionBaseline
+     readonly assistantStream?: SessionAssistantStreamBaseline
+   }
+-  | SessionEventEntry
+-  | { readonly type: 'assistant-stream'; readonly frame: SessionAssistantStreamFrame }
++  | (SessionEventEntry & { readonly projection?: SessionProjectionBinding })
++  | { readonly type: 'assistant-stream'; readonly frame: SessionAssistantStreamFrame; readonly projection?: SessionProjectionBinding }
+ 
+ /** Complete live control baseline emitted once per control stream generation. */
+ export interface SessionControlBaseline {
+@@ -579,6 +611,8 @@ export interface SessionControlBaseline {
+  * update per event that changed at least one client-visible projection view.
+  */
+ export interface SessionProjectionUpdate {
++  /** Present only for an opted-in, generation-scoped projection. */
++  readonly projection?: SessionProjectionBinding
+   readonly sessionId: SessionId
+   /** Seq of the committed event that caused every listed change. */
+   readonly seq: number
+@@ -595,6 +629,8 @@ export interface SessionProjectionUpdate {
+ export type SessionControlFrame =
+   | { readonly type: 'baseline'; readonly value: SessionControlBaseline }
+   | ({ readonly type: 'projection' } & SessionProjectionUpdate)
++  /** Names the NEXT authoritative binding; repeated delivery is idempotent. */
++  | { readonly type: 'projection-invalidated'; readonly sessionId: SessionId; readonly projection: SessionProjectionBinding }
+ 
+ /** One pending live-Agent inbox item, preserving placement and content order. */
+ export interface SessionQueuedItem {
+diff --git a/packages/api/session-controller/tests/projection-rebuild.client.spec.ts b/packages/api/session-controller/tests/projection-rebuild.client.spec.ts
+new file mode 100644
+index 00000000..634e7d42
+--- /dev/null
++++ b/packages/api/session-controller/tests/projection-rebuild.client.spec.ts
+@@ -0,0 +1,394 @@
++/** Projection replacement through public retains and typed Remote controls. */
++import { Context } from '@deepseek-ai/cordis'
++import { describe, expect, onTestFinished, vi } from 'vitest'
++import { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
++import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
++import { ok } from '@deepseek-ai/dsh-remote-mock'
++import { createClientTest, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
++import { createSessionControlStream } from '../src/client/transport.ts'
++import { ClientSessions } from '../src/client/sessions/service.ts'
++import { parseProjectionBinding } from '../src/projection-binding.ts'
++import type { SessionFollowRequest, SessionProjectionBinding } from '../src/types.ts'
++import { FOLLOW } from './remote/session.client.ts'
++import { followSnapshot } from './remote/history.client.ts'
++import { ev, historyValue } from './event-script.client.ts'
++
++const ID = SessionId('projection-session')
++const OLD = parseProjectionBinding({ source: 'synthetic-source', generation: 'old-generation' })
++const NEXT = parseProjectionBinding({ source: 'synthetic-source', generation: 'new-generation' })
++const it = createClientTest({ roster: webApp.closure(['@deepseek-ai/dsh-api-gateway']) })
++
++function snapshot(projection: SessionProjectionBinding, text: string, first: number) {
++  const frame = followSnapshot(historyValue([
++    ev.turnStart(SessionSeq(first), 0), ev.user(SessionSeq(first + 1), text),
++  ]), { address: { kind: 'session', sessionId: ID }, assistantStream: true })
++  return { ...frame, projection, projections: { ...frame.projections, projection, values: { title: text } } }
++}
++
++describe('same Session projection rebuild', () => {
++  it('withdraws old history for every holder while preserving their execution binding on failure', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => { opening.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) {
++        await opening.promise
++        stream.fail(new RemoteError('gateway/internal', 'baseline unavailable', {}))
++      } else stream.push(snapshot(OLD, 'off-branch original', 5))
++    })
++    using first = sessions.retain(ID, { source: 'controllerOperation' })
++    using second = sessions.retain(ID, { source: 'controllerOperation' })
++    await Promise.all([first.ready, second.ready])
++    const binding = first.binding
++    expect(binding.projection.getSnapshot().phase).toBe('ready')
++    expect(JSON.stringify(binding.eventSource.getSnapshot())).toContain('off-branch original')
++    sessions.handleConnected()
++    expect(binding.projection.getSnapshot().phase).toBe('rebuilding')
++    expect(JSON.stringify(binding.eventSource.getSnapshot())).toContain('off-branch original')
++    sessions.handleControlFrame({ type: 'baseline', value: { projections: {
++      [ID]: { projection: OLD, asOfSeq: 6, values: {} },
++    } } })
++    expect(binding.projection.getSnapshot().phase).toBe('ready')
++    const oldProjection = binding.projection.getSnapshot()
++    const abortObservation: unknown[] = []
++    if (oldProjection.phase !== 'stock') oldProjection.signal.addEventListener('abort', () => {
++      abortObservation.push({ phase: binding.projection.getSnapshot().phase,
++        entries: binding.eventSource.getSnapshot().entries })
++    })
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    expect(abortObservation).toEqual([{ phase: 'rebuilding', entries: [] }])
++    expect(binding.projection.getSnapshot().phase).toBe('rebuilding')
++    expect(binding.eventSource.getSnapshot().entries).toEqual([])
++    expect(second.binding).toBe(binding)
++    expect(sessions.scope(ID)).toBe(binding.ctx)
++    expect(binding.session.getSnapshot().running).toBe(true)
++    expect(sessions.retainInfo(ID).getSnapshot().referenceCount).toBe(2)
++    opening.resolve(undefined)
++    await vi.waitFor(() => { expect(binding.projection.getSnapshot().phase).toBe('failed') })
++    expect(binding.eventSource.getSnapshot().entries).toEqual([])
++  })
++
++  it('publishes a lower coherent cut and rejects a delayed old page and all old projection writers', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const page = Promise.withResolvers<ReturnType<typeof ok<ReturnType<typeof historyValue>>>>()
++    const pageEntered = Promise.withResolvers<undefined>()
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => {
++      opening.resolve(undefined)
++      page.resolve(ok(historyValue([])))
++      await ctx.fiber.dispose()
++    })
++    const listed = { sessionId: ID, updatedAt: 1, running: false, blank: false, agentAvailable: true }
++    mock.remote.session.list.mockResolvedValue(ok({ items: [listed] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) {
++        await opening.promise
++        stream.push(snapshot(NEXT, 'new branch', 0))
++      } else stream.push({ ...snapshot(OLD, 'retired branch', 5), hasMore: true })
++    })
++    mock.remote.session.page.mockImplementation(async () => { pageEntered.resolve(undefined); return page.promise })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    const binding = reference.binding
++    const oldPage = binding.session.loadOlder({ deferConsumption: true })
++    await pageEntered.promise
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT,
++      seq: 2, changes: [{ key: 'title', val: 'current live title' }] })
++    opening.resolve(undefined)
++    await vi.waitFor(() => { expect(binding.projection.getSnapshot().phase).toBe('ready') })
++    page.resolve(ok({ ...historyValue([ev.user(SessionSeq(4), 'delayed old page')]), projection: OLD }))
++    await oldPage
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: OLD,
++      seq: 999, changes: [{ key: 'title', val: 'stale control' }] })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [{ ...listed,
++      projections: { kind: 'sequenced', projection: OLD, asOfSeq: 999, values: { title: 'stale list' } },
++    }] }))
++    await sessions.refresh()
++    mock.remote.session.projections.mockResolvedValue(ok({ kind: 'sequenced', projection: OLD,
++      asOfSeq: 999, values: { title: 'stale unary' } }))
++    await sessions.refreshProjections(ID)
++    expect(binding.eventSource.getSnapshot().entries.at(-1)?.event.seq).toBe(1)
++    expect(JSON.stringify(binding.eventSource.getSnapshot())).toContain('new branch')
++    expect(JSON.stringify(binding.eventSource.getSnapshot())).not.toContain('retired branch')
++    expect(JSON.stringify(binding.eventSource.getSnapshot())).not.toContain('delayed old page')
++    expect(binding.session.projections.faceOf('title').getSnapshot()).toBe('current live title')
++    expect(binding.session.consumeOlder()).toBe(false)
++  })
++
++
++  it('supersedes two openings and ignores a retired invalidation without moving any retained owner', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const middle = Promise.withResolvers<undefined>()
++    const middleEntered = Promise.withResolvers<undefined>()
++    const latest = parseProjectionBinding({ source: 'synthetic-source', generation: 'latest' })
++    onTestFinished(async () => { middle.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: false, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) {
++        middleEntered.resolve(undefined)
++        await middle.promise
++        stream.push(snapshot(NEXT, 'superseded opening', 0))
++      } else if (request.projection?.generation === latest.generation) stream.push(snapshot(latest, 'latest original', 0))
++      else stream.push(snapshot(OLD, 'old original', 5))
++    })
++    using first = sessions.retain(ID, { source: 'controllerOperation' })
++    await first.ready
++    const binding = first.binding
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    await middleEntered.promise
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: latest })
++    using joined = sessions.retain(ID, { source: 'controllerOperation' })
++    await joined.ready
++    await vi.waitFor(() => { expect(binding.projection.getSnapshot()).toMatchObject({ phase: 'ready', binding: latest }) })
++    middle.resolve(undefined)
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    await vi.waitFor(() => { expect(binding.projection.getSnapshot()).toMatchObject({ phase: 'ready', binding: latest }) })
++    expect(JSON.stringify(binding.eventSource.getSnapshot())).toContain('latest original')
++    expect(joined.binding).toBe(binding)
++    first.release()
++    expect(joined.binding).toBe(binding)
++  })
++
++
++  it('withdraws retired submission echoes without declaring the protected execution failed', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    onTestFinished(async () => { await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: false, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      stream.push(request.projection?.generation === NEXT.generation
++        ? snapshot(NEXT, 'new path', 0) : snapshot(OLD, 'old path', 5))
++    })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    const retired = vi.fn()
++    const session = reference.binding.session
++    const submission = session.beginSubmission({ text: 'accepted old echo', attachments: [], mode: 'queue', onRetire: retired })
++    mock.remote.session.prompt.mockResolvedValue(ok({ accepted: true }))
++    await session.prompt([{ type: 'text', text: 'accepted old echo' }], 'queue', undefined, submission.requestId)
++    expect(session.getSnapshot().pendingSubmissions).toHaveLength(1)
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    await vi.waitFor(() => { expect(reference.binding.projection.getSnapshot().phase).toBe('ready') })
++    expect(session.getSnapshot().pendingSubmissions).toEqual([])
++    expect(retired).not.toHaveBeenCalled()
++  })
++
++
++  it('honors an absent capability in a newer control baseline while the new journal is opening', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => { opening.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: false, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) {
++        await opening.promise
++        stream.push(snapshot(NEXT, 'new path', 0))
++      } else stream.push(snapshot(OLD, 'old path', 5))
++    })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT,
++      seq: 2, changes: [{ key: 'title', val: 'removed capability' }] })
++    sessions.handleControlFrame({ type: 'baseline', value: { projections: {
++      [ID]: { projection: NEXT, asOfSeq: 3, values: {} },
++    } } })
++    opening.resolve(undefined)
++    await vi.waitFor(() => { expect(reference.binding.projection.getSnapshot().phase).toBe('ready') })
++    expect(reference.binding.session.projections.faceOf('title').getSnapshot()).toBeUndefined()
++  })
++
++  it('rejects a complete staged row one byte over budget with multibyte keys and values', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => { opening.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) {
++        await opening.promise
++        stream.push(snapshot(NEXT, 'new path', 0))
++      } else stream.push(snapshot(OLD, 'old path', 5))
++    })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    // {"baseline":null,"updates":[]} is 30 bytes; ["界",{"value":"é","seq":2}] adds 30.
++    const key = '界' + 'k'.repeat(4 * 1024 * 1024 - 60)
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT,
++      seq: 2, changes: [{ key, val: 'é!' }] })
++    expect(reference.binding.projection.getSnapshot()).toMatchObject({
++      phase: 'failed', error: { code: 'gateway/internal' },
++    })
++    expect(reference.binding.eventSource.getSnapshot().entries).toEqual([])
++    expect(reference.binding.session.projections.faceOf(key).getSnapshot()).toBeUndefined()
++  })
++
++  it.for(['update', 'baseline'] as const)('admits an exact serialized %s budget, then visibly fails one byte over', async (route, { mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => { opening.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) {
++        await opening.promise
++        stream.push(snapshot(NEXT, 'new path', 0))
++      } else stream.push(snapshot(OLD, 'old path', 5))
++    })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    // Complete baseline envelope is 134 UTF-8 bytes before padding; update envelope is 60.
++    const key = route === 'update' ? '界' + 'k'.repeat(4 * 1024 * 1024 - 60) : '界'
++    const value = route === 'baseline' ? 'é' + 'v'.repeat(4 * 1024 * 1024 - 134) : 'é'
++    const publish = (val: string, seq: number): void => {
++      if (route === 'update') sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT,
++        seq, changes: [{ key, val }] })
++      else sessions.handleControlFrame({ type: 'baseline', value: { projections: {
++        [ID]: { projection: NEXT, asOfSeq: seq, values: { [key]: val } },
++      } } })
++    }
++    publish(value, 2)
++    expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++    // Replacing the same entry must reclaim its prior key/row/baseline charge.
++    publish(value, 3)
++    expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++    if (route === 'baseline') expect(() => { publish(value, 10) }).toThrow('projection staging budget exceeded')
++    else publish(value, 10)
++    expect(reference.binding.projection.getSnapshot()).toMatchObject({ phase: 'failed', error: { code: 'gateway/internal' } })
++    opening.resolve(undefined)
++    await vi.waitFor(() => { expect(reference.binding.eventSource.getSnapshot().entries).toEqual([]) })
++  })
++
++  it('bounds the combined baseline and staged update entry count', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => { opening.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) await opening.promise
++      stream.push(snapshot(request.projection ?? OLD, 'path', 0))
++    })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    sessions.handleControlFrame({ type: 'baseline', value: { projections: {
++      [ID]: { projection: NEXT, asOfSeq: 1, values: { title: 'baseline' } },
++    } } })
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT, seq: 2,
++      changes: Array.from({ length: 511 }, (_, index) => ({ key: `key-${index}`, val: index })) })
++    expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT, seq: 3,
++      changes: [{ key: 'key-0', val: 'replacement' }] })
++    expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT, seq: 4,
++      changes: [{ key: 'one-too-many', val: null }] })
++    expect(reference.binding.projection.getSnapshot()).toMatchObject({ phase: 'failed', error: { code: 'gateway/internal' } })
++  })
++
++  it.for(['retained', 'released'] as const)('keeps control recovery owned by the %s references', async (ownership, { mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const gate = Promise.withResolvers<undefined>()
++    let opens = 0
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    mock.stream('session/control', async (_args, stream) => {
++      if (opens++ > 0) await gate.promise
++      stream.push({ type: 'baseline', value: { projections: {
++        [ID]: { projection: OLD, asOfSeq: 6, values: { title: 'old path' } },
++      } } })
++    })
++    mock.stream(FOLLOW, ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      stream.push(snapshot(request.projection ?? OLD, request.projection?.generation === NEXT.generation ? 'later path' : 'old path', 5))
++    })
++    const control = createSessionControlStream(client.ctx.remote, {
++      accept: (frame) => { sessions.handleControlFrame(frame) }, failed: (error) => { sessions.handleControlFailure(error) },
++    })
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true }, () => control.recover())
++    onTestFinished(async () => { gate.resolve(undefined); await control.dispose(); await ctx.fiber.dispose() })
++    await sessions.refresh(); control.start()
++    using first = sessions.retain(ID, { source: 'controllerOperation' })
++    await first.ready
++    const binding = first.binding
++    const active = binding.projection.getSnapshot()
++    const aborted: unknown[] = []
++    if (active.phase !== 'stock') active.signal.addEventListener('abort', () => {
++      aborted.push({ phase: binding.projection.getSnapshot().phase, entries: binding.eventSource.getSnapshot().entries })
++    }, { once: true })
++    mock.streams.fail('session/control', new RemoteError('gateway/internal', 'controlled control failure', {}))
++    await vi.waitFor(() => { expect(binding.projection.getSnapshot().phase).toBe('failed') })
++    expect(aborted).toEqual([{ phase: 'failed', entries: [] }])
++    using joining = sessions.retain(ID, { source: 'controllerOperation' })
++    await expect(joining.ready).rejects.toThrow('controlled control failure')
++    const retry = sessions.retryProjection(ID)
++    const overlapping = sessions.retryProjection(ID)
++    expect(binding.projection.getSnapshot().phase).toBe('failed')
++    expect(binding.eventSource.getSnapshot().entries).toEqual([])
++    const settled = Promise.allSettled([retry, overlapping])
++    if (ownership === 'released') { first.release(); joining.release() }
++    gate.resolve(undefined)
++    const outcomes = await settled
++    if (ownership === 'released') {
++      expect(outcomes.map(outcome => outcome.status)).toEqual(['rejected', 'rejected'])
++      expect(sessions.retainInfo(ID).getSnapshot().referenceCount).toBe(0)
++      return
++    }
++    expect(outcomes.map(outcome => outcome.status)).toEqual(['fulfilled', 'fulfilled'])
++    expect(binding.projection.getSnapshot().phase).toBe('ready')
++    expect(joining.binding).toBe(binding)
++    mock.streams.push('session/control', { type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    await vi.waitFor(() => { expect(binding.projection.getSnapshot()).toMatchObject({ phase: 'ready', binding: NEXT }) })
++    expect(JSON.stringify(binding.eventSource.getSnapshot())).toContain('later path')
++    expect(first.binding).toBe(binding)
++  })
++
++})
+diff --git a/packages/api/session-controller/tests/projection-staging.perf.ts b/packages/api/session-controller/tests/projection-staging.perf.ts
+new file mode 100644
+index 00000000..855b8123
+--- /dev/null
++++ b/packages/api/session-controller/tests/projection-staging.perf.ts
+@@ -0,0 +1,77 @@
++/** Scoped public-controller diagnostic; invoke through the Host's projection-performance.py runner. */
++import { Context } from '@deepseek-ai/cordis'
++import { expect, onTestFinished } from 'vitest'
++import { writeFileSync } from 'node:fs'
++import { createClientTest, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
++import { ok } from '@deepseek-ai/dsh-remote-mock'
++import { SessionId } from '@deepseek-ai/dsh-session/types'
++import { createSessionControlStream } from '../src/client/transport.ts'
++import { ClientSessions } from '../src/client/sessions/service.ts'
++import { parseProjectionBinding } from '../src/projection-binding.ts'
++import type { SessionFollowRequest } from '../src/types.ts'
++import { FOLLOW } from './remote/session.client.ts'
++import { followSnapshot } from './remote/history.client.ts'
++import { historyValue } from './event-script.client.ts'
++
++const it = createClientTest({ roster: webApp.closure(['@deepseek-ai/dsh-api-gateway']) })
++it('measures a near-budget control baseline and repeated updates before coherent publication', async ({ mock, start }) => {
++  const output = process.env.PROJECTION_PERF_OUTPUT
++  if (output === undefined) throw new Error('PROJECTION_PERF_OUTPUT required')
++  const client = await start()
++  const ctx = new Context()
++  const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++  const id = SessionId('projection-performance')
++  const projection = parseProjectionBinding({ source: 'synthetic-performance', generation: 'next' })
++  const gate = Promise.withResolvers<undefined>()
++  onTestFinished(async () => { gate.resolve(undefined); await ctx.fiber.dispose() })
++  mock.remote.session.list.mockResolvedValue(ok({ items: [
++    { sessionId: id, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++  ] }))
++  await sessions.refresh()
++  mock.stream(FOLLOW, async ([raw], stream) => {
++    const request = raw as SessionFollowRequest
++    if (request.projection !== undefined) await gate.promise
++    stream.push({ ...followSnapshot(historyValue([]), { address: { kind: 'session', sessionId: id }, assistantStream: true }),
++      projection: request.projection ?? parseProjectionBinding({ source: 'synthetic-performance', generation: 'old' }) })
++  })
++  using reference = sessions.retain(id, { source: 'controllerOperation' })
++  await reference.ready
++  sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: id, projection })
++  const baseline = { projection, asOfSeq: 1, values: { payload: '界'.repeat(1_300_000) } }
++  const updates = Array.from({ length: 200 }, (_, index) => ({ type: 'projection' as const, sessionId: id,
++    projection, seq: index + 2, changes: [{ key: 'title', val: `control-${index}-é` }] }))
++  const controlGate = Promise.withResolvers<undefined>()
++  const produced = Promise.withResolvers<undefined>()
++  mock.stream('session/control', async (_args, stream) => {
++    await controlGate.promise
++    stream.push({ type: 'baseline', value: { projections: { [id]: baseline } } })
++    for (const update of updates) stream.push(update)
++    produced.resolve(undefined)
++  })
++  const control = createSessionControlStream(client.ctx.remote, {
++    accept: (frame) => { sessions.handleControlFrame(frame) },
++    failed: (error) => { sessions.handleControlFailure(error) },
++  })
++  onTestFinished(async () => { controlGate.resolve(undefined); await control.dispose() })
++  control.start()
++  await mock.streams.opened('session/control', 1)
++  await client.flush()
++  globalThis.gc?.()
++  const before = process.memoryUsage()
++  writeFileSync(output + '.start', JSON.stringify({ pid: process.pid, before }))
++  const started = performance.now()
++  controlGate.resolve(undefined)
++  await produced.promise
++  await mock.streams.drained('session/control')
++  const runtimeMs = performance.now() - started
++  expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++  expect(reference.binding.session.projections.faceOf('title').getSnapshot()).toBeUndefined()
++  await client.flush()
++  globalThis.gc?.()
++  await client.flush()
++  globalThis.gc?.()
++  const steady = process.memoryUsage()
++  writeFileSync(output, JSON.stringify({ runtimeMs, before, steady, maxRssKiB: process.resourceUsage().maxRSS,
++    gcAvailable: globalThis.gc !== undefined, baselineBytes: 3_900_105,
++    updates: updates.length, finalPhase: reference.binding.projection.getSnapshot().phase }))
++}, 60_000)
+diff --git a/packages/api/session-controller/tests/transport.client.spec.ts b/packages/api/session-controller/tests/transport.client.spec.ts
+index db0857e5..6b3409fd 100644
+--- a/packages/api/session-controller/tests/transport.client.spec.ts
++++ b/packages/api/session-controller/tests/transport.client.spec.ts
+@@ -4,6 +4,7 @@ import {
+   RemoteStreamCarrierError,
+   type RemoteStreamOptions,
+ } from '@deepseek-ai/dsh-api-gateway/client'
++import { parseProjectionBinding } from '../src/projection-binding.ts'
+ import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+ import { streamHandle } from '@deepseek-ai/dsh-remote-mock'
+ import { LlmAttemptId } from '@deepseek-ai/dsh-llm'
+@@ -663,6 +664,64 @@ describe('Session Client stream adapters', () => {
+     expect(remote.signals[0]?.aborted).toBe(true)
+   })
+ 
++  it('explicitly recovers a terminal control failure and observes subsequent invalidations', async () => {
++    const failure = Promise.withResolvers<unknown>()
++    const accepted: SessionControlFrame[] = []
++    let open = 0
++    const gate = Promise.withResolvers<undefined>()
++    const provider = new ScriptedSessionRemote([], [])
++    const remote = sessionClient({
++      follow: provider.follow.bind(provider), page: provider.page.bind(provider),
++      control: signal => streamHandle((async function* () {
++        if (open++ === 0) throw new RemoteError('gateway/internal', 'controlled rebuild failure', {})
++        await gate.promise
++        yield { type: 'baseline' as const, value: { projections: {} } }
++        yield { type: 'projection-invalidated' as const, sessionId: ADDRESS.sessionId,
++          projection: parseProjectionBinding({ source: 'source', generation: 'later' }) }
++        if (!signal?.aborted) await new Promise<void>((resolve) => { signal?.addEventListener('abort', () => { resolve() }, { once: true }) })
++      })()),
++    })
++    const stream = createSessionControlStream(remote, { accept: (frame) => { accepted.push(frame) }, failed: failure.resolve })
++    try {
++      stream.start()
++      await failure.promise
++      const recovery = stream.recover()
++      expect(stream.recover()).toBe(recovery)
++      expect(accepted).toEqual([])
++      gate.resolve(undefined)
++      await recovery
++      await vi.waitFor(() => { expect(accepted.map(frame => frame.type)).toEqual(['baseline', 'projection-invalidated']) })
++    } finally { gate.resolve(undefined); await stream.dispose() }
++  })
++
++  it('cancels a recovered control opening and rejects its late baseline after disposal', async () => {
++    const failure = Promise.withResolvers<unknown>()
++    const entered = Promise.withResolvers<undefined>()
++    const accepted: SessionControlFrame[] = []
++    let opened = false
++    const provider = new ScriptedSessionRemote([], [])
++    const remote = sessionClient({
++      follow: provider.follow.bind(provider), page: provider.page.bind(provider),
++      control: signal => streamHandle((async function* () {
++        if (!opened) { opened = true; throw new RemoteError('gateway/internal', 'controlled failure', {}) }
++        entered.resolve(undefined)
++        if (!signal?.aborted) await new Promise<void>((resolve) => {
++          signal?.addEventListener('abort', () => { resolve() }, { once: true })
++        })
++        yield { type: 'baseline' as const, value: { projections: {} } }
++      })()),
++    })
++    const stream = createSessionControlStream(remote, { accept: (frame) => { accepted.push(frame) }, failed: failure.resolve })
++    stream.start()
++    await failure.promise
++    const recovery = stream.recover()
++    const rejected = expect(recovery).rejects.toThrow('Session control observer disposed')
++    await entered.promise
++    await stream.dispose()
++    await rejected
++    expect(accepted).toEqual([])
++  })
++
+   it('maps the Host-wide control baseline and deltas into one snapshot stream', async () => {
+     const baseline: SessionControlFrame = {
+       type: 'baseline',
+diff --git a/packages/api/session-controller/tsconfig.client.json b/packages/api/session-controller/tsconfig.client.json
+index a1375420..eb36c481 100644
+--- a/packages/api/session-controller/tsconfig.client.json
++++ b/packages/api/session-controller/tsconfig.client.json
+@@ -8,6 +8,7 @@
+   "include": [
+     "src/client/**/*.ts",
+     "src/types.ts",
++    "src/projection-binding.ts",
+     "src/remote-events.ts"
+   ],
+   "references": [
+diff --git a/packages/api/session-controller/tsconfig.host.json b/packages/api/session-controller/tsconfig.host.json
+index 168fd5a0..b99d1851 100644
+--- a/packages/api/session-controller/tsconfig.host.json
++++ b/packages/api/session-controller/tsconfig.host.json
+@@ -8,6 +8,7 @@
+   "files": [
+     "src/index.ts",
+     "src/types.ts",
++    "src/projection-binding.ts",
+     "src/remote-events.ts",
+     "src/agent.ts",
+     "src/assistant-stream.ts",
+diff --git a/packages/client/ui-chat/README.i18n.yaml b/packages/client/ui-chat/README.i18n.yaml
+index 6ce0a71a..cdf48cb5 100644
+--- a/packages/client/ui-chat/README.i18n.yaml
++++ b/packages/client/ui-chat/README.i18n.yaml
+@@ -9,8 +9,8 @@
+   en: 02bd72c12ada3218
+   zh: 331b3a38b3ddfc6e
+ /deepseek-ai-dsh-client-ui-chat/summary:
+-  en: 4f2d50107db6c4f8
+-  zh: ea7ccfcce8f1849e
++  en: b5d99f6ae602de54
++  zh: 0d9b42dee20ca6d5
+ /deepseek-ai-dsh-client-ui-chat/table-of-contents:
+   en: 41cd21266011d571
+   zh: 3172d1a2acbb27b7
+diff --git a/packages/client/ui-chat/README.md b/packages/client/ui-chat/README.md
+index 1a1869e4..2fac9162 100644
+--- a/packages/client/ui-chat/README.md
++++ b/packages/client/ui-chat/README.md
+@@ -10,6 +10,8 @@ Desktop product events use the optional [product analytics service](../product-a
+ 
+ ## Summary
+ 
++Generation-scoped Conversation replacement retires old row identities, history-navigation callbacks, image reads, scroll anchors, and disclosure choices. Reused numeric turn or answer positions cannot inherit choices from another projection. Rebuilding and failure use the existing history status presentation; retained execution scopes and pending Interactions keep their lifetimes.
++
+ Use this package to render a browser chat from recorded Session conversations, including historical images, localized actions, and restored scroll position. Work-details modes control reasoning previews and process visibility without hiding Assistant replies; Verbose keeps completed-turn process rows visible. Local transcript and steering submissions appear immediately, remain in their original surface, and disappear atomically when authoritative Session records arrive, while queued submissions stay outside Chat. The package does not assemble or modify model requests.
+ 
+ File-mention providers receive the viewed Session ID with the closing-turn owner, so links into inherited history can address the fork itself.
+diff --git a/packages/client/ui-chat/README.zh.md b/packages/client/ui-chat/README.zh.md
+index 8f2648fd..385c7e84 100644
+--- a/packages/client/ui-chat/README.zh.md
++++ b/packages/client/ui-chat/README.zh.md
+@@ -10,6 +10,8 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
++带投影代次的 Conversation 替换会退休旧行身份、历史导航回调、图像读取、滚动锚点和展开选择。复用数字轮次或回答位置不能继承其他投影的选择。重建和失败复用既有历史状态展示；保留的执行 scope 和待处理 Interaction 保持各自生命周期。
++
+ 使用本包可在浏览器中渲染已记录的 Session 对话，包括历史图片、本地化操作和滚动位置恢复。工作步骤展示模式控制思考预览与过程显隐，不隐藏 Assistant 回复；完全展开模式保持已完成轮次的过程行可见。本地 transcript（文本记录）与 steering（中途引导）提交会立即显示并保留在原区域，在权威会话记录到达时原子地消失，而排队中的提交始终不进入 Chat。本包不组装或修改模型请求。
+ 
+ 文件提及提供方同时接收当前查看的会话 ID 与收尾轮次的属主信息，因此继承历史中的链接可以指向 fork 自身。
+diff --git a/packages/client/ui-chat/src/client/chat/ChatFlow.tsx b/packages/client/ui-chat/src/client/chat/ChatFlow.tsx
+index d83a3043..833ffb15 100644
+--- a/packages/client/ui-chat/src/client/chat/ChatFlow.tsx
++++ b/packages/client/ui-chat/src/client/chat/ChatFlow.tsx
+@@ -30,6 +30,7 @@ export const ChatFlow = memo(function ChatFlow({
+   cwd, openFile, inspectCall, forkAt, loadImage,
+ }: ChatFlowSlotProps) {
+   const nodeStore = useChat(snapshot => snapshot.nodes)
++  const projectionGeneration = useSession(snapshot => snapshot.projectionGeneration)
+   const running = useSession(snapshot => snapshot.running)
+   const disconnected = useConnectionState(state => state === 'disconnected' || state === 'connecting')
+   const latestTurnAnchor = useChat(snapshot => snapshot.navigation.items().at(-1)?.anchorKey)
+@@ -45,6 +46,7 @@ export const ChatFlow = memo(function ChatFlow({
+   })
+   const holding = !running && latestTurnOpen
+   const seatProps = {
++    ...(projectionGeneration === undefined ? {} : { projectionGeneration }),
+     nodeStore, useChatNode, useChatNodeBottom, useChatNodeProcess, usePresentation,
+     useStore, actions, renderSlot, t, useGroupAction, deferCollapse,
+     cwd, openFile, inspectCall, forkAt, loadImage,
+@@ -52,10 +54,10 @@ export const ChatFlow = memo(function ChatFlow({
+   const rows = entries.map((entry) => {
+     switch (entry.kind) {
+       case 'node':
+-        return <ChatNodeSeat {...seatProps} key={chatRenderKey(entry)} nodeKey={entry.key}
++        return <ChatNodeSeat {...seatProps} key={JSON.stringify([projectionGeneration, chatRenderKey(entry)])} nodeKey={entry.key}
+           {...entry.groupPart === undefined ? {} : { groupPart: entry.groupPart }} />
+       case 'group':
+-        return <ChatGroupSeat {...seatProps} key={chatRenderKey(entry)} groupKey={entry.key}
++        return <ChatGroupSeat {...seatProps} key={JSON.stringify([projectionGeneration, chatRenderKey(entry)])} groupKey={entry.key}
+           useChatGroup={useChatGroup} useGroupHeaderAction={useGroupHeaderAction} />
+       default:
+         return assertNever(entry)
+diff --git a/packages/client/ui-chat/src/client/chat/ChatGroupSeat.tsx b/packages/client/ui-chat/src/client/chat/ChatGroupSeat.tsx
+index 49d8f123..e8e6358b 100644
+--- a/packages/client/ui-chat/src/client/chat/ChatGroupSeat.tsx
++++ b/packages/client/ui-chat/src/client/chat/ChatGroupSeat.tsx
+@@ -152,13 +152,15 @@ export const ChatGroupSeat = memo(function ChatGroupSeat({ groupKey, useChatGrou
+     || reason === 'aborted' || reason === 'interrupted' || reason === 'error'
+   const spec = presentation?.spec
+   const selectOpen = useCallback((state: Readonly<ChatStoreState>) => spec !== undefined
+-    && turnProcessOpen(state, spec, deferCollapse), [spec, deferCollapse])
++    && turnProcessOpen(state, spec, deferCollapse, props.projectionGeneration), [spec, deferCollapse, props.projectionGeneration])
+   const storedOpen = props.useStore(selectOpen)
+   const outerHidden = foldCompleted && presentation?.turnClosed === true && spec !== undefined
+     && !alwaysOpen && !storedOpen
+   const revealOuter = useCallback(() => {
+-    if (spec !== undefined && !alwaysOpen) props.actions.setTurnProcessOpen(spec.turn, spec.answerStep ?? 0, true)
+-  }, [props.actions, spec, alwaysOpen])
++    if (spec !== undefined && !alwaysOpen) {
++      props.actions.setTurnProcessOpen(spec.turn, spec.answerStep ?? 0, true, props.projectionGeneration)
++    }
++  }, [props.actions, spec, alwaysOpen, props.projectionGeneration])
+   const rootRef = props.useGroupAction(outerHidden, revealOuter)
+   // The header appears when a flat latest Turn becomes historical; it grows on the fold clock while the
+   // body closes. A group whose whole Turn is folding never shows one in the frame it starts closing.
+diff --git a/packages/client/ui-chat/src/client/chat/ChatNodeSeat.tsx b/packages/client/ui-chat/src/client/chat/ChatNodeSeat.tsx
+index 4efdb941..d92b1dd0 100644
+--- a/packages/client/ui-chat/src/client/chat/ChatNodeSeat.tsx
++++ b/packages/client/ui-chat/src/client/chat/ChatNodeSeat.tsx
+@@ -1,3 +1,4 @@
++import type { SessionProjectionGeneration } from '@deepseek-ai/dsh-api-session-controller/types'
+ import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+ import { JsonBlock } from '@deepseek-ai/dsh-client-ui-primitives'
+ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+@@ -13,6 +14,7 @@ import { hiddenOrCollapsing } from './flow-motion.ts'
+ import css from './ChatView.module.css'
+ 
+ interface ChatNodeSeatProps extends ChatNodeOwnerProps {
++  readonly projectionGeneration?: SessionProjectionGeneration
+   readonly nodeKey: string
+   /** A replaced Builder must rebind keyed hooks even when references and keys survive. */
+   readonly nodeStore: ChatNodeStore
+@@ -48,7 +50,7 @@ function turnOf(node: ChatNode | undefined): number | undefined {
+  * only seats whose visibility actually changes.
+  */
+ export const ChatNodeSeat = memo(function ChatNodeSeat({
+-  nodeKey, groupPart, useChatNode, useChatNodeProcess, usePresentation,
++  nodeKey, groupPart, projectionGeneration, useChatNode, useChatNodeProcess, usePresentation,
+   cwd, openFile, inspectCall, forkAt,
+   loadImage, useStore, actions, renderSlot, t, useChatNodeBottom, deferCollapse, useGroupAction,
+ }: ChatNodeSeatProps) {
+@@ -59,16 +61,16 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
+   const processPresentation = useChatNodeProcess(nodeKey)
+   const processSpec = processPresentation?.spec
+   const storedOpen = useStore(state => processSpec !== undefined
+-    && turnProcessOpen(state, processSpec, bottom === true && deferCollapse))
++    && turnProcessOpen(state, processSpec, bottom === true && deferCollapse, projectionGeneration))
+   const liveProcess = processPresentation !== undefined && !processPresentation.turnClosed
+   const interleavedInput = processPresentation?.hasInterleavedInput === true
+   const alwaysOpen = liveProcess || interleavedInput || turnProcessAlwaysOpen(routedNode)
+   const processOpen = alwaysOpen || storedOpen
+   const setOpen = useCallback((open: boolean) => {
+     if (processSpec !== undefined && !alwaysOpen) {
+-      actions.setTurnProcessOpen(processSpec.turn, processSpec.answerStep ?? 0, open)
++      actions.setTurnProcessOpen(processSpec.turn, processSpec.answerStep ?? 0, open, projectionGeneration)
+     }
+-  }, [actions, processSpec, alwaysOpen])
++  }, [actions, processSpec, alwaysOpen, projectionGeneration])
+   const foldCompleted = usePresentation(policy => policy.foldCompletedTurns)
+   const keepReplies = usePresentation(policy => policy.foldedReplies === 'all')
+   // A loaded end makes a partial historical Turn eligible without its start.
+diff --git a/packages/client/ui-chat/src/client/chat/ChatView.tsx b/packages/client/ui-chat/src/client/chat/ChatView.tsx
+index c9143248..1d8666ac 100644
+--- a/packages/client/ui-chat/src/client/chat/ChatView.tsx
++++ b/packages/client/ui-chat/src/client/chat/ChatView.tsx
+@@ -132,6 +132,9 @@ export function ChatView({
+     const timer = setTimeout(() => { setMotionTail(false) }, MOTION_TAIL_MS)
+     return () => { clearTimeout(timer) }
+   }, [running, deferCompletedTurns])
++  const projectionGeneration = useSession(s => s.projectionGeneration)
++  const currentProjection = useRef(projectionGeneration)
++  currentProjection.current = projectionGeneration
+   const openState = useSession(s => s.openState)
+   const openError = useSession(s => s.openError)
+   const hasMore = useSession(s => s.hasMore)
+@@ -149,12 +152,12 @@ export function ChatView({
+     setFileOpenBusy(true)
+     void (options === undefined ? openFile(path) : openFile(path, options)).then(
+       () => {
+-        if (id !== fileOpenRequest.current) return
++        if (id !== fileOpenRequest.current || currentProjection.current !== projectionGeneration) return
+         setFileOpenError(null)
+         setFileOpenBusy(false)
+       },
+       (error: unknown) => {
+-        if (id !== fileOpenRequest.current) return
++        if (id !== fileOpenRequest.current || currentProjection.current !== projectionGeneration) return
+         setFileOpenError({
+           path,
+           message: openFailureMessage(
+@@ -165,7 +168,7 @@ export function ChatView({
+         setFileOpenBusy(false)
+       },
+     )
+-  }, [openFile, t])
++  }, [openFile, t, projectionGeneration])
+ 
+   const closeFileOpenError = useCallback(() => {
+     fileOpenRequest.current += 1
+@@ -213,7 +216,7 @@ export function ChatView({
+   const steeringId = latestSteering?.source.kind === 'user' && 'rpcId' in latestSteering.source
+     ? latestSteering.source.rpcId : latestSteering?.id ?? null
+   const scroll = useChatScroll({
+-    isOpen: openState === 'open',
++    projectionGeneration, isOpen: openState === 'open',
+     order, firstSeq, lastKey, running, loadingOlder, historyLoadStatus, hasMore, chatScroll,
+     loadOlder, consumeOlder, loadThrough, deferCompletedTurns,
+     lastIsUser: lastKey !== null && nodeStore.get(lastKey)?.kind === 'user',
+diff --git a/packages/client/ui-chat/src/client/chat/use-chat-navigation.ts b/packages/client/ui-chat/src/client/chat/use-chat-navigation.ts
+index f2c9aaea..d0fec594 100644
+--- a/packages/client/ui-chat/src/client/chat/use-chat-navigation.ts
++++ b/packages/client/ui-chat/src/client/chat/use-chat-navigation.ts
+@@ -14,6 +14,7 @@ export interface ChatNavigationInput extends Pick<ChatViewSlotProps, 'loadOlder'
+   readonly hasMore: boolean
+   readonly loadingOlder: boolean
+   readonly historyLoadStatus: SessionSnapshot['historyLoadStatus']
++  readonly projectionGeneration?: SessionSnapshot['projectionGeneration']
+   readonly isOpen: boolean
+ }
+ 
+@@ -48,6 +49,7 @@ export class ChatNavigation {
+    * @param input - history state from the latest committed render.
+    */
+   setInput(input: ChatNavigationInput): void {
++    if (input.projectionGeneration !== this.input.projectionGeneration) this.cancel()
+     this.input = input
+     this.historyRequested = false
+     if (!input.isOpen || input.historyLoadStatus === 'error' || !input.hasMore) this.setHistoryIntent('none')
+diff --git a/packages/client/ui-chat/src/client/chat/use-chat-reading.ts b/packages/client/ui-chat/src/client/chat/use-chat-reading.ts
+index 9b4512c2..6a18edd6 100644
+--- a/packages/client/ui-chat/src/client/chat/use-chat-reading.ts
++++ b/packages/client/ui-chat/src/client/chat/use-chat-reading.ts
+@@ -64,6 +64,13 @@ export class ChatReading {
+     return () => { if (this.sampled === sampled) this.sampled = null }
+   }
+ 
++  /** Withdraw saved reading anchors and pending callbacks when a projection retires. */
++  resetProjection(): void {
++    this.cancelPending()
++    this.store.save(null)
++    this.publish({ initialized: false, followingTail: true, activeTurn: null })
++  }
++
+   /** Cancel timers and animation frames and detach the sample listener. */
+   dispose(): void {
+     this.cancelPending()
+diff --git a/packages/client/ui-chat/src/client/chat/use-chat-scroll.ts b/packages/client/ui-chat/src/client/chat/use-chat-scroll.ts
+index 211b3cbd..e59f598f 100644
+--- a/packages/client/ui-chat/src/client/chat/use-chat-scroll.ts
++++ b/packages/client/ui-chat/src/client/chat/use-chat-scroll.ts
+@@ -49,7 +49,7 @@ interface ChatScrollState extends ChatReadingState {
+  */
+ export function useChatScroll(input: ChatScrollInput): ChatScrollState {
+   const {
+-    isOpen, order, firstSeq, lastKey, lastIsUser, steeringId, submissionId, submissionSteers, running,
++    projectionGeneration, isOpen, order, firstSeq, lastKey, lastIsUser, steeringId, submissionId, submissionSteers, running,
+     deferCompletedTurns, loadedTurns, chatScroll, hasMore, loadingOlder, historyLoadStatus,
+     loadOlder, consumeOlder, loadThrough, transcriptView,
+   } = input
+@@ -57,8 +57,8 @@ export function useChatScroll(input: ChatScrollInput): ChatScrollState {
+   const [historyInputHeld, setHistoryInputHeld] = useState(false)
+   const { reading, state } = useChatReading(viewport, chatScroll, loadedTurns.at(-1)?.turn ?? null)
+   const navigationInput = useMemo(() => ({
+-    firstSeq, loadingOlder, hasMore, historyLoadStatus, isOpen, loadOlder, consumeOlder, loadThrough,
+-  }), [firstSeq, loadingOlder, hasMore, historyLoadStatus, isOpen, loadOlder, consumeOlder, loadThrough])
++    projectionGeneration, firstSeq, loadingOlder, hasMore, historyLoadStatus, isOpen, loadOlder, consumeOlder, loadThrough,
++  }), [projectionGeneration, firstSeq, loadingOlder, hasMore, historyLoadStatus, isOpen, loadOlder, consumeOlder, loadThrough])
+   const { navigation, busyTurn, historyPending, historyProcessing } = useChatNavigation(viewport, reading, navigationInput)
+   const content = useRef<{ input: ChatScrollInput; applied: ChatScrollInput | null; opened: boolean }>({
+     input, applied: null, opened: false,
+@@ -151,6 +151,13 @@ export function useChatScroll(input: ChatScrollInput): ChatScrollState {
+ 
+   useLayoutEffect(() => {
+     const previous = content.current.input
++    if (previous.projectionGeneration !== projectionGeneration) {
++      cancelPendingFollow()
++      navigation.reset()
++      reading.resetProjection()
++      content.current.opened = false
++      content.current.applied = null
++    }
+     content.current.input = {
+       order, lastKey, lastIsUser, steeringId, submissionId, submissionSteers, running, loadedTurns,
+       chatScroll, deferCompletedTurns, transcriptView, ...navigationInput,
+@@ -173,7 +180,7 @@ export function useChatScroll(input: ChatScrollInput): ChatScrollState {
+     if (layoutChanged && content.current.opened) reading.refreshActiveTurn()
+     if (content.current.opened) navigation.requestHistoryCheck()
+   }, [
+-    viewport, reading, processContent, navigationInput, isOpen, order, lastKey, lastIsUser,
++    viewport, reading, processContent, navigationInput, projectionGeneration, isOpen, order, lastKey, lastIsUser,
+     steeringId, submissionId, submissionSteers, running, loadedTurns, chatScroll, deferCompletedTurns, transcriptView,
+     cancelPendingFollow,
+   ])
+diff --git a/packages/client/ui-chat/src/client/contract/store.ts b/packages/client/ui-chat/src/client/contract/store.ts
+index 3e16a3fd..325a7a4b 100644
+--- a/packages/client/ui-chat/src/client/contract/store.ts
++++ b/packages/client/ui-chat/src/client/contract/store.ts
+@@ -1,5 +1,7 @@
+ /** Chat-owned per-Session view state. */
+ 
++import type { SessionProjectionGeneration } from '@deepseek-ai/dsh-api-session-controller/types'
++
+ /** Tool call identity as carried by Chat nodes. */
+ export type ToolCallId = string
+ 
+@@ -13,5 +15,6 @@ export interface TurnProcessViewEntry {
+ 
+ /** Per-Session state shared only by the Chat view and details surface. */
+ export interface ChatStoreState {
++  projectionGeneration?: SessionProjectionGeneration
+   turnProcesses: TurnProcessViewEntry[]
+ }
+diff --git a/packages/client/ui-chat/src/client/stores.ts b/packages/client/ui-chat/src/client/stores.ts
+index c4be109e..6514a77c 100644
+--- a/packages/client/ui-chat/src/client/stores.ts
++++ b/packages/client/ui-chat/src/client/stores.ts
+@@ -1,4 +1,5 @@
+ /** Per-Session Chat view store. */
++import type { SessionProjectionGeneration } from '@deepseek-ai/dsh-api-session-controller/types'
+ import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
+ import type { ChatStoreState, TurnProcessViewEntry } from './contract/store.ts'
+ import type { TurnProcessSpec } from './contract/turn-process.ts'
+@@ -9,6 +10,7 @@ type ChatActions = {
+     turn: number,
+     answerStep: number,
+     open: boolean,
++    projectionGeneration?: SessionProjectionGeneration,
+   ) => void
+ }
+ 
+@@ -16,12 +18,15 @@ type ChatActions = {
+  * Resolve the manual disclosure choice for one Turn.
+  * @param state - Chat store snapshot.
+  * @param turn - owning Turn.
++ * @param projectionGeneration - active disposable presentation, omitted for stock streams.
+  * @returns the Turn's stored entry, when present.
+  */
+ export function storedTurnProcessEntry(
+   state: Readonly<ChatStoreState>,
+   turn: number,
++  projectionGeneration?: SessionProjectionGeneration,
+ ): Readonly<TurnProcessViewEntry> | undefined {
++  if (state.projectionGeneration !== projectionGeneration) return undefined
+   return state.turnProcesses.find(entry => entry.turn === turn)
+ }
+ 
+@@ -31,14 +36,16 @@ export function storedTurnProcessEntry(
+  * @param state - Chat store snapshot.
+  * @param spec - the Turn's process specification.
+  * @param defaultOpen - whether this Turn is exempt from automatic folding.
++ * @param projectionGeneration - active disposable presentation, omitted for stock streams.
+  * @returns the effective open state.
+  */
+ export function turnProcessOpen(
+   state: Readonly<ChatStoreState>,
+   spec: Pick<TurnProcessSpec, 'turn' | 'answerStep'>,
+   defaultOpen: boolean,
++  projectionGeneration?: SessionProjectionGeneration,
+ ): boolean {
+-  const stored = storedTurnProcessEntry(state, spec.turn)
++  const stored = storedTurnProcessEntry(state, spec.turn, projectionGeneration)
+   if (stored === undefined || stored.answerStep !== (spec.answerStep ?? 0)) return defaultOpen
+   return stored.collapsed !== true
+ }
+@@ -51,7 +58,10 @@ export function createChatStore(): EngineStoreHandle<ChatStoreState, ChatActions
+   return defineStore({
+     init: (): ChatStoreState => ({ turnProcesses: [] }),
+     actions: {
+-      setTurnProcessOpen: (draft, turn, answerStep, open) => {
++      setTurnProcessOpen: (draft, turn, answerStep, open, projectionGeneration) => {
++        if (draft.projectionGeneration !== projectionGeneration) draft.turnProcesses = []
++        if (projectionGeneration === undefined) delete draft.projectionGeneration
++        else draft.projectionGeneration = projectionGeneration
+         const index = draft.turnProcesses.findIndex(entry => entry.turn === turn)
+         const next = (open ? { turn, answerStep } : { turn, answerStep, collapsed: true }) satisfies TurnProcessViewEntry
+         if (index < 0) draft.turnProcesses.push(next)
+diff --git a/packages/client/ui-chat/tests/chat-store.client.spec.ts b/packages/client/ui-chat/tests/chat-store.client.spec.ts
+index 8fb697f0..76812be8 100644
+--- a/packages/client/ui-chat/tests/chat-store.client.spec.ts
++++ b/packages/client/ui-chat/tests/chat-store.client.spec.ts
+@@ -1,3 +1,4 @@
++import { parseProjectionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
+ import { describe, expect, it } from 'vitest'
+ import { createChatStore, storedTurnProcessEntry, turnProcessOpen } from '../src/client/stores.ts'
+ 
+@@ -45,3 +46,9 @@ describe('createChatStore', () => {
+     expect(turnProcessOpen(store.store.getSnapshot(), { turn: 3, answerStep: 3 }, defaultOpen)).toBe(defaultOpen)
+   })
+ })
++
++it('uses fresh disclosure defaults when a new projection reuses turn and answer numbers', () => {
++  const store = createChatStore().create()
++  store.actions.setTurnProcessOpen(0, 0, false, parseProjectionBinding({ source: 'source', generation: 'a' }).generation)
++  expect(turnProcessOpen(store.store.getSnapshot(), { turn: 0, answerStep: 0 }, true, parseProjectionBinding({ source: 'source', generation: 'b' }).generation)).toBe(true)
++})
+diff --git a/packages/client/ui-conversation/README.i18n.yaml b/packages/client/ui-conversation/README.i18n.yaml
+index dc91fe16..2b88dcc9 100644
+--- a/packages/client/ui-conversation/README.i18n.yaml
++++ b/packages/client/ui-conversation/README.i18n.yaml
+@@ -24,8 +24,8 @@
+   en: 1b41cb4a292940ba
+   zh: deff7bcd37652039
+ /deepseek-ai-dsh-client-ui-conversation/provider-owned-semantic-drafts:
+-  en: 14f561abe2ba03ba
+-  zh: 4854db21d7fdfc3a
++  en: fd6d3a059d5ee19d
++  zh: d1bc62aef627395f
+ /deepseek-ai-dsh-client-ui-conversation/temporary-composer-entries:
+   en: 59cd63057dfb6eeb
+   zh: b2e2c86e810b7bb8
+diff --git a/packages/client/ui-conversation/README.md b/packages/client/ui-conversation/README.md
+index b66363bd..9679a00b 100644
+--- a/packages/client/ui-conversation/README.md
++++ b/packages/client/ui-conversation/README.md
+@@ -147,6 +147,8 @@ Two independent Escape presses in the focused Chat or Composer stop its current
+ <a id="provider-owned-semantic-drafts"></a>
+ ## Provider-owned semantic drafts
+ 
++With generation-scoped Sessions, semantic drafts follow `binding.projection` without replacing the input shell. Invalidation cancels old preparation, hydration, checkpoint, and recovery work while preserving the current in-memory document, ordered originals, and unresolved attempt. The lifecycle supplies `projectionGeneration`; tab/source/native ownership and the provider storage key stay stable. A `projection` write checkpoints the preserved record without renewing retention. Providers honor cancellation before every publication. After a ready baseline, editable originals obtain fresh receipts through revision-CAS hydration. Unresolved attempts remain quarantined; nothing sends automatically.
++
+ `draftPersistence: 'provider'` opts into `conversation.input.registerDraftProvider(ctx, provider)`. The default is `'stock'`: existing SessionId storage and submission behavior remain unchanged. Provider mode bypasses every shared Conversation localStorage read and write, including view preferences. Registration is exclusive and effect-owned; the provider owns durable storage and authorization, while Conversation owns the editor and transient upload handles.
+ 
+ `DraftScope` names the tab owner, persistent Host context, source, native Session, projection generation and storage key with distinct opaque branded types. Public constructors validate nonempty identities without imposing a native format. A storage key isolates tab/source/native Session and survives refresh or Host restart; a process or projection generation belongs only in the live scope. Decode durable records with `parseSemanticDraftRecord`; unknown fields and receipt-bearing originals are rejected. Ordered logical original references remain separate from runtime readiness, receipts and URLs.
+diff --git a/packages/client/ui-conversation/README.zh.md b/packages/client/ui-conversation/README.zh.md
+index 8454c624..91286e2e 100644
+--- a/packages/client/ui-conversation/README.zh.md
++++ b/packages/client/ui-conversation/README.zh.md
+@@ -147,6 +147,8 @@ Send 和 Stop 按钮禁用时不显示提示气泡，轮次结束后由 Stop 切
+ <a id="provider-owned-semantic-drafts"></a>
+ ## 提供方持有的语义草稿
+ 
++对于带投影代次的 Session，语义草稿跟随 `binding.projection`，不替换输入 shell。失效取消旧的准备、恢复、提交检查点和结果恢复操作，同时保留当前内存文档、有序原件引用和未决尝试。生命周期提供 `projectionGeneration`；页签／来源／原生归属及 provider 存储键保持稳定。`projection` 写入保存保全的记录，不延长保留期限。Provider 在每次发布前遵守取消信号。基线 ready 后，可编辑原件通过修订 CAS 恢复获得新回执。未决尝试继续隔离；任何输入都不会自动发送。
++
+ `draftPersistence: 'provider'` 通过 `conversation.input.registerDraftProvider(ctx, provider)` 显式启用提供方持久化。默认值为 `'stock'`，保留原有 SessionId 存储和提交行为。提供方模式跳过全部共享 Conversation localStorage 读写，包括视图偏好。注册独占且由 effect 管理；提供方负责持久存储和授权，Conversation 负责编辑器与临时上传句柄。
+ 
+ `DraftScope` 用不同的不透明品牌类型区分页签所有者、持久 Host 上下文、来源、原生 Session、投影代次和存储键。公开构造函数验证非空标识，不规定原生格式。存储键必须隔离页签、来源和原生 Session，并跨刷新或 Host 重启保持稳定；进程与投影代次仅属于当前作用域。持久记录通过 `parseSemanticDraftRecord` 解码，拒绝未知字段及携带回执的原件。有序逻辑原件引用与运行时就绪状态、回执、URL 分离。
+diff --git a/packages/client/ui-conversation/src/client/contract/semantic-draft.ts b/packages/client/ui-conversation/src/client/contract/semantic-draft.ts
+index 5bb9bcff..ea1848a5 100644
+--- a/packages/client/ui-conversation/src/client/contract/semantic-draft.ts
++++ b/packages/client/ui-conversation/src/client/contract/semantic-draft.ts
+@@ -93,13 +93,15 @@ export interface DraftDispatchContext {
+ 
+ /** Exclusive provider of scoped semantic persistence and current authorized original bytes. */
+ export interface ConversationDraftProvider {
+-  /** @param binding - retained native Session projection. @returns persistent identity and current generation. */
++  /** Storage ownership stays stable across projection rebuilds. Opted-in Session projection lifecycles
++   * supply projectionGeneration; providers must fence every write by that generation and cancellation.
++   * @param binding - retained native Session projection. @returns persistent ownership and fallback stock generation. */
+   scope(binding: SessionBinding): DraftScope
+   /** @param scope - exact storage authority. @param signal - operation lifetime. @returns decoded record or absence. */
+   read(scope: DraftScope, signal: AbortSignal): Promise<SemanticDraftRecord | undefined>
+   /**
+    * Persist the complete record in call order. Resolve only after durable publication; reject on failure.
+-   * Submission and recovery writes must honor cancellation before publication. Hydration does not renew retention.
++   * All writes must honor cancellation before publication. Hydration and projection writes do not renew retention.
+    * @param scope - exact tab/source/native Session storage authority.
+    * @param record - semantic document, stable originals and any protected unresolved attempt.
+    * @param reason - explicit edit, hydration, pre-execution checkpoint or authoritative recovery.
+@@ -107,7 +109,7 @@ export interface ConversationDraftProvider {
+    * @returns durable publication, synchronously or asynchronously.
+    */
+   write(scope: DraftScope, record: SemanticDraftRecord,
+-    reason: 'edit' | 'hydrate' | 'submission' | 'recovery', signal?: AbortSignal): void | Promise<void>
++    reason: 'edit' | 'hydrate' | 'submission' | 'recovery' | 'projection', signal?: AbortSignal): void | Promise<void>
+   /**
+    * Optionally durably associate the checkpoint with the actual upcoming prompt RPC before dispatch.
+    * @param scope - unchanged checkpoint authority.
+diff --git a/packages/client/ui-conversation/src/client/conversation/historical-images.ts b/packages/client/ui-conversation/src/client/conversation/historical-images.ts
+index 6237ded0..2cab20e9 100644
+--- a/packages/client/ui-conversation/src/client/conversation/historical-images.ts
++++ b/packages/client/ui-conversation/src/client/conversation/historical-images.ts
+@@ -142,7 +142,24 @@ export class HistoricalImageCache {
+     if (existing !== undefined) return existing
+     const entries = new Map<string, ImageUrlEntry>()
+     this.entries.set(binding, entries)
++    let signal: AbortSignal | undefined
++    const clear = (): void => {
++      for (const entry of entries.values()) if (entry.current !== undefined) this.releaseUrl(entry.current)
++      entries.clear()
++    }
++    const synchronize = (): void => {
++      const projection = binding.projection.getSnapshot()
++      if (projection.phase === 'stock' || signal === projection.signal) return
++      signal?.removeEventListener('abort', clear)
++      signal = projection.signal
++      signal.addEventListener('abort', clear, { once: true })
++      if (signal.aborted) clear()
++    }
++    const stop = binding.projection.subscribe(synchronize)
++    synchronize()
+     const dispose = binding.ctx.effect(() => () => {
++      stop()
++      signal?.removeEventListener('abort', clear)
+       this.scopeDisposers.delete(binding)
+       this.release(binding, entries)
+     }, 'ui-conversation historical image scope')
+diff --git a/packages/client/ui-conversation/src/client/input/facade.ts b/packages/client/ui-conversation/src/client/input/facade.ts
+index 8c683385..62719d5e 100644
+--- a/packages/client/ui-conversation/src/client/input/facade.ts
++++ b/packages/client/ui-conversation/src/client/input/facade.ts
+@@ -268,6 +268,12 @@ export class SessionInputShell implements SessionInput {
+     this.restoreCommand()
+   }
+ 
++  /** Invalidate only projection-bound receipts; semantic input and unresolved outcomes remain owned. */
++  invalidateSemanticReceipts(): void {
++    this.originalReadiness = this.originals.map(() => ({ status: 'invalid', reason: 'Restore the original after synchronization.' }))
++    this.publish(true)
++  }
++
+   /**
+    * Publish semantic document, ordered originals and optional quarantine in one editor/store transaction.
+    * @param revision - expected hydration revision.
+diff --git a/packages/client/ui-conversation/src/client/input/semantic-drafts.ts b/packages/client/ui-conversation/src/client/input/semantic-drafts.ts
+index 5641eed9..23543f3f 100644
+--- a/packages/client/ui-conversation/src/client/input/semantic-drafts.ts
++++ b/packages/client/ui-conversation/src/client/input/semantic-drafts.ts
+@@ -11,7 +11,7 @@ import type {
+   DraftOriginalReadiness, SemanticDraftState, SemanticDraftRecord, DraftSubmissionRecoveryRequest,
+   UnresolvedDraftSubmission, PreparedDraftOriginal,
+ } from '../contract/semantic-draft.ts'
+-import { DraftSubmissionId, parseSemanticDraftRecord } from '../semantic-draft.ts'
++import { DraftProjectionGeneration, DraftSubmissionId, parseSemanticDraftRecord } from '../semantic-draft.ts'
+ 
+ const blocked = (reason: Extract<DraftHydrationResult, { status: 'blocked' }>['reason']): DraftHydrationResult =>
+   ({ status: 'blocked', reason })
+@@ -42,6 +42,9 @@ interface Entry {
+   writes: Promise<void>
+   lifetime: AbortController
+   submissionScope?: DraftScope
++  stopProjection?: (() => void) | undefined
++  projectionNeedsSave?: boolean
++  pendingEdit?: boolean
+ }
+ 
+ /** Scoped provider persistence, durable submission checkpoints and atomic recovery. */
+@@ -91,6 +94,7 @@ export class SemanticDrafts {
+       this.operations.delete(binding)
+       entry.lifetime.abort()
+       entry.stop?.()
++      entry.stopProjection?.()
+       this.entries.delete(binding)
+     }, 'conversation: semantic draft')
+   }
+@@ -102,6 +106,7 @@ export class SemanticDrafts {
+     const initial = this.snapshot(binding, entry.shell, provider)
+     if (entry.store === undefined) entry.store = createSnapshotStore(initial)
+     else entry.store.set(initial)
++    this.watchProjection(entry, provider)
+     let previous = JSON.stringify(this.record(initial))
+     entry.stop = entry.shell.state.subscribe(() => {
+       if (this.sessions().binding(binding.sessionId) !== binding || this.provider !== provider) return
+@@ -111,8 +116,15 @@ export class SemanticDrafts {
+       const next = JSON.stringify(record)
+       if (previous === next || entry.suppressPersistence || entry.shell.unresolved !== undefined) return
+       previous = next
++      const projection = binding.projection.getSnapshot()
++      if (projection.phase !== 'stock' && projection.phase !== 'ready') {
++        entry.pendingEdit = true
++        entry.projectionNeedsSave = true
++        return
++      }
++      const lifetime = entry.lifetime.signal
+       void this.write(entry, provider, state.scope, record, entry.hydrating ? 'hydrate' : 'edit').catch(() => {
+-        entry.shell.notify('error', 'Draft persistence failed; keep this page open and retry.')
++        if (!lifetime.aborted) entry.shell.notify('error', 'Draft persistence failed; keep this page open and retry.')
+       })
+     })
+   }
+@@ -120,6 +132,8 @@ export class SemanticDrafts {
+   /** Withdraw only provider-owned runtime handles; durable originals and the semantic document remain. */
+   private withdraw(entry: Entry): void {
+     entry.lifetime.abort()
++    entry.stopProjection?.()
++    entry.stopProjection = undefined
+     entry.stop?.()
+     entry.stop = undefined
+     const owned = new Set(entry.shell.originalReadiness.flatMap(item =>
+@@ -134,9 +148,77 @@ export class SemanticDrafts {
+     })
+   }
+ 
++  private scope(binding: SessionBinding, provider: ConversationDraftProvider): DraftScope {
++    const scope = provider.scope(binding)
++    const projection = binding.projection.getSnapshot()
++    return { ...scope, ...(projection.phase === 'stock' || projection.binding === undefined ? {} : {
++      projectionGeneration: DraftProjectionGeneration(projection.binding.generation),
++    }) }
++  }
++
++  private watchProjection(entry: Entry, provider: ConversationDraftProvider): void {
++    let signal: AbortSignal | undefined
++    const fence = (): void => {
++      this.operations.get(entry.binding)?.abort()
++      entry.lifetime.abort()
++      entry.projectionNeedsSave = true
++    }
++    const sync = (): void => {
++      const projection = entry.binding.projection.getSnapshot()
++      if (projection.phase === 'stock') return
++      if (projection.phase !== 'ready') entry.projectionNeedsSave = true
++      if (signal !== projection.signal) {
++        signal?.removeEventListener('abort', fence)
++        signal = projection.signal
++        signal.addEventListener('abort', fence, { once: true })
++        if (signal.aborted) fence()
++      }
++      const before = entry.store?.getSnapshot()
++      const next = this.snapshot(entry.binding, entry.shell, provider)
++      if (before !== undefined && !sameScope(before.scope, next.scope)) {
++        // Projection changes must never change tab/source/storage ownership.
++        const stable = { ...next.scope, projectionGeneration: before.scope.projectionGeneration }
++        if (!sameScope(before.scope, stable)) {
++          fence()
++          entry.shell.notify('error', 'Draft storage identity changed; keep this page open.')
++          return
++        }
++        fence()
++        delete entry.submissionScope
++        entry.suppressPersistence = true
++        try { entry.shell.invalidateSemanticReceipts() } finally { entry.suppressPersistence = false }
++        entry.store?.set(this.snapshot(entry.binding, entry.shell, provider))
++      }
++      if (projection.phase !== 'ready' || !entry.projectionNeedsSave) return
++      entry.projectionNeedsSave = false
++      entry.lifetime = new AbortController()
++      const state = this.snapshot(entry.binding, entry.shell, provider)
++      const lifetime = entry.lifetime.signal
++      const reason = entry.pendingEdit ? 'edit' : 'projection'
++      entry.pendingEdit = false
++      void this.rebind(entry, provider, state, reason).catch(() => {
++        if (!lifetime.aborted) entry.shell.notify('error', 'Draft recovery failed; keep this page open and retry.')
++      })
++    }
++    const stop = entry.binding.projection.subscribe(sync)
++    entry.stopProjection = () => { stop(); signal?.removeEventListener('abort', fence) }
++    sync()
++  }
++
++  private async rebind(entry: Entry, provider: ConversationDraftProvider, state: SemanticDraftState,
++    reason: 'edit' | 'projection'): Promise<void> {
++    const signal = entry.lifetime.signal
++    await this.write(entry, provider, state.scope, this.record(state), reason, signal)
++    if (signal.aborted || entry.shell.unresolved !== undefined || frozen(entry.shell)
++      || entry.shell.originals.length === 0 || entry.shell.originalReadiness.every(item => item.status === 'ready')) return
++    const current = this.snapshot(entry.binding, entry.shell, provider)
++    await this.hydrate({ binding: entry.binding, scope: current.scope, expectedRevision: current.revision,
++      record: this.record(current), signal })
++  }
++
+   private snapshot(binding: SessionBinding, shell: SessionInputShell, provider: ConversationDraftProvider): SemanticDraftState {
+     return {
+-      scope: { ...provider.scope(binding) }, revision: shell.restorationRevision, phase: shell.snapshot.phase,
++      scope: { ...this.scope(binding, provider) }, revision: shell.restorationRevision, phase: shell.snapshot.phase,
+       draft: structuredClone(shell.draftSnapshot), originals: structuredClone(shell.originals),
+       readiness: structuredClone(shell.originalReadiness),
+       ...(shell.unresolved === undefined ? {} : { unresolved: structuredClone(shell.unresolved) }),
+@@ -158,8 +240,10 @@ export class SemanticDrafts {
+   private authority(binding: SessionBinding, provider: ConversationDraftProvider,
+     scope: DraftScope): DraftHydrationResult | undefined {
+     if (this.provider !== provider) return blocked('provider')
++    const projection = binding.projection.getSnapshot()
++    if (projection.phase !== 'stock' && projection.phase !== 'ready') return blocked('scope')
+     if (this.sessions().binding(binding.sessionId) !== binding) return blocked('binding')
+-    if (!sameScope(scope, provider.scope(binding))) return blocked('scope')
++    if (!sameScope(scope, this.scope(binding, provider))) return blocked('scope')
+     return undefined
+   }
+ 
+@@ -211,13 +295,15 @@ export class SemanticDrafts {
+   async checkpoint(binding: SessionBinding, signal: AbortSignal): Promise<void> {
+     const shell = this.shellFor(binding)
+     const entry = this.entry(binding)
++    const projection = binding.projection.getSnapshot()
++    if (projection.phase !== 'stock' && projection.phase !== 'ready') throw new Error('projection is synchronizing')
+     const marker = { id: DraftSubmissionId(randomUUID()), ownsDraft: true,
+       draft: structuredClone(shell.draftSnapshot), originals: structuredClone(shell.originals) }
+     entry.suppressPersistence = true
+     try { shell.protectSubmission(marker) } finally { entry.suppressPersistence = false }
+     const provider = this.provider
+     if (provider === undefined) throw new Error('draft persistence provider unavailable')
+-    const scope = { ...provider.scope(binding) }
++    const scope = { ...this.scope(binding, provider) }
+     const revision = shell.restorationRevision
+     entry.submissionScope = scope
+     const op = this.begin(binding, signal)
+@@ -365,7 +451,7 @@ export class SemanticDrafts {
+     if (provider === undefined) return blocked('provider')
+     if (this.sessions().binding(binding.sessionId) !== binding) return blocked('binding')
+     const state = this.draft(binding).getSnapshot()
+-    const request = { binding, scope: { ...provider.scope(binding) }, expectedRevision: state.revision }
++    const request = { binding, scope: { ...this.scope(binding, provider) }, expectedRevision: state.revision }
+     const initial = this.guard({ ...request, record: state }, provider)
+     if (initial !== undefined) return initial
+     const op = this.begin(binding, signal)
+diff --git a/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts b/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts
+index 9685b65f..3d0c55d1 100644
+--- a/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts
++++ b/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts
+@@ -74,6 +74,7 @@ function fakeSessions(ctx: Context): { sessions: ISessions; binding: SessionBind
+     sessionId: SESSION_ID,
+     session: fakeSession(),
+     eventSource: new MutableSessionEventSource(),
++    projection: createSnapshotStore({ phase: 'stock' as const }),
+     ctx: scope.ctx,
+   }
+   const list = createSnapshotStore<SessionListState>({
+@@ -97,6 +98,7 @@ function fakeSessions(ctx: Context): { sessions: ISessions; binding: SessionBind
+     using: async (_target, _options, operation) => await operation(reference),
+     retainInfo: () => createSnapshotStore({ referenceCount: 1, retainedBy: {} }),
+     subagentAddress: () => undefined,
++    retryProjection: () => Promise.reject(new Error('unused projection retry')),
+     refreshProjections: () => Promise.reject(new Error('unused fake Sessions operation')),
+     refresh: () => Promise.reject(new Error('unused fake Sessions operation')),
+     search: () => Promise.reject(new Error('unused fake Sessions operation')),
+diff --git a/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts b/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts
+index d08b5718..66f698ea 100644
+--- a/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts
++++ b/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts
+@@ -7,6 +7,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+ import { apply, inject, type ConversationDraftProvider } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import { DraftTabOwner, DraftHostContext, DraftSourceContext, DraftNativeSessionId, DraftProjectionGeneration, DraftStorageKey, DraftOriginalId, DraftSubmissionId } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import { SessionId } from '@deepseek-ai/dsh-session/types'
++import { parseProjectionBinding, type SessionProjectionState } from '@deepseek-ai/dsh-api-session-controller/client'
+ 
+ async function fixture(draftPersistence: 'stock' | 'provider' = 'provider', session: Record<string, unknown> = {}) {
+   const runtime = await SlotTestRuntime.create()
+@@ -658,3 +659,34 @@ it('enters refresh quarantine atomically and refuses a synchronous observer edit
+     expectedRevision: state.revision, submissionId: marker.id, outcome: 'accepted' })).toEqual({ status: 'applied' })
+   expect(source.getSnapshot()).toMatchObject({ phase: 'plain', draft: { text: '', references: [] }, originals: [] })
+ })
++
++
++it('keeps newer in-memory input under a new projection scope and cancels delayed old hydration', async () => {
++  const oldController = new AbortController()
++  const projection = createSnapshotStore<SessionProjectionState>({ phase: 'ready',
++    binding: parseProjectionBinding({ source: 'source', generation: 'g1' }), signal: oldController.signal })
++  const b = await fixture('provider', { projection })
++  const preparing = deferred<readonly []>()
++  const entered = deferred<undefined>()
++  const writes: Array<{ generation: string; text: string; reason: string }> = []
++  const provider = providerFor(b.id, {
++    prepare: async () => { entered.resolve(undefined); return preparing.promise },
++    write: (scope, record, reason) => { writes.push({ generation: scope.projectionGeneration, text: record.draft.text, reason }) },
++  })
++  b.input.registerDraftProvider(b.runtime.ctx, provider)
++  const source = b.input.draft(b.binding)
++  const restore = b.input.hydrateDraft({ binding: b.binding, scope: source.getSnapshot().scope,
++    expectedRevision: source.getSnapshot().revision,
++    record: { draft: { text: 'old delayed restoration', references: [] }, originals: [] } })
++  await entered.promise
++  b.input.for(b.binding.ctx).setDraft('newer uncheckpointed edit')
++  oldController.abort()
++  const next = new AbortController()
++  projection.set({ phase: 'ready', binding: parseProjectionBinding({ source: 'source', generation: 'g2' }), signal: next.signal })
++  preparing.resolve([])
++  expect(await restore).toEqual({ status: 'blocked', reason: 'cancelled' })
++  expect(source.getSnapshot().draft.text).toBe('newer uncheckpointed edit')
++  expect(source.getSnapshot().scope.projectionGeneration).toBe('g2')
++  expect(source.getSnapshot().scope.storageKey).toBe('stable-across-host-restart')
++  await vi.waitFor(() => { expect(writes).toContainEqual({ generation: 'g2', text: 'newer uncheckpointed edit', reason: 'projection' }) })
++})
+diff --git a/packages/client/ui-session/tests/ui-session.client.spec.ts b/packages/client/ui-session/tests/ui-session.client.spec.ts
+index 6afbe4be..121e2020 100644
+--- a/packages/client/ui-session/tests/ui-session.client.spec.ts
++++ b/packages/client/ui-session/tests/ui-session.client.spec.ts
+@@ -123,6 +123,7 @@ function createSessionsBench(ctx: Context): SessionsBench {
+         sessionId: id,
+         session,
+         eventSource: new MutableSessionEventSource(),
++        projection: createSnapshotStore({ phase: 'stock' as const }),
+         ctx: scopeCtx as AgentContext,
+       }
+       bindings.set(id, binding)
+diff --git a/packages/client/ui-workspace/src/client/action-policy.ts b/packages/client/ui-workspace/src/client/action-policy.ts
+index 8becfd9c..2a4eec11 100644
+--- a/packages/client/ui-workspace/src/client/action-policy.ts
++++ b/packages/client/ui-workspace/src/client/action-policy.ts
+@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
+ import type { ClientSessionAction } from '@deepseek-ai/dsh-api-session-controller/client'
+ 
+ /**
++ * Check Client action availability independently of Host authorization.
+  * @param controllers - Controllers carrying immutable deployment selections.
+  * @param action - operation to present or execute.
+  * @returns false only for explicitly disabled operations; absent policy preserves standard behavior.
+diff --git a/packages/client/ui-workspace/tests/workspaces-service.client.spec.ts b/packages/client/ui-workspace/tests/workspaces-service.client.spec.ts
+index fb23cb71..efeeb2f9 100644
+--- a/packages/client/ui-workspace/tests/workspaces-service.client.spec.ts
++++ b/packages/client/ui-workspace/tests/workspaces-service.client.spec.ts
+@@ -141,6 +141,7 @@ class FakeSessions implements ISessions {
+   readonly fork = vi.fn<ISessions['fork']>(async () => sid('forked'))
+   readonly retained: RetainedSession[] = []
+   readonly refreshProjections = vi.fn<ISessions['refreshProjections']>(() => Promise.resolve())
++  readonly retryProjection = vi.fn<ISessions['retryProjection']>(() => Promise.reject(new Error('Projection retry is not configured by this test')))
+   readonly retain = vi.fn<ISessions['retain']>((target) => {
+     const release = vi.fn<() => void>()
+     const sessionId = typeof target === 'string' ? target : target.childSessionId
+diff --git a/packages/test-support/client-runtime/README.i18n.yaml b/packages/test-support/client-runtime/README.i18n.yaml
+index 87f0b8ac..e52df945 100644
+--- a/packages/test-support/client-runtime/README.i18n.yaml
++++ b/packages/test-support/client-runtime/README.i18n.yaml
+@@ -9,8 +9,8 @@
+   en: c8ace9e40ec1a7a0
+   zh: d952212ed5d6acb6
+ /deepseek-ai-dsh-client-test-runtime/summary:
+-  en: ff69de920b4ab273
+-  zh: 225437473535326a
++  en: 8dd2bd0bfcef3d1c
++  zh: 899be35812e95919
+ /deepseek-ai-dsh-client-test-runtime/table-of-contents:
+   en: d152484eb41ac6b4
+   zh: 09388d293f9be9cb
+diff --git a/packages/test-support/client-runtime/README.md b/packages/test-support/client-runtime/README.md
+index 7de95773..86feed3d 100644
+--- a/packages/test-support/client-runtime/README.md
++++ b/packages/test-support/client-runtime/README.md
+@@ -11,6 +11,8 @@ Direct component fixtures use `contextMenuHook(open)` to supply the global menu
+ 
+ ## Summary
+ 
++Fixture Session bindings expose an explicit stock projection lifecycle by default. Tests may provide a public projection source; projection retry fails explicitly unless the fixture declares it.
++
+ `SlotTestRuntime.create()` lets Vitest suites drive production slots, stores, typed Session and Workspace fixtures, and local DOM assertions in jsdom. For plugin activation, reload, reconnect, and cleanup tests, `createClientTest` starts the web profile's bundle roster with endpoint-named Remote mocks, without a business Host. Missing services and unstubbed calls fail explicitly. The whole-client fixture owns startup and disposal; the local runtime provides idempotent disposal. Use this package through `devDependencies` for client tests; it is not a product plugin.
+ 
+ Linked bundles resolve dependencies from their real package directories; dependencies next to any bundle take precedence over packages inherited from ancestor directories.
+diff --git a/packages/test-support/client-runtime/README.zh.md b/packages/test-support/client-runtime/README.zh.md
+index 92d61c8d..3a969d66 100644
+--- a/packages/test-support/client-runtime/README.zh.md
++++ b/packages/test-support/client-runtime/README.zh.md
+@@ -11,6 +11,8 @@ kind: "package-library"
+ 
+ ## 概述
+ 
++Fixture Session 绑定默认公开明确的 stock 投影生命周期。测试可以提供公开投影来源；未由 fixture 声明的投影重试明确失败。
++
+ `SlotTestRuntime.create()` 让 Vitest 套件在 jsdom 中驱动生产 slot、store、带类型的 Session 与 Workspace fixture，并对局部 DOM 断言。面向插件激活、重载、重连与清理的测试，`createClientTest` 使用具名端点 Remote mock 启动 web profile 的 bundle roster，无需业务 Host。缺失服务与未打桩调用会明确失败。整机 fixture 拥有启动和销毁，局部 runtime 提供幂等销毁。通过 `devDependencies` 将本包用于客户端测试；它不是产品插件。
+ 
+ 链接到工作区的 bundle 从实际包目录解析依赖；各 bundle 自身目录中的依赖优先于祖先目录中继承的包。
+diff --git a/packages/test-support/client-runtime/src/sessions.ts b/packages/test-support/client-runtime/src/sessions.ts
+index 0d5d70d0..217bbb0a 100644
+--- a/packages/test-support/client-runtime/src/sessions.ts
++++ b/packages/test-support/client-runtime/src/sessions.ts
+@@ -8,7 +8,7 @@ import type {
+   AgentContext, ISessions, ProjectionsFace, SessionBinding, SessionFace, SessionListState,
+   SessionEventLikeEntry, SessionLiveEventEntry, SessionSearchResultItem,
+   SessionReference, SessionReferenceSource, SessionRetainInfo, SessionRetainOptions,
+-  SessionSnapshot, SessionSummary, SessionTarget, SubmissionHandle,
++  SessionSnapshot, SessionSummary, SessionTarget, SubmissionHandle, SessionProjectionState,
+ } from '@deepseek-ai/dsh-api-session-controller/client'
+ import { scopeIdentityOf } from '@deepseek-ai/dsh-api-session-controller/src/client/scope.ts'
+ import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
+@@ -39,6 +39,8 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
+ export class FixtureSession implements SessionFace {
+   /** Mutable event source consumed only by Conversation assembly. */
+   readonly eventSource = new MutableSessionEventSource()
++  /** Public projection lifecycle supplied by the fixture. */
++  readonly projection = createSnapshotStore<SessionProjectionState>({ phase: 'stock' })
+ 
+   /**
+    * Identity-stable per-key faces over fixture-controlled projection values.
+@@ -514,6 +516,15 @@ export class TestSessions implements ISessions {
+     return this.generations.get(id as SessionId)?.binding.ctx
+   }
+ 
++  /**
++   * Refuse an undeclared projection-retry fixture action.
++   * @param id - retained Session identity.
++   * @returns never; the fixture must declare its retry behavior.
++   */
++  retryProjection(id: SessionId): Promise<void> {
++    throw new Error(`test Session projection retry is not declared: ${id}`)
++  }
++
+   /**
+    * Session assembly binding (inject factories and provide resolvers receive it).
+    * @param id - session id.
+@@ -775,7 +786,7 @@ export class TestSessions implements ISessions {
+     void opening.promise.catch(() => {})
+     const lifetime = new AbortController()
+     const generation: SessionGeneration = {
+-      binding: { sessionId: id, session, eventSource: session.eventSource, ctx },
++      binding: { sessionId: id, session, eventSource: session.eventSource, projection: session.projection, ctx },
+       snapshot,
+       session,
+       fiber,
+diff --git a/tsconfig.base.json b/tsconfig.base.json
+index e657bf3f..ded6672c 100644
+--- a/tsconfig.base.json
++++ b/tsconfig.base.json
+@@ -148,6 +148,7 @@
+       "@deepseek-ai/dsh-api-session-controller": ["./packages/api/session-controller/src/index.ts"],
+       "@deepseek-ai/dsh-api-session-controller/client": ["./packages/api/session-controller/src/client/index.ts"],
+       "@deepseek-ai/dsh-api-session-controller/types": ["./packages/api/session-controller/src/types.ts"],
++      "@deepseek-ai/dsh-api-session-controller/projection": ["./packages/api/session-controller/src/projection-binding.ts"],
+       "@deepseek-ai/dsh-api-session-controller/remote-events": ["./packages/api/session-controller/src/remote-events.ts"],
+       "@deepseek-ai/dsh-api-settings-controller": ["./packages/api/settings-controller/src/index.ts"],
+       "@deepseek-ai/dsh-api-settings-controller/types": ["./packages/api/settings-controller/src/types.ts"],
+diff --git a/tsconfig.client.json b/tsconfig.client.json
+index f5159615..5aeb9dce 100644
+--- a/tsconfig.client.json
++++ b/tsconfig.client.json
+@@ -14,6 +14,7 @@
+     "types": ["node"]
+   },
+   "include": [
++    "packages/api/session-controller/tests/projection-staging.perf.ts",
+     // The native/renderer keyboard fixture imports only these Cordis-free Desktop modules.
+     "apps/desktop/tests/keyboard.spec.ts",
+     "apps/desktop/src/keyboard.ts",
+diff --git a/tsconfig.host.json b/tsconfig.host.json
+index 31c80a81..5b6c87b2 100644
+--- a/tsconfig.host.json
++++ b/tsconfig.host.json
+@@ -268,6 +268,7 @@
+   // suffixes are mutually exclusive, so each aggregate excludes the other's
+   // and the package test glob above needs no per-file entry.
+   "exclude": [
++    "packages/api/session-controller/tests/projection-staging.perf.ts",
+     "apps/desktop/tests/keyboard.spec.ts",
+     "packages/client/*/src/**",
+     "benchmarks/**/*.client.ts",

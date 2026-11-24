@@ -1,0 +1,33 @@
+{
+  "kind": "product-restart-flow",
+  "recordedAt": "2026-11-24T07:12:02Z",
+  "checks": {
+    "installationManifestSha256": "bbec4a6d919d55dbb91205f6982b3bf058336922e9bf2c92609b1d5e217a8aec",
+    "native": "01a20c65-7274-769d-8e0b-17d8f66c9c45",
+    "beforeRestart": {
+      "finals": 1,
+      "providerCalls": 19
+    },
+    "nativeFile": "/home/howboring/Projects/omp-webui-worker-loss/vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-worker-loss-vendor-product-flow-project--/2026-11-24T07-11-44-756Z_01a20c65-7274-769d-8e0b-17d8f66c9c45.jsonl",
+    "seededSessions": 40,
+    "restartAttempt": "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED",
+    "catalogRows": 41,
+    "recovery": "in-place",
+    "afterReopenAttempt": "open",
+    "nativeRecords": 29,
+    "nativeMessages": 2,
+    "restartTransportResets": [
+      "WebSocket connection to 'ws://127.0.0.1:3206/api/remote.mux' failed: Connection closed before receiving a handshake response",
+      "Failed to load resource: net::ERR_CONNECTION_RESET",
+      "WebSocket connection to 'ws://127.0.0.1:3206/api/remote.mux' failed: Error in connection establishment: net::ERR_SOCKET_NOT_CONNECTED"
+    ],
+    "consoleErrors": []
+  },
+  "nativeFile": "/home/howboring/Projects/omp-webui-worker-loss/vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-worker-loss-vendor-product-flow-project--/2026-11-24T07-11-44-756Z_01a20c65-7274-769d-8e0b-17d8f66c9c45.jsonl",
+  "scenarios": [
+    "stock-restart-no-auto-open",
+    "stock-restart-manual-open-retained-history",
+    "stock-sessions-past-first-catalog-page"
+  ],
+  "provider": "compatibility/omp/fixtures/live-provider.ts s0-controlled/deterministic-live (controlled, not real inference)"
+}

@@ -1,0 +1,11 @@
+{
+  "fixture": "tests/attachments/fixtures/opaque-200.jpeg",
+  "authoring": "Pillow 13.0.0: RGB200x200 solid(37,83,127); JPEG quality85 subsampling0 optimizeFalse progressiveFalse; no OMP/Bun/converter execution.",
+  "bytes": 1723,
+  "originalSha256": "7622bbfcb0ab173d3dd13c0282fc0c8902de814f9283a58bce0b8e43e10654d5",
+  "expectedPreparedRepresentationSha256": "2de4100d163176cc222bb318f972dc371d7b5e61a5a12a23280ee4eb078f3285",
+  "width": 200,
+  "height": 200,
+  "independentValidation": "Python Pillow reopen/load confirms JPEG/RGB200x200; Python hashlib independently pins the original and compact public representation JSON in field order kind,mimeType,data,width,height.",
+  "expectationBasis": "Inspected resizeImage fast path preserves valid supported200x200 JPEG below128000bytes; prepareImage reports no degradation, one frame and160000decodedBytes. These are unexecuted source expectations, not observed Native results."
+}

@@ -1,0 +1,71 @@
+{
+  "status": "SOURCE/PURE/STATIC ONLY; runtime and product admission BLOCKED",
+  "reviewBase": "8011de53b819d32bf5abb0272e198ba2f657a8df",
+  "sourceCommit": "1918af15d1aa8f5bf93bcf871b69665eb65ebc19",
+  "sourceTree": "c3a0a3c383644a259b9f5f9ac9057cc50efc276d",
+  "integrationTip": "4024c4084173c102764e0c1e42efa183ba8810d4",
+  "history": {
+    "orderingRed": "9e18c25f0f32dbb1a280c278a20230a25b79c535",
+    "orderingGreen": "ce11ceda6fb040bfb7b6c1a9f6cbbd10408092e9",
+    "finalizationAndBuildRefactor": "1918af15d1aa8f5bf93bcf871b69665eb65ebc19"
+  },
+  "tdd": {
+    "redResult": "9 pass / 1 fail in predecessor controlled-adapter ordering tests; committed before interruption",
+    "preservedDirtyGreenReproduced": "10 pass / 0 fail / 36 assertions",
+    "cFaultRedGreen": "NOT RUN; staged real fd3 fixture only"
+  },
+  "checks": {
+    "pure": {
+      "pass": 31,
+      "fail": 0,
+      "assertions": 106,
+      "files": 7,
+      "durationMs": 133,
+      "logSha256": "280f6c84f6083c4950d942e25ef8b503aaf6bf76254e7bcb43ff01a23955cb88"
+    },
+    "fullTypeScript": "PASS, exit0",
+    "static": {
+      "scope": "source-only; built targets never executed",
+      "privateBase": "5608b676da265c59870949425367b6e980643609",
+      "strictStaticCompiles": 2,
+      "externalPrivateDefinitionsExcluded": 9,
+      "privateAssemblyIdentical": true,
+      "privateAssemblySha256": "8fe051fbc3e34832aee2089ab0e872f258799b171b1c68d34ce2c95eba23ea40",
+      "configurationSha256": "eda6136ca28b044921d795471fd0fe805d895df7e46c1f36256913b9f45bd337",
+      "sourceDigests": {
+        "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+        "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+        "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+        "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+      }
+    },
+    "abiObjectCompile": "PASS; not linked/executed",
+    "stagedWorkerObjectCompile": "PASS; not linked/executed",
+    "pythonAstParses": 3,
+    "fixtureImportsOrExecutions": 0,
+    "gitDiffCheck": "PASS"
+  },
+  "sourceDigests": {
+    "packages/supervision/external.ts": "33fab528e834dcdc99a7ad4dc9b59299911f2effe4f366da703bafba5d13b148",
+    "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+    "scripts/build-private-helper.ts": "66843711293853df170e53a388cc7e6e96a20a7a43b38edc803e3ae7f083e170",
+    "scripts/build-external-protector.ts": "c51e43347aca29f1053a48ad7de29f2e007067e5e7f151501a2e4dedf483ecdb",
+    "scripts/supervisor-build.ts": "771bd378484e72456e827f16dbf669b49da1e5fb0a6cd8b8aad2d74226802155",
+    "tests/supervision/external/controller.test.ts": "97dcd858a2a55af0801c755bedb1da8f5d97c5367f07f2070c85e1adb5b3e21c",
+    "tests/supervision/fixtures/external-write-fault.py": "0b0e557dcc574cb690c273f9f11b13cb772c004feeff408b676b26697c2e40dc"
+  },
+  "notRun": [
+    "external-write-fault.py backpressure",
+    "external-write-fault.py write-error",
+    "all helper/protector kernel fixtures",
+    "Native/CLI/global/actual dispatcher approval and publication",
+    "provider/browser/listener/probe/signal/strace"
+  ],
+  "limits": [
+    "Pure adapters are not kernel proof.",
+    "Private optimized assembly equality is one synthetic static configuration only.",
+    "No final executable/global installation/approval identity exists; changed shared source requires fresh approval/build.",
+    "Original orphan and fences not inspected or touched.",
+    "Windows Chrome/WSL2 owner-deferred."
+  ]
+}

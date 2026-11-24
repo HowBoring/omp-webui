@@ -1,0 +1,63 @@
+name: check
+
+# Source check on a pinned image, with the full provisioned suite.
+#
+# Frozen-tuple reproduction stays local (docs/release-final.md, docs/evidence/ticket-63-freeze.json): a
+# runner that lacks the exact recorded native closure must not claim it. The freeze gate is still
+# exercised here, as a negative assertion — a foreign closure has to make `tests/product/freeze.test.ts`
+# fail, which is the behaviour the gate exists for. Coverage is never narrowed to get a green run.
+on:
+  push:
+  pull_request:
+
+jobs:
+  source-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+      - run: corepack enable
+      - run: bun install --frozen-lockfile
+      - run: bun scripts/prepare-compatibility.ts
+      - run: bun run compat:build
+      - run: bun scripts/build-continuation-fixtures.ts
+      - run: bun run dsh:prepare
+      - run: bun run dsh:link
+      - name: Stage navigation fixtures from checked-in pins
+        run: bun apps/navigation-fixture/build.ts && bun scripts/build-navigation-host.ts
+      - run: bun run product:build
+      - run: bun run product:enroll
+      # The freeze gate is the only test held out of the general suite: it asserts this checkout's
+      # native closure equals the recorded tuple, which a foreign runner must reject rather than match.
+      - name: Lint, typecheck, general suite and build
+        run: |
+          bun run lint
+          bun run typecheck
+          bun test --timeout 30000 $(git ls-files '*.test.ts' | grep -v '^tests/product/freeze.test.ts$')
+          bun run build
+          python3 tests/product/performance.py --self-check
+      - run: bun run product:verify
+      - name: Freeze gate accepts the recorded closure and rejects a foreign one
+        run: |
+          set +e
+          bun test tests/product/freeze.test.ts
+          status=$?
+          set -e
+          closure=$(bun -e 'const enrolled = await Bun.file("vendor/product/installation.json").json();
+            const frozen = await Bun.file("docs/evidence/ticket-63-freeze.json").json();
+            const key = entry => [entry.path.split("/").at(-1), entry.identity].join(":");
+            const pairs = entries => entries.map(key).sort().join("|");
+            console.log(pairs(enrolled.runtimeDependencies) === pairs(frozen.omp.nativeClosure) ? "match" : "foreign")')
+          echo "freeze: enrolled closure is $closure"
+          if [ "$closure" = match ]; then
+            [ "$status" -eq 0 ] || { echo "freeze gate rejected the recorded closure"; exit 1; }
+            echo "freeze: accepted the recorded closure; this is still not tuple reproduction"
+          else
+            [ "$status" -ne 0 ] || { echo "freeze gate accepted a foreign closure"; exit 1; }
+            echo "freeze: foreign closure rejected as expected; tuple reproduction remains local"
+          fi

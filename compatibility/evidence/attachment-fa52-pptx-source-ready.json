@@ -1,0 +1,1170 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "baf6f0ebde5cf251d07e08a84e25e15060a3995a",
+  "parentTree": "824aec48e1397cf688d38f20d8a383f937a65f82",
+  "branch": "mvp/ticket-38-pptx-source",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "scope": "ONE PPTX public-RPC/source tracer. No Native product/API/schema/source changes, rebuild, dependency mutation, Native/SDK/Agent/Host/browser/FFI/addon/converter/kernel runtime or actual case execution. Linux now; Windows owner-deferred; global path unselected; whole38/MVP OPEN.",
+  "skills": [
+    "/workspace/work/omp-webui-current/.agents/skills/implement-spec/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/tests.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/mocking.md"
+  ],
+  "seam": "Previously authorized public attachment_prepare via AttachmentClient.prepare, submission_submit/query, get_entries and history snapshot. Unchanged controlled public provider known-span capture witnesses independently authored extracted text bytes. No new seam/private runtime API/Native Session-file reads in tracer. Actual red/green awaits Root separate exactly ONE actual window.",
+  "test": {
+    "path": "tests/attachments/public-rpc.test.ts",
+    "bytes": 53027,
+    "sha256": "a79f171b73e049df5a1db9bbcf613b932982dd7bbc5d917a04c36a7eea70d445",
+    "name": "actual public PPTX requires structure consent before indexed saved text and provider witness"
+  },
+  "fixtures": [
+    {
+      "path": "tests/attachments/fixtures/minimal-slide.pptx",
+      "bytes": 9155,
+      "sha256": "5fb6e0a206ed3c2e7f433208c1390fd607d420a212a4d125d3f20cc668ee4047"
+    },
+    {
+      "path": "tests/attachments/fixtures/minimal-slide-pptx.json",
+      "bytes": 14491,
+      "sha256": "78badac3637593821e54039275b7b2a63669d6e64a9ca47c1f4cf0e4bb876925"
+    }
+  ],
+  "input": {
+    "fixture": "tests/attachments/fixtures/minimal-slide.pptx",
+    "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+    "authoring": "Python stdlib ZipFile ZIP_STORED, fixed1980 timestamp/order/create_system3/regular-file0100644 permissions. One-slide OOXML presentation with explicit root/presentation/slide/layout/master/theme relationship graph, no external relationships/media/notes/tables. All XML UTF8.",
+    "bytes": 9155,
+    "originalSha256": "5fb6e0a206ed3c2e7f433208c1390fd607d420a212a4d125d3f20cc668ee4047",
+    "memberCount": 11,
+    "slideCount": 1,
+    "textShapeCount": 1,
+    "textRuns": [
+      "Controlled prepared document"
+    ],
+    "relationships": [
+      {
+        "part": "_rels/.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+        "target": "ppt/presentation.xml"
+      },
+      {
+        "part": "ppt/_rels/presentation.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide",
+        "target": "ppt/slides/slide1.xml"
+      },
+      {
+        "part": "ppt/_rels/presentation.xml.rels",
+        "id": "rId2",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster",
+        "target": "ppt/slideMasters/slideMaster1.xml"
+      },
+      {
+        "part": "ppt/slides/_rels/slide1.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout",
+        "target": "ppt/slideLayouts/slideLayout1.xml"
+      },
+      {
+        "part": "ppt/slideLayouts/_rels/slideLayout1.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster",
+        "target": "ppt/slideMasters/slideMaster1.xml"
+      },
+      {
+        "part": "ppt/slideMasters/_rels/slideMaster1.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout",
+        "target": "ppt/slideLayouts/slideLayout1.xml"
+      },
+      {
+        "part": "ppt/slideMasters/_rels/slideMaster1.xml.rels",
+        "id": "rId2",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+        "target": "ppt/theme/theme1.xml"
+      }
+    ],
+    "members": [
+      {
+        "memberPath": "[Content_Types].xml",
+        "bytes": 974,
+        "sha256": "73f7eb28d00b54d064edcb2110e67f46c98927a9081999f6d2a77cf6307dbd64",
+        "crc32": "a7b44c9f",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/ppt/presentation.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml\"/><Override PartName=\"/ppt/slides/slide1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slide+xml\"/><Override PartName=\"/ppt/slideLayouts/slideLayout1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml\"/><Override PartName=\"/ppt/slideMasters/slideMaster1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml\"/><Override PartName=\"/ppt/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/></Types>"
+      },
+      {
+        "memberPath": "_rels/.rels",
+        "bytes": 300,
+        "sha256": "8b42f92c6731d3af946843a1ee6f37ec2615985a268233ad763740cdc0c83344",
+        "crc32": "eeb8ca1b",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"ppt/presentation.xml\"/></Relationships>"
+      },
+      {
+        "memberPath": "ppt/presentation.xml",
+        "bytes": 527,
+        "sha256": "8486a4fd8dbe5b33f6e769e6a9fe04e9db93f17982b57b68e423d9e03aa8d74f",
+        "crc32": "486e23e9",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><p:presentation xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:sldMasterIdLst><p:sldMasterId id=\"2147483648\" r:id=\"rId2\"/></p:sldMasterIdLst><p:sldIdLst><p:sldId id=\"256\" r:id=\"rId1\"/></p:sldIdLst><p:sldSz cx=\"9144000\" cy=\"6858000\" type=\"screen4x3\"/><p:notesSz cx=\"6858000\" cy=\"9144000\"/></p:presentation>"
+      },
+      {
+        "memberPath": "ppt/_rels/presentation.xml.rels",
+        "bytes": 439,
+        "sha256": "b6f1c4234142ad8f1587a690c40cd6919b81d3c44ce737c67d120b380ab2d705",
+        "crc32": "a606cdf4",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide\" Target=\"slides/slide1.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster\" Target=\"slideMasters/slideMaster1.xml\"/></Relationships>"
+      },
+      {
+        "memberPath": "ppt/slides/slide1.xml",
+        "bytes": 982,
+        "sha256": "1cf2e3f1ee6dace67d866c1512215d5695ff160652668015a824f6f143273eb3",
+        "crc32": "94c1ca63",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/><a:chOff x=\"0\" y=\"0\"/><a:chExt cx=\"0\" cy=\"0\"/></a:xfrm></p:grpSpPr><p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"Text witness\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"914400\" y=\"914400\"/><a:ext cx=\"7315200\" cy=\"914400\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang=\"en-US\" sz=\"2400\"/><a:t>Controlled prepared document</a:t></a:r><a:endParaRPr lang=\"en-US\"/></a:p></p:txBody></p:sp></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>"
+      },
+      {
+        "memberPath": "ppt/slides/_rels/slide1.xml.rels",
+        "bytes": 309,
+        "sha256": "c7d48b1e3d2ebf07e0ca612b7d677e3e7e81769d020b0411b580e5f1cd8f268c",
+        "crc32": "4a4d11dd",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout\" Target=\"../slideLayouts/slideLayout1.xml\"/></Relationships>"
+      },
+      {
+        "memberPath": "ppt/slideLayouts/slideLayout1.xml",
+        "bytes": 622,
+        "sha256": "91cab059103522716b55ca2385db488dba70d9a9dce5c772aff4bdc30b3602ca",
+        "crc32": "c1c21030",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><p:sldLayout xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" type=\"blank\" preserve=\"1\"><p:cSld name=\"Blank\"><p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/><a:chOff x=\"0\" y=\"0\"/><a:chExt cx=\"0\" cy=\"0\"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>"
+      },
+      {
+        "memberPath": "ppt/slideLayouts/_rels/slideLayout1.xml.rels",
+        "bytes": 309,
+        "sha256": "d870e5b1929e28c09916452072c7cbe08ef6ec528c3cf95727dae087693a730a",
+        "crc32": "0ffc9c6b",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster\" Target=\"../slideMasters/slideMaster1.xml\"/></Relationships>"
+      },
+      {
+        "memberPath": "ppt/slideMasters/slideMaster1.xml",
+        "bytes": 878,
+        "sha256": "f75ad686232e07d0c097769d179495fa45616d00f162dc6f544a09ec3057116a",
+        "crc32": "528891e8",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><p:sldMaster xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/><a:chOff x=\"0\" y=\"0\"/><a:chExt cx=\"0\" cy=\"0\"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMap accent1=\"accent1\" accent2=\"accent2\" accent3=\"accent3\" accent4=\"accent4\" accent5=\"accent5\" accent6=\"accent6\" bg1=\"lt1\" bg2=\"lt2\" folHlink=\"folHlink\" hlink=\"hlink\" tx1=\"dk1\" tx2=\"dk2\"/><p:sldLayoutIdLst><p:sldLayoutId id=\"2147483649\" r:id=\"rId1\"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle/><p:bodyStyle/><p:otherStyle/></p:txStyles></p:sldMaster>"
+      },
+      {
+        "memberPath": "ppt/slideMasters/_rels/slideMaster1.xml.rels",
+        "bytes": 444,
+        "sha256": "d96b772ebc700dbba5facc22e41f4873e7e7a61bf06c6314a18248165ca8e140",
+        "crc32": "2cdc5faa",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout\" Target=\"../slideLayouts/slideLayout1.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"../theme/theme1.xml\"/></Relationships>"
+      },
+      {
+        "memberPath": "ppt/theme/theme1.xml",
+        "bytes": 1897,
+        "sha256": "82454cfbe72f3a78c2d6a6f78c76a4dc8b3bb992ec8bdb142d0eb211eb118040",
+        "crc32": "42047339",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><a:theme xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" name=\"Witness\"><a:themeElements><a:clrScheme name=\"Witness\"><a:dk1><a:srgbClr val=\"000000\"/></a:dk1><a:lt1><a:srgbClr val=\"FFFFFF\"/></a:lt1><a:dk2><a:srgbClr val=\"1F497D\"/></a:dk2><a:lt2><a:srgbClr val=\"EEECE1\"/></a:lt2><a:accent1><a:srgbClr val=\"4F81BD\"/></a:accent1><a:accent2><a:srgbClr val=\"C0504D\"/></a:accent2><a:accent3><a:srgbClr val=\"9BBB59\"/></a:accent3><a:accent4><a:srgbClr val=\"8064A2\"/></a:accent4><a:accent5><a:srgbClr val=\"4BACC6\"/></a:accent5><a:accent6><a:srgbClr val=\"F79646\"/></a:accent6><a:hlink><a:srgbClr val=\"0000FF\"/></a:hlink><a:folHlink><a:srgbClr val=\"800080\"/></a:folHlink></a:clrScheme><a:fontScheme name=\"Witness\"><a:majorFont><a:latin typeface=\"Arial\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:majorFont><a:minorFont><a:latin typeface=\"Arial\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:minorFont></a:fontScheme><a:fmtScheme name=\"Witness\"><a:fillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w=\"9525\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:ln><a:ln w=\"9525\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:ln><a:ln w=\"9525\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements><a:objectDefaults/><a:extraClrSchemeLst/></a:theme>"
+      }
+    ],
+    "independentValidation": "Python CRC/ZIP member readback and independent ElementTree parse of every XML member. All relationship targets resolve to authored members; selected main content type is correct; presentation has one slide ID; slide has exactly one text shape/run and no picture. No full OOXML XSD/rendering/application validation or Native converter invoked.",
+    "expectedNativePreparation": {
+      "status": "SOURCE_EXPECTATION_UNEXECUTED",
+      "degradations": [
+        "document_structure_changed"
+      ],
+      "omittedImages": 0,
+      "expectedText": "<!-- Slide 1 -->\n# Controlled prepared document",
+      "expectedTextBytes": 47,
+      "expectedTextSha256": "ab7960c2ef2749964d702874060d3adaeea90bce603cf89b84c3bdb473bae489",
+      "expectedRepresentationSha256": "b5d42976db4cbd29109b98f52b018142342ecff02046bb437bc447f879a5e642",
+      "basis": "Worked source-contract example, NOT observed converter output: PptxConverter resolves one slide, starts slideLines with <!-- Slide 1 -->, prefixes first nonempty shape text with # plus space, appends no image/table/note lines, joins LF and trims. Plain a:t stays a string in local XMLParser. Exactly zero pictures means omittedImages0. convertAttachmentDocument always declares document_structure_changed;47B text is below truncation limits.",
+      "providerKnownSpan": {
+        "text": "Controlled prepared document",
+        "bytes": 28,
+        "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+      },
+      "limits": "Expected exact plain-text serialization is manually worked from explicit Native source strings, independently hashlib-pinned and unexecuted. Full OOXML validity/rendering/layout/theme fidelity is not established. Unchanged provider captures known28B span only, not complete47B Markdown/provider wrapper delivery."
+    }
+  },
+  "independentAuthoringScript": {
+    "path": "/tmp/ticket38-pptx-author.py",
+    "bytes": 10775,
+    "sha256": "aec14914dd4bb5859a2f61cc9b297d7511922058c694b8b549a4dc8ac66fa182"
+  },
+  "expectationBasis": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "original": "Independent stdlib9155B ZIP_STORED/11UTF8 XML parts, originalSHA5fb6e0a2. Fixed member order/1980 timestamps/regular-file permissions, CRC and full member hashes. One presentation slide ID resolves via standard relationships to one slide with one plain text shape/run. Explicit slide/layout/master/theme graph; every internal target resolves. No external relationship, picture, notes or table.",
+    "conversion": "Native validates correct presentation main content type, ZIP paths/expansion/UTF8 before Markit. PptxConverter explicitly resolves slide order, starts one slide with <!-- Slide 1 -->, prefixes first nonempty shape text with # plus space, appends no image/table/note lines here, joins LF and trims. Local XMLParser leaves chosen nonnumeric plain a:t literal intact. Zero pictures gives facts.omittedImages0; document wrapper declares document_structure_changed. No speculative slide-count/public fact field is invented.",
+    "preparedDigest": "Worked source-contract expectation, NOT observed converter output: exact47B <!-- Slide 1 -->\\n# Controlled prepared document. Independent Python hashlib textSHAab7960c2 and compact kind/text representationSHAb5d42976 pin that literal. Source serialization is explicit for this one-shape input; no Native/converter invocation supplied bytes/hash. Actual may fail; stop without weakening/fix/retry.",
+    "provider": "Entire provider remains byte-exact. Existing capture witnesses independently authored Controlled prepared document once,28B/SHAfd4d6186 in actual developer text. This is extracted-span delivery evidence, not complete47B Markdown/provider wrapper delivery. Full47B expected prepared text is checked at receipt and actual indexed saved Native companion part.",
+    "dependencies": "Local XMLParser and ZipPackage/openArchive source exist; archive/XML manifest pins41 files and actual pi-utils symlink/export mappings. ZIP_STORED member read returns bytes without new converter dependency. Prior native wrapper/both existing addon candidates remain pinned and untouched via prior580-input freeze. No external PowerPoint/XML engine, dependency install, binary copy or runtime import/probe introduced.",
+    "limits": "Independent ZIP CRC/XML/OPC graph/text readback does not establish complete OOXML XSD validity, application rendering, layout/theme fidelity or actual Native conversion.47B expectation is a manually worked explicit-source example and remains unexecuted. Provider known28B span does not prove full Markdown delivery."
+  },
+  "expectedAssertions": [
+    "Exact independent9155B PPTX original SHA5fb6e0a2. Exactly one ready text item bound to selected target. Explicit source-worked47B text and representationSHAb5d42976, original/prepared distinct. Exactly document_structure_changed; facts originalBytes9155/convertedBytes47/omittedImages0, no invented additional fields.",
+    "Public prepare leaves entries/provider effects unchanged. Missing structure consent refuses before reservation/admission/effects. Same pptx-success query stays absent/unresolved/unknown with empty relations and unchanged entries/effects.",
+    "Exact explicit receiptId/resultDigest/draftRevision/authorityGeneration/document_structure_changed consent admits ONE terminal succeeded/generated/committed input with exact target/origin/preparation binding.",
+    "Only returned public relation.entryId and actual entryPart files/index locate saved fileMention. Actual indexed preparedId path/47B content/byteSize and textSHAab7960c2 match independently pinned source expectation, complete original/prepared links match receipt. Same public entryId history rows require origin/prepared role/full link. No text/hash/order joins.",
+    "Exactly one new controlled input/attempt/dispatch/request, no images/tool/blocked growth. Unchanged provider witnesses independently authored28B known span once in developer text with SHAfd4d6186; no whole47B/provider wrapper or history-causality claim.",
+    "Second terminal public query exactly equals first and adds no provider effects."
+  ],
+  "unchangedRuntimeInputs": [
+    {
+      "path": "compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 7059,
+      "sha256": "ceb42b6d0de5b44952a2487340bac3876023ae1effbdfa84aa56594b46686e55"
+    },
+    {
+      "path": "compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    }
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/rpc-attachments.ts",
+      "bytes": 1937,
+      "sha256": "95634d45ddd1b2cdb455351102354a20f9ae07b608b032e39dba6cbe0d2ccee6"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/document.ts",
+      "bytes": 1829,
+      "sha256": "6d11fe9dc33c88ee54fa02557dbe074a877776da85e8187e043d2f0dd4ba628a"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/package.ts",
+      "bytes": 3724,
+      "sha256": "b410b3efe8aadd40085fe21d34196b560292838d62241fb61ed9c4fbf81314a3"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/isolated.ts",
+      "bytes": 3964,
+      "sha256": "7e67cddbb213b2cd5a96dffe7c8894d5db63c1948b5e174e9b2e7088e3d9f4d3"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/worker.ts",
+      "bytes": 1107,
+      "sha256": "8fe668c3b3f47e6da7ada3823512a65c492907e37db64d3647de9cb84a5f06db"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/deny-network.ts",
+      "bytes": 864,
+      "sha256": "9a260c8a3f2933024d5abd0242bf5e67343635c61e0d5480da1f0da57b784604"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/limits.ts",
+      "bytes": 1031,
+      "sha256": "cccb7d85b52a4a125a51447a2601140fb523fb75d38639c38ea817cae7a0ee9f"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/markit/registry.ts",
+      "bytes": 2139,
+      "sha256": "590083a2c9cd6e41b914c652e9d05a5845eb216b29c3d5aaa3d4920a916f95a8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/markit/types.ts",
+      "bytes": 1307,
+      "sha256": "fc1f98c5a524ffbc25d9539d1998d8006a772bf4b4f4b1d845b932b297216836"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/markit/converters/pptx.ts",
+      "bytes": 10563,
+      "sha256": "b36308dfcdc3df2ffce0ea930ab8b2fa1932e5fac6672c74c99b887c5d254b62"
+    },
+    {
+      "path": "vendor/omp/packages/utils/package.json",
+      "bytes": 1550,
+      "sha256": "6703a6d66f4acecfb8ee3faa7a314d2bf0cf09bbd2d0fa4936cdc32d59ccd4a1"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/xml.ts",
+      "bytes": 11401,
+      "sha256": "87d66dc976fe7bce9be6aa9fa5050a85dba7bc4896c2bf146d8c95da9b064ca2"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/ar/index.ts",
+      "bytes": 694,
+      "sha256": "056df8e85231361dbb90b66bad8cd368939ffa4d15bf2d146629ee08564d30c8"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/ar/open.ts",
+      "bytes": 9973,
+      "sha256": "ce4bfa4477d8a8040ef3e6ea9c7ee70ef0182414fe532f32975126d29d8f22c8"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/ar/zip-package.ts",
+      "bytes": 2283,
+      "sha256": "6ff4e75ba0497449309e9aac2afcab9b40848f58a49c280bf12ef1ea5909584b"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/ar/zip.ts",
+      "bytes": 28681,
+      "sha256": "33a5df57c77f8b994c80f148a66aaa874438be4f9808c4193b6c7c705a49f267"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/ar/registry.ts",
+      "bytes": 9225,
+      "sha256": "d6f08b00adf10c7fef2b69f76a53f7ae89bb503a86ecd1cb64f98142c76c261c"
+    }
+  ],
+  "checks": [
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "host-types",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "--no-env-file",
+          "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+          "run",
+          "typecheck"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-pptx-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-pptx-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T05:38:42.015894+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 557682,
+        "code": 0,
+        "finishedAt": "2026-11-17T05:38:49.444525+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-pptx-source/host-types.json",
+          "bytes": 896,
+          "sha256": "442e513b23f50f50ca6b1300616b332629dee77bfe91fa20a7e95fe862635514"
+        },
+        {
+          "path": "/tmp/ticket38-pptx-source/host-types.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/ticket38-pptx-source/host-types.stderr",
+          "bytes": 32,
+          "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+        }
+      ]
+    },
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "syntax",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "build",
+          "--no-env-file",
+          "tests/attachments/public-rpc.test.ts",
+          "--target=bun",
+          "--packages=external",
+          "--external=*",
+          "--outdir=/tmp/ticket38-pptx-source/syntax"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-pptx-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-pptx-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T05:38:49.445699+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 557709,
+        "code": 0,
+        "finishedAt": "2026-11-17T05:38:49.466974+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-pptx-source/syntax.json",
+          "bytes": 942,
+          "sha256": "cf960d6055ccd267e004da9654aba0014e85f1b715801627b1c1475d535d477a"
+        },
+        {
+          "path": "/tmp/ticket38-pptx-source/syntax.stdout",
+          "bytes": 73,
+          "sha256": "7695f27743fc8405b61259133ceacc533a52735e89605ca5423174cffcea7e24"
+        },
+        {
+          "path": "/tmp/ticket38-pptx-source/syntax.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "frozenReadback": {
+    "status": "PASS_STATIC_ONLY",
+    "before": {
+      "path": "/tmp/ticket38-pptx-source/before.json",
+      "bytes": 297957,
+      "sha256": "65e40c74747962fad50637606c2218ea615f5b23955ec686c9ef6aace78b99b7"
+    },
+    "after": {
+      "path": "/tmp/ticket38-pptx-source/after.json",
+      "bytes": 3332,
+      "sha256": "ae16e6295a600a75f03d009b4b7ab33a1fbc31cf07be02f5e6da37c905bca400"
+    },
+    "preservationScript": {
+      "path": "/tmp/ticket38-pptx-preserve.py",
+      "bytes": 5231,
+      "sha256": "43828cd87c4bee8d4e730eaa3da7623a684122f2bbcd79f23b932625a98befe7"
+    },
+    "verificationScript": {
+      "path": "/tmp/ticket38-pptx-readback.py",
+      "bytes": 6703,
+      "sha256": "ee8bcc83479f2ea6f66fdd1a705d537eb5bcdfa0d74e0690f36a9c05e1ee54af"
+    },
+    "staticChecksScript": {
+      "path": "/tmp/ticket38-pptx-static.py",
+      "bytes": 1673,
+      "sha256": "931a8e49a764cb76d931f92f2618fc4d35b09a0e815f8535e6472a1a8b2fadb8"
+    },
+    "finalFreezeGenerator": {
+      "path": "/tmp/ticket38-pptx-final-freeze.py",
+      "bytes": 6248,
+      "sha256": "b127da17ddb2fa929a06a36f8b247728732f205e307ecf331580fe7a00e7ea0b"
+    },
+    "prior582Inputs": "All580 prior PDF source-freeze inputs plus two committed PDF proof/usage records exact before edit. Existing public-rpc.test.ts alone changes; all seven prior cases/helpers are byte-exact prefix.",
+    "priorSavedProofsAndRaw": "All519 older saved records exact. New595-record baseline includes current source/build/tool/proof/raw references;594 remain unchanged except appended test. All previous earned case/proof/raw records untouched.",
+    "matchedBuildRecords": 290,
+    "allPreservedCurrentRecords": 595,
+    "unchangedPreservedRecordsAfter": 594,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "hostStateBefore": {
+      "head": "baf6f0ebde5cf251d07e08a84e25e15060a3995a",
+      "tree": "824aec48e1397cf688d38f20d8a383f937a65f82",
+      "index": {
+        "originalPath": "/workspace/work/omp-webui/.git/worktrees/omp-webui-ticket-38/index",
+        "bytes": 84468,
+        "sha256": "b55ae50a7a5daf10cd627972c1e8c2b32d57f04560139d266fdaaa89470bcd2d",
+        "snapshot": {
+          "path": "/tmp/ticket38-pptx-source/host-index.bin",
+          "bytes": 84468,
+          "sha256": "b55ae50a7a5daf10cd627972c1e8c2b32d57f04560139d266fdaaa89470bcd2d"
+        },
+        "meaning": "Historical pre-edit Host index; own source commit changes Host index. Immutable snapshot pinned; original live index is not an after-commit invariant."
+      },
+      "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "headSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stagedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nativeStateBefore": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "tree": "bc176229265a781c3b502673566328bcb473466c",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "authoringGitSnapshots": [
+      {
+        "path": "/tmp/ticket38-pptx-source/host-head.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pptx-source/host-staged.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pptx-source/host-status.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pptx-source/host-worktree.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pptx-source/native-head.txt",
+        "bytes": 1662802,
+        "sha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+      },
+      {
+        "path": "/tmp/ticket38-pptx-source/native-staged.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pptx-source/native-status.txt",
+        "bytes": 9449,
+        "sha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486"
+      },
+      {
+        "path": "/tmp/ticket38-pptx-source/native-worktree.txt",
+        "bytes": 1662802,
+        "sha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+      }
+    ],
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "priorBodies": "All seven existing cases and all helpers remain byte-exact prefix; entire provider including both known text spans byte-exact.",
+    "alreadyAbsentHistoricalReferences": [
+      {
+        "proof": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-a640-e957-matched-build.json",
+        "historicalRecord": {
+          "path": "vendor/omp-candidate/chunk-1by7evrw.js",
+          "bytes": 23710,
+          "sha256": "3432fcbbfdf1a0ff12dfd0e359bc75334514aad7c09799c35a6b97aa3b6f4d32"
+        },
+        "status": "HISTORICAL_REFERENCED_FILE_ALREADY_ABSENT_BEFORE_GIF_EDIT"
+      },
+      {
+        "proof": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-matched-build.json",
+        "historicalRecord": {
+          "path": "vendor/omp-candidate/chunk-r29vavqg.js",
+          "bytes": 23710,
+          "sha256": "d7d81b15bd756566412dee4d0950bd02173a78faa748960a3290bc016d1427ae"
+        },
+        "status": "HISTORICAL_REFERENCED_FILE_ALREADY_ABSENT_BEFORE_GIF_EDIT"
+      }
+    ],
+    "limits": "Previously enrolled current source/build/tool and proof/raw references only; not exhaustive runtime/dependency closure. Native source and all prior proof bodies/raw untouched. No Native/SDK/converter/Host/browser/FFI/runtime invoked."
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN. Root must separately authorize exactly ONE anchored actual window; this file grants no runtime authority.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public PPTX requires structure consent before indexed saved text and provider witness$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-pptx-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 45000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner.",
+    "prePost": "Recheck final current-input freeze,290 matched records,166 Native dirty/untracked source records, Native HEAD/index/status/all binary diffs, candidate/dependency symlinks,594 preserved prior records and proofs/raw/readiness. Recheck new41 archive/XML source closure and pi-utils symlink, preserved15 PDF wrapper/addon records and symlinks by streaming hash only. Guard audit/owned synthetic homes checked; closure is not exhaustive transitive/system/runtime proof.",
+    "failurePolicy": "Stop firstFAIL; no retry, source/product/API/schema fix, expectation weakening, dependency install/build, other case/format, Host/browser/ad-hoc FFI probe, process census/PIDfallback/groupkill, orphan444480/fence action. Report exact public/converter capability gap to Root."
+  },
+  "preservedEvidence": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-a640-e957-matched-build.json",
+      "bytes": 64977,
+      "sha256": "b0351acf4de7a0cb3e828dc5727ff07ed15ca6f13af79ed7a9d462195b4cd72e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-checkpoint.json",
+      "bytes": 2880,
+      "sha256": "4cb81180da56ce943d7a3dbc2491bd7cfd1e8f60717150bc3f896dc7113160be"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-consumption-checkpoint.json",
+      "bytes": 2628,
+      "sha256": "cba0725a9911750924683196be1e1f9c211f76d0c69d02f7bff2533c0f27323e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-first-runtime-failure.json",
+      "bytes": 6939,
+      "sha256": "0e96ce1ca487f2399ab3c5a205bab882cbf7adedf2b13d84d66337c456f78539"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-matched-build.json",
+      "bytes": 67109,
+      "sha256": "4bfe49cdeed1096629bd8fa5d740af5a5a66317071703163ccf962d537a639a2"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-public-mixed-refusal-runtime.json",
+      "bytes": 10748,
+      "sha256": "37f3b034dd38fa6a65453c29b90927d26dc910952e1ef8b86fae3bc17af783cc"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-public-text-runtime-success.json",
+      "bytes": 9662,
+      "sha256": "c6953a89135e1fb7a6b0311a5ee7595632486fb5f64901171099f217966e1b77"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-runtime-readiness.json",
+      "bytes": 13820,
+      "sha256": "3c1425c6bb0ec12ba807a4f4a3483980500a18a39680213be29bac7477ae2003"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-transform-runtime-failure.json",
+      "bytes": 7806,
+      "sha256": "38fe2bee042802285e27ad8491286038277a57b3f7049cbd594682884a2d57a9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-expansion-checkpoint.json",
+      "bytes": 4047,
+      "sha256": "b11cf0231d5b8e8d33809924d6ff817bd9fa9b807fedd35dbe7e243af3f7c3af"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-docx-source-ready.json",
+      "bytes": 20464,
+      "sha256": "5a75f38765ad622abb1691c10b9b4b909c5982099f53db2bb51da83a56270779"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-docx-window-usage.json",
+      "bytes": 1911,
+      "sha256": "6b7729563807666b69e481d3343f791f16d8fa93c6e37cc4f98e6aa74ebe8790"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-format-source-plan.json",
+      "bytes": 10845,
+      "sha256": "4cceb31574b6583088671af3bf4bff252bb6b7f290e2ee0f4520ac970e6ee463"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-gif-source-ready.json",
+      "bytes": 34747,
+      "sha256": "b7ad706c99fdf4daee866289b4881e8c8ee98a70ec216aac9969e908219937fc"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-gif-window-usage.json",
+      "bytes": 2652,
+      "sha256": "f5204bc92bcd30479badaa3c4fe138d715b2157804f98e459dc00d5b7d561268"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-jpeg-source-ready.json",
+      "bytes": 14221,
+      "sha256": "8d3d373ad6cd1199bae2397dca71495074a8e17326c0fc67478b2505a936f6d4"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-jpeg-window-usage.json",
+      "bytes": 1338,
+      "sha256": "1f3b553f107eb745c13377d8e72f91f1443ae3ed9f87f39e40fd9fda1930725a"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+      "bytes": 79268,
+      "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-mixed-refusal-window-usage.json",
+      "bytes": 2644,
+      "sha256": "d165f364c4e11a6592a4e7b3f6491a37bc2662349bd20d2a9c342341a6f608d9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-pdf-source-ready.json",
+      "bytes": 47462,
+      "sha256": "7c08e7f3eefbd761a7ec4d582145b87a33620980d827606c4986ea65f2b60b11"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-pdf-window-usage.json",
+      "bytes": 2860,
+      "sha256": "058730a4bcb7eb3b478d228d08b5cabb8924b4f123acf35a093cbef1ba37da71"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-png-text-window-usage.json",
+      "bytes": 2634,
+      "sha256": "8f9705e251fb530a48d4c5dbe20e4af9e12d7cb4e8a41917d57251468e49ecdb"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-docx-runtime-success.json",
+      "bytes": 11423,
+      "sha256": "ab19813b2ecf5c74b511ffe798abe03d21adaeffc2105ffa2fc96b06a40a4367"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-gif-runtime-success.json",
+      "bytes": 19966,
+      "sha256": "fa24c95ddb7b517acc28caa7477f5f6ab3eb68216f82ca5b96b09f0b4891631f"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-jpeg-runtime-success.json",
+      "bytes": 11243,
+      "sha256": "6751ff3d5b2bb58b5c358ff9acbd844f5780c0b46554fe3b7d8a3c5713e0b865"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-mixed-refusal-runtime-success.json",
+      "bytes": 18176,
+      "sha256": "9df1958eceb6e742110a119612465a205514e15a439e2acb32e022e1430a9303"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-pdf-runtime-success.json",
+      "bytes": 21816,
+      "sha256": "b1d5442cd0d75642d8fd77a575cfe2c23ada37443e1210674fa9069593de71d5"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-png-text-runtime-success.json",
+      "bytes": 19443,
+      "sha256": "165045594bcf16fe5fa0a0e37125a6c6388c7d2e09f524efde0178e4231d23a9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-webp-runtime-success.json",
+      "bytes": 14127,
+      "sha256": "bd5113489b9b63278cb108b8092b832abd619f328974646bab35426481d95353"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-webp-source-ready.json",
+      "bytes": 21160,
+      "sha256": "5324d8ef98817f712e43c551a6da5e03a3862d314e2d78aeeb3a64e9ce1a1cab"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-webp-window-usage.json",
+      "bytes": 2224,
+      "sha256": "97bd7a03ec1c42e2dfe823fc1724ab1a50ec4dbe811fca9b58c5aa5263c2b3e7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-provider-checkpoint.json",
+      "bytes": 3472,
+      "sha256": "f0f928da57493001695ec098c91ad59de7ec31356f57562526a973d8431bf9c2"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-source-carrier-checkpoint.json",
+      "bytes": 2469,
+      "sha256": "fbf700d11ca7829c562e49d4b2411fd8cf647143a4937d7b9bf446e1d404aeb6"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-source-recovery-checkpoint.json",
+      "bytes": 4611,
+      "sha256": "86d4dc4c685d307ce7da7be8d98eb6d9df4ecf6e1e00907d53850f21648d713b"
+    }
+  ],
+  "earnedPriorRuntime": "Current Native9f33/5e315/schema8f9c PNG-text47/mixed13/JPEG33/DOCX45/WebP49/GIF55/PDF49 assertions remain earned only on exact recorded isolated inputs. PPTX source author ran no Native/runtime/FFI/conversion.",
+  "notRun": [
+    "Actual PPTX or any other case; Native/SDK/Agent/Host/browser/FFI/addon/converter/kernel runtime",
+    "Native build/schema generation/dependency changes",
+    "GitHub/push/merge/closure/process/fence/orphan actions"
+  ],
+  "remainingMandatory": [
+    "Actual PPTX and remaining XLSX/EPUB formats/refusals",
+    "budgets/cancel/stale/expiry/target/lifecycle/faults",
+    "history/restart/copy/branch/restore/persistence/native data/TUI/provider",
+    "actual DSH/browser/final coherent1-10/full checks/independent review/whole38/MVP",
+    "WindowsChrome/WSL2 owner-deferred; global target unselected"
+  ],
+  "admission": "SOURCE READY ONLY. Own branch source commit plus final current-input freeze, then STOP. Root separate exactly ONE actual window required. No self GO or later format work without follow-up. Whole38/MVP OPEN; private/global/product admission blocked.",
+  "additionalPptxSourceClosure": {
+    "manifest": {
+      "path": "/tmp/ticket38-pptx-source/pptx-source-closure.json",
+      "bytes": 10064,
+      "sha256": "a8249f73c14e92ec20c75bc58e76d2f4b24c87f945950351446b2e40f26f1b50"
+    },
+    "generator": {
+      "path": "/tmp/ticket38-pptx-closure.py",
+      "bytes": 2392,
+      "sha256": "10f1622889530dd7c42aec1dbf3e019a98b93461b2bb28ae01f56fcc62d84ab5"
+    },
+    "status": "PASS_STATIC_PPTX_ARCHIVE_XML_SOURCE_CLOSURE_NOT_IMPORTED",
+    "at": "2026-11-17T05:39:32.884024+00:00",
+    "symlinks": {
+      "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+    },
+    "records": [
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/package.json",
+        "bytes": 1550,
+        "sha256": "6703a6d66f4acecfb8ee3faa7a314d2bf0cf09bbd2d0fa4936cdc32d59ccd4a1"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/xml.ts",
+        "bytes": 11401,
+        "sha256": "87d66dc976fe7bce9be6aa9fa5050a85dba7bc4896c2bf146d8c95da9b064ca2"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/format.ts",
+        "bytes": 4846,
+        "sha256": "d8e0fd35251278fed8fbf46a44066db6f17a6290f3d4489e29f1663eed875e7e"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/fs-error.ts",
+        "bytes": 1406,
+        "sha256": "cc119ca2c39dd8c7d84df2580719abe6608bec6d06fc19726c0a6ec4ad264eb8"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/arj.ts",
+        "bytes": 11703,
+        "sha256": "3852c3d181e7fbc53db88108366323290171a2f92da9de396a042252d5d0e5e6"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/asar.ts",
+        "bytes": 17082,
+        "sha256": "0208738bf371d6950db55a64e73412c7812bc2d49a1b6486a1999047e713b495"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/bytes.ts",
+        "bytes": 3180,
+        "sha256": "d290a5390d5c05f9a6b6e349eaa86f3deb3f4f24a7b0f9086a01dcc189807c41"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/cab.ts",
+        "bytes": 15936,
+        "sha256": "6923cdf10a3dd6d89e99aba25b8fd81bc993647d344576b36b7783c3906e1761"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/checksums.ts",
+        "bytes": 2253,
+        "sha256": "9892bdd497db5d55a00b6db43d98ad444e778e98fc2df8737eacd646c0154015"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/codecs/bzip2.ts",
+        "bytes": 15901,
+        "sha256": "2926e33505c1e24b6ff0a0be3a7c370ab07ef869b6319a5f6034ad71b29dd7ba"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/codecs/gzip.ts",
+        "bytes": 1310,
+        "sha256": "ccf92ffd439bf0a7dd9459da71101f13b2bb0e3be6eb5c5140942901218e7a32"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/codecs/lzma.ts",
+        "bytes": 16511,
+        "sha256": "794f9333920f4c0b28f8279e5a8de33ff14b20cd988946a96e650035725595bb"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/codecs/lzw.ts",
+        "bytes": 5511,
+        "sha256": "9378ce2caa261303a00cfb15d0348b5367eae98311079d90847c31f79f820f20"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/codecs/lzx.ts",
+        "bytes": 12977,
+        "sha256": "61c3c57b2cbfed5b77c796e6655690281d8a6d79e6dee8d29aac090c84ae2589"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/codecs/xz.ts",
+        "bytes": 21834,
+        "sha256": "61e462c5b0297f5b8276aa6de3b07697ba047d979a506c78dcb7dba9f8fa6193"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/codecs/zstd.ts",
+        "bytes": 1392,
+        "sha256": "2921f681d0cdcaf039676b0ffbfa4bb913fe5204482c0f1406deeb2d2c15a3f2"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/cpio.ts",
+        "bytes": 14413,
+        "sha256": "23ccd7804a249b4c1e1c7d0f96e62cdbc7541f7f45b515f408cbbf4cefe645b1"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/deb.ts",
+        "bytes": 6149,
+        "sha256": "507e0962e759cab168ad28ddf85f428a09622f1df6bfc6c3150cee5d8e185228"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/entries.ts",
+        "bytes": 3300,
+        "sha256": "b2506e1e92c9b236c3e2ff589961030d5f9f26efcf4bc7372101911465bc4e4c"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/error.ts",
+        "bytes": 369,
+        "sha256": "06eafd37392b5b9487e6e5b2ab41a892d79e35b7d2955a7837db1b3d4435d873"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/index.ts",
+        "bytes": 694,
+        "sha256": "056df8e85231361dbb90b66bad8cd368939ffa4d15bf2d146629ee08564d30c8"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/iso.ts",
+        "bytes": 27171,
+        "sha256": "040383ec8f131f4a05e31c34d941c3d8884b4df91aeefccad0a6bfe570a84bdb"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/limits.ts",
+        "bytes": 3335,
+        "sha256": "8eeff78ddd92031bdce5eb2a61faa1ebafdada213497f2373e0d162fe6194650"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/lzh.ts",
+        "bytes": 24605,
+        "sha256": "2a018d22e5b745b6486b38e42143eb67dd7d10283fda0cd64dd61f1932071c74"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/open.ts",
+        "bytes": 9973,
+        "sha256": "ce4bfa4477d8a8040ef3e6ea9c7ee70ef0182414fe532f32975126d29d8f22c8"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/paths.ts",
+        "bytes": 2403,
+        "sha256": "d89723b40c63bfe0304775d3f6e0fe50d4d97ebaea451af72d0c2379ebacdb14"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/rar/rar4-decoder.ts",
+        "bytes": 15406,
+        "sha256": "58b17f9043b05728135cd316bbc67e3227f8ef625898888da3d6abaab93fe91b"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/rar/rar5-decoder.ts",
+        "bytes": 12698,
+        "sha256": "c5f85e780fc4faff5ae9c03f2e9e1b2b305ceed10e3d428138981f4494faec1b"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/rar.ts",
+        "bytes": 29906,
+        "sha256": "8745be3a7f52b1bd4bc54dfa99ffc6bf91fc09859fae427f0beccc757b803a05"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/reader.ts",
+        "bytes": 6021,
+        "sha256": "6d161c09eaa9b87477b7cbdae0eef11c25ca2950f94238c951aa14c9c0a30563"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/registry.ts",
+        "bytes": 9225,
+        "sha256": "d6f08b00adf10c7fef2b69f76a53f7ae89bb503a86ecd1cb64f98142c76c261c"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/rpm.ts",
+        "bytes": 13296,
+        "sha256": "9fbe70759c3d7e4b62187fe75c2946a0ddaced8a79558f2a2e332a0bc98d4d52"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/sevenzip/decode.ts",
+        "bytes": 6391,
+        "sha256": "2827c38354787b2976c5fb5f28c5898a1eeffceb86cc5fc8e80213fac0590f1f"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/sevenzip.ts",
+        "bytes": 27921,
+        "sha256": "5cb40892f9cc9ad2f2bf4f0c592a6ec61e6482c0a4a4dfee56dac813beef2e9f"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/source.ts",
+        "bytes": 8490,
+        "sha256": "5cb72af409b0d99fd9cc334125fabedd5abab72a44fcd83095f85004415497fc"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/tar.ts",
+        "bytes": 36235,
+        "sha256": "7ab04420e41e0f7299de9a46b46f3737a279ba1733867fcb5843b27413a7a2af"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/types.ts",
+        "bytes": 4241,
+        "sha256": "ffe175fc63f08d77b1d0be2eabdb8664a1e30c9089ce218094e326f7a2ede226"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/unix-ar.ts",
+        "bytes": 13186,
+        "sha256": "62bbc3f836c61bf7eca86e13ddb8ffd24b286df46454bf6c45b5efb5fe376f77"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/write.ts",
+        "bytes": 1823,
+        "sha256": "4b21e8f86ef12f9ec172ba7875a86371995048ebd3a00a15df7dd578da003769"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/zip-package.ts",
+        "bytes": 2283,
+        "sha256": "6ff4e75ba0497449309e9aac2afcab9b40848f58a49c280bf12ef1ea5909584b"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/zip.ts",
+        "bytes": 28681,
+        "sha256": "33a5df57c77f8b994c80f148a66aaa874438be4f9808c4193b6c7c705a49f267"
+      }
+    ],
+    "sourcePath": "Public Native document\u2192validateAttachmentPackage openArchive ZIP identity/encoding/budgets\u2192Markit PptxConverter\u2192ZipPackage exact member reads\u2192local XMLParser/one-slide text extraction.",
+    "availability": "All local source modules exist. XMLParser is local TypeScript; ZipPackage/openArchive ZIP_STORED path uses authored member bytes and CRC. No external PowerPoint application, XML parser package, converter service or dependency install introduced.",
+    "preservedExistingAddonClosure": "Prior580-input PDF freeze already pins installed native wrapper/both addon candidates; those records remain unchanged. This source author neither imports nor executes them.",
+    "limits": "Additional archive/XML source manifest only, not exhaustive runtime/transitive/system dependency closure, actual import/capability test, full OOXML XSD validation, rendering or conversion evidence. Actual public preparation may fail and must stop without install/fix/retry."
+  },
+  "preservedPdfAddonCandidateClosure": {
+    "manifest": {
+      "path": "/tmp/ticket38-pdf-source/pdf-addon-closure.json",
+      "bytes": 6181,
+      "sha256": "25b9b52c2431e338e5855cc385b6977a71b061f41aecafaee762be8f7d6861e1"
+    },
+    "generator": {
+      "path": "/tmp/ticket38-pdf-addon-closure.py",
+      "bytes": 3187,
+      "sha256": "50bcc7289730a1770c5b7440ee5917a9c990f447fe9f2b409ba7a3d98a5f3270"
+    },
+    "status": "PASS_STATIC_PDF_ADDON_CANDIDATE_CLOSURE_NOT_LOADED",
+    "at": "2026-11-17T05:22:39.489784+00:00",
+    "symlinks": {
+      "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+      "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+    },
+    "resolvedWrapper": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+    "resolvedPlatformLeaf": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64",
+    "records": [
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/package.json",
+        "bytes": 3603,
+        "sha256": "3e22095bd42a6f0ca754e08b58c083cf1fb17cb112adf935c4aa6b4ff9fdb6e5"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/clipboard.js",
+        "bytes": 555,
+        "sha256": "8a8e33cc33432713820c7c965af14012439d941d4f2914677a17cec910acc08d"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/desktop-adapter.js",
+        "bytes": 1407,
+        "sha256": "047ea57a9b79ad06e27a1152c4012d0372d48e83441732ea3f597609746ae3ac"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/desktop.js",
+        "bytes": 1247,
+        "sha256": "3b152517eadaf12664cbd8c7dbbf9cfd1ac8d4bc9b30744a4c7e47731a81ed98"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/embedded-addon.js",
+        "bytes": 720,
+        "sha256": "ad94332d9b1ba71dac4c3bc394c35aea2e0e4cf2280bc1c2ba42aba3fb237fc1"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/index.js",
+        "bytes": 18405,
+        "sha256": "f110791acc68ca07cee693ede74ecfd38cfcdb362cd1a6a951a069e9a5b272fb"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/loader-state.js",
+        "bytes": 41172,
+        "sha256": "395d21d431121f469ba5a6016c42ac06a5abfa1b8021abc0efbf475dfb0c7ccd"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/path.js",
+        "bytes": 892,
+        "sha256": "716fe783105dc03fc5deaab32a4f0470ba366e663ae77de42c5760144855bf99"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/sqlite-locks.js",
+        "bytes": 942,
+        "sha256": "05ad55cfdaf044c25fea1af2ac83aab4508184a8efa42bd0d0b46432af499f3a"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/vcs.js",
+        "bytes": 9252,
+        "sha256": "d8abeeef68e2650be6e5eaa3559e7a9b5fe496185e3debc9e438894a01302b7c"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/version-sentinel.js",
+        "bytes": 3740,
+        "sha256": "926c11315b5ff843b6cf236c866a12e9ddbf25824db267334c1323a6736cc7be"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/index.d.ts",
+        "bytes": 163444,
+        "sha256": "9d7be3f1efd1d259361e5e73fdccdecef7cb555b2f54831764b750fe4fab8cbb"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/package.json",
+        "bytes": 464,
+        "sha256": "6b5a1435b4a3088e6d5d4952d6e0a153c6d0d6afa5fd9a06ddf17f4e6a7ad3f3"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-baseline.node",
+        "bytes": 129937064,
+        "sha256": "641de3e4caedf0b8ed09bc18def5b7275728fdf829f8f62d1b9dc7bf3ed8e58e"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-modern.node",
+        "bytes": 129887128,
+        "sha256": "b43d9b78fad61c53e96f295b3c9f6210360157406fd80514da2c83362efc2b47"
+      }
+    ],
+    "binaryReadback": [
+      {
+        "file": {
+          "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-baseline.node",
+          "bytes": 129937064,
+          "sha256": "641de3e4caedf0b8ed09bc18def5b7275728fdf829f8f62d1b9dc7bf3ed8e58e"
+        },
+        "elf": "ELF64 x86-64",
+        "pdfToMarkdownLiteralPresent": true,
+        "meaning": "Static bytes/header evidence only. Does not load addon or prove an export works."
+      },
+      {
+        "file": {
+          "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-modern.node",
+          "bytes": 129887128,
+          "sha256": "b43d9b78fad61c53e96f295b3c9f6210360157406fd80514da2c83362efc2b47"
+        },
+        "elf": "ELF64 x86-64",
+        "pdfToMarkdownLiteralPresent": true,
+        "meaning": "Static bytes/header evidence only. Does not load addon or prove an export works."
+      }
+    ],
+    "availability": "Installed public18.20.2 wrapper declares pdfToMarkdown; both Linux x64 addon candidates exist and contain its literal. Native bridge source uses pdf-inspector1.25.0. No external PDF CLI/runtime dependency is introduced or installed.",
+    "selection": "Fresh allowlisted synthetic HOME/profile/cache; loader may choose modern or baseline from CPU detection. Both existing candidates are pinned. No selection/loader/CPU/FFI/addon/kernel/runtime probe was executed.",
+    "limits": "Narrow additional PDF wrapper/candidate binary closure, not exhaustive runtime/transitive/system-library closure and not an actual converter capability/availability test. Actual public preparation may fail and must stop without install/fix/retry."
+  }
+}

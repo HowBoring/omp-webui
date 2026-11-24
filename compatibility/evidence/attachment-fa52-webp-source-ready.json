@@ -1,0 +1,409 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "8ad6f3528b9175738e3ee6b3fa5d2c2c961b2655",
+  "parentTree": "9381d3c63f0a202acf3074bcefa7072e2cd54818",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "scope": "ONE WebP public-RPC/source tracer. No Native product/API/schema/source changes, rebuild, dependency mutation, SDK/Agent/Host/browser/FFI/converter runtime or actual case execution. Linux now; Windows deferred; global path unselected; whole38/MVP OPEN.",
+  "skills": [
+    "/workspace/work/omp-webui-current/.agents/skills/implement-spec/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/tests.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/mocking.md"
+  ],
+  "seam": "Previously agreed public prepare_attachments, submission_submit/query, get_entries and history snapshot boundaries; controlled public provider request capture proves delivery. No private OMP runtime API or Native Session-file reads in the test.",
+  "test": {
+    "path": "tests/attachments/public-rpc.test.ts",
+    "bytes": 32439,
+    "sha256": "6cd806d797c7b4e794bee1d15a0006da2c6b91c76713e0606ab271375e33fd72",
+    "name": "actual public WebP requires transformation consent before indexed saved image and provider delivery"
+  },
+  "fixtures": [
+    {
+      "path": "tests/attachments/fixtures/opaque-200.webp",
+      "bytes": 38,
+      "sha256": "0dd383c62fb5fd7b38a18c4f0cca4ec8670828cf2a63f39bbd96d45102729133"
+    },
+    {
+      "path": "tests/attachments/fixtures/opaque-200-webp.json",
+      "bytes": 2087,
+      "sha256": "58f54c4372e141632f6d4b13ce37939b85c358528875a440ab70cfca2c8d1241"
+    }
+  ],
+  "input": {
+    "fixture": "tests/attachments/fixtures/opaque-200.webp",
+    "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+    "authoring": {
+      "library": "Pillow 13.0.0",
+      "libwebp": "1.6.0",
+      "mode": "RGB",
+      "size": [
+        200,
+        200
+      ],
+      "solidColor": [
+        37,
+        83,
+        127
+      ],
+      "saveOptions": {
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      }
+    },
+    "bytes": 38,
+    "originalSha256": "0dd383c62fb5fd7b38a18c4f0cca4ec8670828cf2a63f39bbd96d45102729133",
+    "originalCarrierRepresentationSha256": "82e0ddb7abb78e7d758d9622e43c973fb68e042f3edf7c42ebe39b53f2c49328",
+    "originalCarrierRepresentationMeaning": "Independent compact JSON kind,mimeType,data,width,height for ORIGINAL WebP carrier, explicitly NOT a predicted Native prepared representation.",
+    "decodedRgbSha256": "6d16cd30a7a8d038832c85569b05a51253c98e106ba9332b487e297211efa72d",
+    "width": 200,
+    "height": 200,
+    "frames": 1,
+    "independentValidation": "Pillow reopen/load verifies WebP, one frame, RGB200x200 and exact chosen solid pixels; hashlib independently hashes original, decoded RGB and original-carrier compact JSON. No Bun.Image/OMP/SDK/native converter imported or evaluated.",
+    "expectedNativePreparation": {
+      "status": "SOURCE_EXPECTATION_UNEXECUTED",
+      "degradations": [
+        "image_transformed"
+      ],
+      "width": 200,
+      "height": 200,
+      "mimeTypes": [
+        "image/png",
+        "image/jpeg"
+      ],
+      "preparedBytesAndSha256": "UNPREDICTED: converter-specific PNG/JPEG encoding; never pin a fabricated output hash. Verify canonical returned prepared representation hash, changed carrier, saved indexed part and exact provider byte delivery at separately authorized runtime.",
+      "basis": "prepare.ts always passes excludeWebP:true; resizeImage fast path excludes decoded WebP even at200x200; opaque image conversion chooses smallest PNG/JPEG and encodedResult marks wasResized:true. Controlled model declares text/image input. No animation loss for this one-frame original."
+    }
+  },
+  "expectationBasis": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "original": "Independent Pillow13/libwebp1.6 lossless RGB200x200 solid(37,83,127), exact38B original. Reopen/load verifies all chosen RGB pixels and one frame; independent hashlib pins source bytes, original-carrier representation JSON and decoded RGB.",
+    "conversion": "prepareImage passes excludeWebP:true explicitly. resizeImage excludes decoded WebP from fast path despite200x200/38B; opaque source selects smallest PNG/JPEG and encodedResult sets wasResized:true. Thus exactly image_transformed, same200x200 geometry, one frame/160000decodedBytes, and changed carrier are source expectations. No animation_first_frame_only is expected.",
+    "preparedDigest": "UNPREDICTED. No exact prepared encoder bytes, byte count or SHA is fabricated. Independently pinned82e0ddb7 original-carrier representation hash is explicitly not a prediction of Native output. Test verifies canonical public representation digest consistency and changed carrier, then exact saved-part/provider-byte delivery. Consistency is not an independent expected-output oracle.",
+    "model": "Unchanged controlled provider literal declares input:[text,image]; Native receipts refuses image targets without imageCapable. Preparation exclusion is unconditional and is not a model WebP-support claim.",
+    "limits": "Prepared output pixel fidelity is NOT independently decoded or evaluated. Geometry/MIME/changed carrier/degradation/facts and public delivery are checked. Pillow validates only original authoring; no extra runtime decoder dependency/child is introduced. Native conversion authority remains scoped to actual source and separately authorized outcome."
+  },
+  "expectedAssertions": [
+    "Fixed38B WebP original SHA0dd383c6 and independent original-carrier representation SHA82e0ddb7; exactly one ready image with image_transformed, PNG/JPEG200x200, preparedBytes1..512000, originalBytes38, frames1/decodedBytes160000; actual prepared bytes and canonical digest differ from original carrier.",
+    "Prepare changes neither public entries nor provider effects. Missing image_transformed acceptance refuses before reservation/admission with absent/unresolved query and unchanged entries/effects.",
+    "Explicit same receipt/digest/draftRevision/authorityGeneration acceptance to exactly image_transformed admits ONE terminal succeeded/generated/committed input with exact target/origin/preparation bindings.",
+    "Only returned public relation.entryId and actual entryPart content/index locate saved user image. Same public entryId history rows require exact origin, input role and complete attachment link. Never text/hash/order history joins.",
+    "Exactly one new controlled provider input/attempt/dispatch/request/image with actual prepared MIME, byte count and byte SHA. No tool/blocked growth or known document span; existing DOCX provider known span remains byte-exact. This witnesses delivery, not history causality.",
+    "Second terminal public query exactly equals first with no provider effects."
+  ],
+  "unchangedRuntimeInputs": [
+    {
+      "path": "compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 7059,
+      "sha256": "ceb42b6d0de5b44952a2487340bac3876023ae1effbdfa84aa56594b46686e55"
+    },
+    {
+      "path": "compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    }
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/isolated.ts",
+      "bytes": 3964,
+      "sha256": "7e67cddbb213b2cd5a96dffe7c8894d5db63c1948b5e174e9b2e7088e3d9f4d3"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/limits.ts",
+      "bytes": 1031,
+      "sha256": "cccb7d85b52a4a125a51447a2601140fb523fb75d38639c38ea817cae7a0ee9f"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/utils/image-resize.ts",
+      "bytes": 30822,
+      "sha256": "2dbfe65f9639442cce80def61eb7a84e95080eeee55dc120aceb76d4af36d930"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/image-animation.ts",
+      "bytes": 4996,
+      "sha256": "74b2fb5283b2128f5f6366cafb68279d9a649349af8e909701f4f7168ec7f3af"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/mime.ts",
+      "bytes": 9508,
+      "sha256": "d76dbae91a1ba703f91ef165e1e14b460b9830836c12a69deb3b58925b1f0451"
+    },
+    {
+      "path": "vendor/omp/packages/tui/src/chat/image-loading.ts",
+      "bytes": 10139,
+      "sha256": "360eaa5e1cd0039742c368684e7d48e2173bbbe6d9a2b88b0b2f7b1f1412febf"
+    }
+  ],
+  "checks": [
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "host-types",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "--no-env-file",
+          "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+          "run",
+          "typecheck"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-webp-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-webp-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T02:45:53.680878+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 534562,
+        "code": 0,
+        "finishedAt": "2026-11-17T02:46:09.260731+00:00"
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-webp-source/host-types.json",
+          "bytes": 844,
+          "sha256": "3e231588b34010c3457063a05a9b7a3c23bb6bcdb09610431663cb51c3fa9039"
+        },
+        {
+          "path": "/tmp/ticket38-webp-source/host-types.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/ticket38-webp-source/host-types.stderr",
+          "bytes": 32,
+          "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+        }
+      ]
+    },
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "syntax",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "build",
+          "--no-env-file",
+          "tests/attachments/public-rpc.test.ts",
+          "--target=bun",
+          "--packages=external",
+          "--external=*",
+          "--outdir=/tmp/ticket38-webp-source/syntax"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-webp-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-webp-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T02:46:09.261122+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 534591,
+        "code": 0,
+        "finishedAt": "2026-11-17T02:46:09.291993+00:00"
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-webp-source/syntax.json",
+          "bytes": 890,
+          "sha256": "9a180e7eecdb9ff93b04924f06515f46901d2dc47b8e4b2f8e4fc1fc53e90eb8"
+        },
+        {
+          "path": "/tmp/ticket38-webp-source/syntax.stdout",
+          "bytes": 73,
+          "sha256": "2ac0d570c95c221028022ade551788713a4d10f5cf6ccfde537a857e43e8945f"
+        },
+        {
+          "path": "/tmp/ticket38-webp-source/syntax.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "frozenReadback": {
+    "status": "PASS_STATIC_ONLY",
+    "before": {
+      "path": "/tmp/ticket38-webp-source/before.json",
+      "bytes": 210245,
+      "sha256": "e35e16062507ef1b2abbd211778946e9be0fbe47c2b05916ef4efda5554119f2"
+    },
+    "after": {
+      "path": "/tmp/ticket38-webp-source/after.json",
+      "bytes": 1567,
+      "sha256": "eeb3221d09b120c771af22965eddb6a0b2099f423dbb4f18309ca8fd4b264deb"
+    },
+    "verificationScript": {
+      "path": "/tmp/ticket38-webp-freeze.py",
+      "bytes": 3024,
+      "sha256": "c70fa0f1c5a6266260d944cae6aa2c191d483b6c0de71b89ee944df63863f802"
+    },
+    "prior360Inputs": "All360 prior final-input records exact BEFORE edit; only public-rpc.test.ts authorized to change afterwards. Old freeze preserved unchanged.",
+    "matchedBuildRecords": 290,
+    "allPreservedCurrentRecords": 416,
+    "unchangedPreservedRecordsAfter": 415,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "priorBodies": "All four existing test bodies/helpers remain byte-exact prefix. Entire provider and current DOCX known span unchanged.",
+    "limits": "Existing enrollment and recursive saved references only; not an exhaustive runtime/dependency closure."
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN. Root must separately authorize exactly ONE anchored actual window; this file grants no execution authority.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public WebP requires transformation consent before indexed saved image and provider delivery$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-webp-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 45000,
+    "preImport": "Top history guard before test imports; worker/catalog no-provider preload before launcher; unchanged title helperc4e684 uses child no-provider preload before pure Native serializer import with synthetic HOME/TMPDIR/cache. Per-case home/cwd is owned synthetic /tmp/attachment-public-*.",
+    "cleanup": "Retain original runner/child handles; actual exit and stdout/stderr drain required. Existing strictWorker.close awaits exit+reader+stderr, finally awaits original child exit and removes only owned home. Catalog close awaited, but selectedDescriptor discards exact PID/DrainResult/exitcode/forced metadata; do not claim uncaptured individual process identities or descendant extinction. Serializer awaits exit0/empty stderr. Converter owns handle/readers/exited/finally; exact individual metadata not separately captured by current fixture.",
+    "prePost": "Recheck final current-input freeze, all290 matched records, Native HEAD/index/status/all binary diffs, all166 dirty/untracked source records, candidate/dependency symlinks and prior READY/raw JPEG/DOCX proofs before and after. Guard audit and owned per-case homes checked; existing enrollment is not exhaustive dependency closure.",
+    "failurePolicy": "Stop firstFAIL, no retry, expectation weakening, productfix, other case/format, build, process census/PIDfallback/groupkill, fence action or orphan444480 action. Record exact converter/public-contract gap and return to Root."
+  },
+  "preservedEvidence": [
+    {
+      "path": "compatibility/evidence/attachment-fa52-matched-build.json",
+      "bytes": 79268,
+      "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-format-source-plan.json",
+      "bytes": 10845,
+      "sha256": "4cceb31574b6583088671af3bf4bff252bb6b7f290e2ee0f4520ac970e6ee463"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-jpeg-source-ready.json",
+      "bytes": 14221,
+      "sha256": "8d3d373ad6cd1199bae2397dca71495074a8e17326c0fc67478b2505a936f6d4"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-public-jpeg-runtime-success.json",
+      "bytes": 11243,
+      "sha256": "6751ff3d5b2bb58b5c358ff9acbd844f5780c0b46554fe3b7d8a3c5713e0b865"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-jpeg-window-usage.json",
+      "bytes": 1338,
+      "sha256": "1f3b553f107eb745c13377d8e72f91f1443ae3ed9f87f39e40fd9fda1930725a"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-docx-source-ready.json",
+      "bytes": 20464,
+      "sha256": "5a75f38765ad622abb1691c10b9b4b909c5982099f53db2bb51da83a56270779"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-public-docx-runtime-success.json",
+      "bytes": 11423,
+      "sha256": "ab19813b2ecf5c74b511ffe798abe03d21adaeffc2105ffa2fc96b06a40a4367"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-docx-window-usage.json",
+      "bytes": 1911,
+      "sha256": "6b7729563807666b69e481d3343f791f16d8fa93c6e37cc4f98e6aa74ebe8790"
+    }
+  ],
+  "historical": "Actual current Native9f33 JPEG1PASS/33assert/3.41s and DOCX1PASS/45assert/11.13s remain earned on their exact recorded inputs; current PNG/text+mixed reruns OPEN. Historical oldf2e6 PNG/text and mixed evidence remains historical.",
+  "notRun": [
+    "Actual WebP or any other case; Native/SDK/Agent/Host/browser/FFI/image converter/kernel runtime",
+    "Native build/schema generation/dependency changes",
+    "GitHub/push/merge/closure/process/fence/orphan actions"
+  ],
+  "remainingMandatory": [
+    "Current PNG/text/mixed reruns and remaining GIF/PDF/PPTX/XLSX/EPUB formats/refusals",
+    "budgets/cancel/stale/expiry/target/lifecycle/faults",
+    "history/restart/copy/branch/restore/persistence/native data/TUI",
+    "actual DSH/browser/final coherent1\u201310/full checks/independent review/whole38/MVP",
+    "WindowsChrome/WSL2 owner-deferred; global target unselected"
+  ],
+  "admission": "SOURCE READY ONLY. STOP after own branch source commit and current-input freeze. No runtime authority transferred; whole38/MVP OPEN; private/global/product admission blocked."
+}

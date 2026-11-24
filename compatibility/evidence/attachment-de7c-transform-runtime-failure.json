@@ -1,0 +1,145 @@
+{
+  "ticket": 38,
+  "status": "FAIL_FINAL_PROVIDER_TEXT_EXPECTATION_DELIVERY_UNRESOLVED",
+  "hostHead": "14c2e640d328eb635c47f47f4dc38bd26924b4af",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "f2e6abeec0a807557125f108055b83bc041869a2cf42a99cd1c6f53ec3dbc870",
+    "patchSha256": "c4fe066897608e398c197ae641074fe05756f0be2ec721f1e817b26d4580007e",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "runner": {
+    "hostHead": "14c2e640d328eb635c47f47f4dc38bd26924b4af",
+    "case": "actual public PNG and text commit exact indexed parts with matching query and history links",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public PNG and text commit exact indexed parts with matching query and history links$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/ticket-38-public-transform-success-a4yasgv6/profile",
+      "PI_CODING_AGENT_DIR": "/tmp/ticket-38-public-transform-success-a4yasgv6/profile",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/ticket-38-public-transform-success-a4yasgv6/profile",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "startedAt": "2026-11-16T23:45:50.929172+00:00",
+    "evidenceDirectory": "/tmp/ticket-38-public-transform-success-a4yasgv6",
+    "status": "FAIL",
+    "runnerPid": 498721,
+    "finishedAt": "2026-11-16T23:45:55.256864+00:00",
+    "runnerWaitStatus": 1,
+    "outerTimeout": false,
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "stdoutSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+    "stderrSha256": "453dd15d6f34d0f763e556fbfc6d78e7af4cd0fdd499d828754a32c833f49c3d",
+    "topProfileRemoved": true
+  },
+  "result": {
+    "passed": 0,
+    "failed": 1,
+    "filtered": 1,
+    "expectCalls": 47,
+    "elapsedSeconds": 4.32,
+    "caseElapsedMs": 4241.61,
+    "phase": "final provider-text assertion",
+    "observedFailure": "Expected provider capture to contain role:fileMention with raw staged UTF-8 SHA256 fd4d6186...; actual provider capture exposed normalized roles user,user,developer,user with hashes 1ec2d912...,e32fb062...,11ab5c33...,b6ed0139.... Exact prepared text provider delivery is unresolved; neither delivery nor loss follows from these hashes alone.",
+    "passedPriorAssertions": [
+      "READY matched receipt separates original68B PNG/hash from transformed200x200590B representation/digest d39598a3... and explicit image_transformed.",
+      "Preparation leaves actual get_entries and controlled-provider counters unchanged.",
+      "Submission lacking degradation acceptance returns ATTACHMENT_DEGRADATION_CONSENT_REQUIRED; query is absent and entries/effects unchanged.",
+      "Explicit image_transformed acceptance of same receipt/digest/key commits one terminal successful generated input with exact source/instance/nativeSession/preparation identity.",
+      "Public query attachment relations have exact original/prepared identities/digests/kind and real saved entryId/indexed content/files locators without unavailable markers.",
+      "Actual get_entries image and files bytes/text addressed by those returned IDs/locators match the prepared receipt/text; public HistoryItem.entryId exposes the same origin and attachment links.",
+      "Controlled provider has one input/model attempt/dispatch, unchanged tool/blocked counts and exact prepared590B image hash."
+    ],
+    "unproven": [
+      "Final exact prepared text delivery at provider boundary",
+      "Whole test PASS",
+      "Separate failed mixed preparation case",
+      "Restarts/copies/branches/all selected formats/budgets/fault/persistence/browser/full MVP acceptance"
+    ],
+    "negativeCase": "FILTERED/NOT RUN",
+    "retry": "NONE"
+  },
+  "sourcePost": {
+    "status": "SOURCE_POST_UNCHANGED",
+    "hostHead": "14c2e640d328eb635c47f47f4dc38bd26924b4af",
+    "hostStatus": "",
+    "verifiedPriorRecords": 290,
+    "mismatches": [],
+    "nativeSnapshotChecks": {
+      "native-head.txt": true,
+      "native-index.patch": true,
+      "native-worktree.patch": true,
+      "native-head.patch": true,
+      "nativeIndex": true
+    },
+    "nativeArchivedFilesUnchanged": 166,
+    "sourceFileHashes": {
+      "compatibility/evidence/attachment-de7c-runtime-readiness.json": "a0999d15ec1a6ffd88efe6ae940bd81160c028597b60fbd6f7c3bc0aeb49789e",
+      "tests/attachments/public-rpc.test.ts": "28184a924639e62e63d63620507f761866f39c14181facb2dbd2b69d2eba9cea",
+      "tests/catalog/fixture.ts": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    "runtimeResult": "FAIL final provider-text role/rawhash assumption; prior preparation/noeffects/missingconsent/committedsubmission/publicsavedlocators/publichistory/providerimage assertions passed",
+    "cleanupEvidence": {
+      "runnerWaitStatus": 1,
+      "strictWorkerCloseCode": 0,
+      "strictWorkerExitEvidence": "finally expect(close().code).toBe(0) completed; no secondary diagnostic",
+      "catalogClose": "awaited by selectedDescriptor finally; exact DrainResult discarded, not separately captured",
+      "serializerExit": "helper completed with parsed stdout and no stderr; code!=0 would have thrown before strict_start",
+      "noReopen": "no reopen performed by selected single case",
+      "topSyntheticProfileRemoved": true
+    },
+    "limitations": "No process-list probe or additional runtime. Exact catalog exit/forced flag and strictWorker PID unavailable in unchanged harness. Final exact prepared text provider-delivery check FAIL; cannot claim loss or delivery from hashed normalized messages alone."
+  },
+  "artifacts": [
+    {
+      "path": "/tmp/ticket-38-public-transform-success-a4yasgv6/runner.json",
+      "bytes": 1593,
+      "sha256": "13edcf668c00bb8fa6dbb183d733a9c6e00d7524e6620cd14f4b15a278f692d8"
+    },
+    {
+      "path": "/tmp/ticket-38-public-transform-success-a4yasgv6/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-transform-success-a4yasgv6/stderr.txt",
+      "bytes": 1724,
+      "sha256": "453dd15d6f34d0f763e556fbfc6d78e7af4cd0fdd499d828754a32c833f49c3d"
+    },
+    {
+      "path": "/tmp/ticket-38-public-transform-success-a4yasgv6/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/tmp/ticket-38-public-transform-success-a4yasgv6/source-post.json",
+      "bytes": 1779,
+      "sha256": "06161e7a9480e11412e7dfbf0e5c62a8522b7ace18846195f4c447acf3aa0569"
+    }
+  ],
+  "drain": {
+    "bunRunnerWaitStatus": 1,
+    "pythonWrapperExitCode": 0,
+    "strictWorkerCloseCode": 0,
+    "strictWorkerEvidence": "finally close() assertion completed without secondary failure",
+    "serializer": "guarded authoring helper succeeded; code0 and empty stderr required for completion",
+    "catalog": "close awaited child.exited/stdout/stderr; exact DrainResult discarded by selectedDescriptor and uncaptured",
+    "reopen": "NOT RUN",
+    "topProfileRemoved": true,
+    "outerTimeoutOrGroupSignal": false
+  },
+  "scope": "One anchored actual public RPC success case with explicit no-consent refusal and consented commit, synthetic isolated controlled provider. No retry/negative case/Host/browser/fault/product/private/global runtime."
+}

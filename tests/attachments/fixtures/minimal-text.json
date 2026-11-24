@@ -1,0 +1,33 @@
+{
+  "fixture": "minimal-text.docx",
+  "status": "INDEPENDENT_FIXTURE_AUTHORED_NATIVE_CONVERTER_NOT_RUN",
+  "authoring": "Python standard zipfile ZIP_STORED; member order as recorded, timestamp1980-01-01T00:00:00, create_system3, external_attr0100644<<16. Three minimal OPC members: correct DOCX main content type and officeDocument relationship, one plain word paragraph. No OMP/SDK/Native/converter invoked.",
+  "bytes": 1259,
+  "originalSha256": "76e2ed8160cbd314a8527cd57f07eb8d422c5e1ea7dc4769dc946e5a1f0554a0",
+  "expectedText": "Controlled DOCX text witness",
+  "expectedTextBytes": 28,
+  "expectedTextSha256": "d771072c331e616e4702b39e480f6f8c69e7abebfb09f039d26e3013f7970eea",
+  "expectedRepresentationSha256": "fbe65ce22456deb2f5d5dc0fb22632c772adb897e934a6f01bdba31e12298cc9",
+  "expectationBasis": "Unexecuted source expectation: in-house mammoth-compatible pi-utils/docx.convertToHtml parses word/document.xml w:p/w:r/w:t into a plain paragraph; Markit DocxConverter runs Turndown and trim; Native convertAttachmentDocument reports document_structure_changed, omittedImages0, convertedBytes28. Public ready representation is text, separately hashed from the ZIP original. Real native result may expose a parser/conversion gap; do not change product or expectations automatically.",
+  "independentValidation": "Python ZipFile CRC readback and ElementTree parse of every member; exactly three members; paragraph itertext equals independently chosen literal. This validates authored ZIP/XML only, not Native conversion.",
+  "members": [
+    {
+      "path": "[Content_Types].xml",
+      "bytes": 412,
+      "sha256": "2d2267e7925f825482f79b9a241a91a19cb0baae30e76d734e387d649da40d50",
+      "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>"
+    },
+    {
+      "path": "_rels/.rels",
+      "bytes": 280,
+      "sha256": "737f8dfc276e8f3fe5afd5c285ceabd020379fef289d1c001c395bc3b393a513",
+      "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>"
+    },
+    {
+      "path": "word/document.xml",
+      "bytes": 223,
+      "sha256": "9235fbe53104130c55d9ca9404fa6132e0ebc7a8c3a4ad195e13cbedb33354eb",
+      "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body><w:p><w:r><w:t>Controlled DOCX text witness</w:t></w:r></w:p><w:sectPr/></w:body></w:document>"
+    }
+  ]
+}

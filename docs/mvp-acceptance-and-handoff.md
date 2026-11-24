@@ -1,6 +1,8 @@
 # 扩展 MVP 验收与实施交接合同
 
-Status: 用户已确认 Q1–Q3，决策规划完成；产品实现、兼容构建与完整验收仍未完成。
+Status: 用户已确认 Q1–Q3。产品实现与最终组合已在本地记录的 4 vCPU／8 GiB 组合上冻结、验证并录入身份
+（`docs/release-final.md`、`docs/evidence/ticket-63-freeze.json`）；维护者操作验收与不可变公开发布仍未完成。
+GitHub Actions 在固定镜像上运行完整源代码检查（含冻结门禁的拒绝行为）；通过不构成组合验收，冻结组合仍以本地记录为准。
 日期：2026-11-16（Asia/Singapore）。决策：[扩展 MVP 的验收证据与实施交接顺序](https://github.com/HowBoring/omp-webui/issues/24)。
 本合同汇总开发依赖和验收目标，不声明新的 RPC API、产物 SHA、浏览器版本或通过结果。
 
@@ -12,7 +14,7 @@ Status: 用户已确认 Q1–Q3，决策规划完成；产品实现、兼容构�
 | Q2 浏览器矩阵 | Linux Chromium；Windows Chrome 经 localhost 连接 WSL2 Host。具体实际版本记录在获准组合及证据中，键位和入口使用真实平台验证；Linux 模拟 Win32 不能替代 Windows/WSL2 验收 |
 | Q3 初始目标 | 目录 1,000 个 Session；单 Session 基准语料 10,000 个原生 entry／100 MiB 序列化历史。参考 4 vCPU、8 GiB、SSD；稳定运行且无待答交互时，目录/会话首屏 P95≤3 秒、旧历史分页 P95≤1 秒、Bun Host 自身 RSS≤512 MiB。OMP、浏览器、工具另计，首次启动及模型/工具耗时另测 |
 
-Q3 是必须实测的初始目标，当前没有通过证据。不达标须优化、补能力或明确与维护者调整，不能用截断历史、
+Q3 是必须实测的初始目标，通过记录见 `tests/product/evidence/performance-2026-11-24-product.json`（最终 stock DSH 组合上 30 次采样：首屏 P95 1089.8 ms、旧分页 P95 374.4 ms、Host 峰值 RSS 247.0 MiB，可达性 49 步 / 12783 节点完整；每次替换都先等文档动画帧与 500 ms 请求静默窗口，再重载产品 URL，测量窗口不包含导航中断）；该记录只对记录的组合（4/20 核 affinity、`MemoryMax=8 GiB` 硬限、本机 20 核 19.4 GiB）有效，其他机器须重测。不达标须优化、补能力或明确与维护者调整，不能用截断历史、
 减少既定功能、隐藏失败样本或更换未披露的机器达标。附件原件、单项协议、解码和模型预算分别验收。
 
 ## 范围与准入边界
@@ -140,5 +142,19 @@ fixture 来源、操作/期望/实际状态、测试及脱敏日志/trace/截图
 虚假成功解除阻塞。先处理 S0 的已知协议/客户端缺口，接口定义由同版本 wire/schema/client/server 一起设计。
 初始目标未达标、公共语义无法实现或补丁扩成核心重写时，带证据返回相应决定；不默默改变范围。
 
-本规划工单和地图关闭只确认开发方向、验收与交接依据。当前 runtime 仍是 health-only scaffold，
-公开兼容产物、最终 roster、真实全局安装及整套产品验收尚待交付。
+本规划工单和地图关闭只确认开发方向、验收与交接依据。最终组合已冻结、验证并录入身份
+（`docs/release-final.md`、`docs/evidence/ticket-61-freeze.json`）；不可变公开发布仍被
+`packages/delivery/gate.ts` 阻断，维护者操作验收尚未执行，见 `docs/evidence/ticket-61-acceptance.md`。
+Windows 最终 head `c5949a6` 的真实 OS 输入已部分复测：真实 Ctrl+C 复制、外部剪贴板粘贴、真实 Enter
+发送与 Explorer 拖入 `drop.txt` 和可见的 `pixel.png` 均观察到；但该附件发送丢失 worker
+（`SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED`，提交结果未确认），随后 Host 以
+`SESSION_WORKER_DRAINING` 拒绝新会话/重开会话，因此附件回合的 fileMention/provider 未获确认，
+Windows 附件路径不能记为通过；证据见 `docs/evidence/ticket-63-windows-input.json`。
+
+修复后的候选 head `fb1f246790`（父 `c21e394`）已在同版本组合上验证：
+worker 根退出后 0.47 s 即可在同一浏览器凭据内创建新原生 Session，旧未决 Session 保持
+`SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED` 且刷新不自动打开；stock 附件降级必须显式接受，
+拒绝时不发送、不产生 native control，接受后发送准备好的 200×200 图像；真实 provider 精确附件回合
+（`drop.txt` fileMention + `pixel.png` 原生 image + assistant + terminal generated）通过。
+Windows 真实 OS 输入在该 head 上因控制台处于锁屏而未重跑，记为 **BLOCKED**，不得折算通过；
+维护者操作验收仍未执行，见 `docs/evidence/ticket-63-consent-attachments-worker-loss.json`。

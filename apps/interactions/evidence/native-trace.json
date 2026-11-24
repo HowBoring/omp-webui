@@ -1,0 +1,23 @@
+{
+  "kind": "actual-native-interaction-worker-process-network-trace",
+  "status": "PASS",
+  "scope": "synthetic profiles; guarded public rpc-ui workers; no real provider/model calls",
+  "exitCode": 0,
+  "traceLines": 2001,
+  "inetSyscalls": 0,
+  "inetDispatchSyscalls": 0,
+  "unixSocketpairs": 63,
+  "execveCount": 20,
+  "guardBoundaryInjectedAttempts": 15,
+  "publicClientBlockedMetadataAttempts": 3,
+  "actualSdkLoopBlockedMetadataAttempts": 3,
+  "attemptCountEvidence": "asserted by native-client.ts/native-core-loop.ts stderr observers; injected guard tests are separate",
+  "traceSha256": "756877f3fb90a7d19c7e254acd38d48c6868c113dc310f87b253d1961b25ed98",
+  "testOutputSha256": "6ab3523f0dc91a04e7dc78ac1df9769e6db5956c01164e37780b399b58f3f0e7",
+  "OMP": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9387aee5beda5f2843e0558eed9a9ce1ebfe1251ff4286da2e2dc7d7cad7d6ae",
+    "patchSha256": "b69f38c5fd03046fb3dad417a84297a8f8292bbb1546bcd5be334c31219cf858",
+    "schemaSha256": "67cd13dea944971fd5c6885674d507fd6c3c25f385376207a0a9c4250c03b753"
+  }
+}

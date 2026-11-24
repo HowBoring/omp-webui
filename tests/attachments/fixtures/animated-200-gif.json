@@ -1,0 +1,86 @@
+{
+  "fixture": "tests/attachments/fixtures/animated-200.gif",
+  "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+  "authoring": {
+    "library": "Pillow 13.0.0",
+    "mode": "P",
+    "size": [
+      200,
+      200
+    ],
+    "palette": "First two RGB colors are the frame colors, remaining 254 colors black.",
+    "frameIndices": [
+      0,
+      1
+    ],
+    "saveOptions": {
+      "format": "GIF",
+      "save_all": true,
+      "duration": [
+        80,
+        120
+      ],
+      "loop": 0,
+      "disposal": 2,
+      "optimize": false
+    }
+  },
+  "bytes": 2263,
+  "originalSha256": "9fc83392f6ac16f708340fc43181bdb9469390402bf7054c8e2d46f26289051b",
+  "originalCarrierRepresentationSha256": "7f011bc0cc9aae1cdea6ce39accaaf28164362331282f3c4ded6f137f6e87df5",
+  "originalCarrierRepresentationMeaning": "Independent compact JSON kind,mimeType,data,width,height for ORIGINAL GIF carrier, explicitly NOT a predicted Native prepared representation.",
+  "container": "GIF89a with trailer",
+  "width": 200,
+  "height": 200,
+  "frames": 2,
+  "loop": 0,
+  "decodedFrames": [
+    {
+      "index": 0,
+      "width": 200,
+      "height": 200,
+      "rgbSolidColor": [
+        37,
+        83,
+        127
+      ],
+      "durationMs": 80,
+      "disposal": 2,
+      "decodedRgbBytes": 120000,
+      "decodedRgbSha256": "6d16cd30a7a8d038832c85569b05a51253c98e106ba9332b487e297211efa72d"
+    },
+    {
+      "index": 1,
+      "width": 200,
+      "height": 200,
+      "rgbSolidColor": [
+        191,
+        109,
+        43
+      ],
+      "durationMs": 120,
+      "disposal": 2,
+      "decodedRgbBytes": 120000,
+      "decodedRgbSha256": "b33413d7cf0d554be0b814c186634c3685cf9d35fad56b4cad087c9d4af5d0cd"
+    }
+  ],
+  "independentValidation": "Pillow reopens/loads both frames and verifies all RGB pixels, geometry, duration, disposal and frame count. hashlib pins original, both decoded RGB buffers and original-carrier compact JSON. No Bun.Image/OMP/SDK/native converter imported or evaluated.",
+  "expectedNativePreparation": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "degradations": [
+      "image_transformed",
+      "animation_first_frame_only"
+    ],
+    "width": 200,
+    "height": 200,
+    "mimeTypes": [
+      "image/png",
+      "image/jpeg"
+    ],
+    "factsFrames": 2,
+    "factsDecodedBytes": 320000,
+    "preparedBytesAndSha256": "UNPREDICTED converter-specific PNG/JPEG bytes/count/hash. Runtime checks canonical public representation digest consistency, changed carrier, indexed saved part and controlled provider delivery.",
+    "basis": "prepareImage counts original GIF frames; animated or GIF input is converted through Bun.Image(...).png() then resizeImage(excludeWebP:true). It always declares image_transformed for GIF and animation_first_frame_only for two frames. 200x200 dimensions are within resize floor/caps. Model input declares text/image.",
+    "limits": "Original frame pixels are independently pinned. Prepared output pixels, first-frame fidelity and prepared frame count are NOT independently decoded/evaluated. animation_first_frame_only is the Native declared contract; do not infer fidelity from this declaration or carrier hash."
+  }
+}

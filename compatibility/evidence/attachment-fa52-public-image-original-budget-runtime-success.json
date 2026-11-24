@@ -1,0 +1,395 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_ACTUAL_PUBLIC_10MIB_AND_EXPLICIT_ORIGINAL_BUDGET_REFUSAL_CASE",
+  "hostHeadDuringActual": "d3ce63246f14979c884704e653cf15d53f29fb12",
+  "hostTreeDuringActual": "905aca86fc24ea6ceff5dd92e32a106d363dc5a3",
+  "testSource": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 94899,
+    "sha256": "f8daa3ae9141aa2805b35f99b9d7cd84d045878018d905bf520b86681bc8894e",
+    "name": "actual public 10MiB PNG requires transformation consent and reports original budget for one byte over"
+  },
+  "sourceReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-public-v3-source-ready.json",
+    "bytes": 19347,
+    "sha256": "dadfec154fdeca6d2d1687a717f0e65e636e826147d703034b52e03fade0e376"
+  },
+  "sourceFreeze": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/final-inputs.json",
+    "bytes": 18938,
+    "sha256": "0065acdef2672930fcc7101f49b723c0d0646405c6d82792d37c49bbd67a8c76"
+  },
+  "compiledManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/compiled-manifest.json",
+    "bytes": 14500,
+    "sha256": "9bae31f42bf99a0eebd5a89b3f20813c3ff8558e766b442efc233535e56932b4"
+  },
+  "expectedAndActualPublicBuild": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+    "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "runtimeMeaning": "This case DID execute the actual controlled NativeAgentloop via publicRPC and the literalcontrolledprovider; no realAI/networkrequest/privateSession/globaldata admission. This is not compiler-only evidence.",
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 12,
+    "expectCalls": 75,
+    "caseDurationMs": 8320.34,
+    "reportedDuration": "8.44s",
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "diagnosticGap": "CLOSED_FOR_THIS_PUBLIC_CASE: exactly10485760B PNG ready;10485761B validPNG faileditemattachment_original_budget before helper/admission/effects, followed bysubmissionATTACHMENT_NOT_READY. Historicalgenericconvertererror evidence remains unchanged; fullQ6/38/MVP not closed.",
+  "earnedPublicBehavior": [
+    "Valid10485760B PNG/SHA77924f168b5bef101d0ac293965b1f8a7aecaecfd1b7335bc4cac0ff812db5b1 isready; actual13981386B publicwire includesbase64/metadata/newline and remains below50331648B. Oneobject/rawtotalbelow33554432B isolatesimageceiling.",
+    "Preparedimage is590B200x200PNG with knownrepresentationSHAd39598a3d443533997fb6f9bdb856a1f7d05912f78753c9653391dae5b8942ff. IndependentPNG/filter/zlib pixeloracle requires160000opaque-whiteRGBAbytes/SHA cdbf6c0880cfbeebfa8480444fef83685e70091bf1f23a5e8a71564d1f8be33a. Originalunsafe-to-copy privatepadding is not retained asoriginal; image_transformed is explicit.",
+    "Preparation addsnoentries/model/tool effects. Missingimage_transformed consent refusesATTACHMENT_DEGRADATION_CONSENT_REQUIRED, queryabsent/unresolved withnoreservation/relations/effects. Explicitactualreceipt/digest/draftRevision/authority acceptance admits exactlyone succeeded/generated/committedreservation/input withselectedtarget/origin/preparation.",
+    "Publicrelation.entryId plus actualcontentindex selects exactsavedimage/data/MIME and matchingattachmentlink. Sameentrypublichistory rows matchorigin/inputrole/link. Hashes witnesscontent, notcausalidentity.",
+    "Exactlyonecontrolledinput/modelattempt/dispatch/request, noadditionaltool/blockedgrowth; provider observes oneimage/png590B with preparedbyteSHA consistency, noattachmentText. Knownrepresentation andindependentpixeloracle constrain delivery. Repeatedterminalquery addsnoeffects, not a duplicate-submit/restart proof.",
+    "Valid10485761B PNG/SHAba7976fc44daa4f000c1f7dd68d8ea6d14275fa100fc9a543b2391a58967a780 produces command-success failedreceipt/itemoriginalSha exact, preparedSha empty andcodeattachment_original_budget. Its13981384B wire andoneobject/rawtotalbelow32MiB isolateperimagebudget. SubmitrefusesATTACHMENT_NOT_READY before reservation/admission/entries/provider effects, queryabsent. CompletecallerDraft/base64/decodedSHA remainexact; failedreceiptcancel returnscancelled:true."
+  ],
+  "publicPreflight": {
+    "report": {
+      "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT",
+      "candidate": "image-original-budget-v2",
+      "processId": 650807,
+      "actual": {
+        "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+        "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+        "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+        "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+      },
+      "runtime": {
+        "name": "bun",
+        "version": "1.4.4",
+        "platform": "linux",
+        "arch": "x64"
+      }
+    },
+    "drain": {
+      "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT_DRAIN",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 0
+      }
+    },
+    "meaning": "Public compiledpreflight report plus original narrowtransport drain, not physicalgenerated9 equivalence or descendant proof."
+  },
+  "identityComposition": "ActualpublicPF PID650807 reportsd8d12dee/069eaf6f/8f9c3a/base7c49 through selectedcompiledPF; originalnarrowtransport returnscode0/forcedfalse/stderr0. PhysicalNativepreflight.generated remains historical9f33, distinct\u2014not equivalent or rewritten. Allfive deferredNative targets/full10715 and additiveartifacts were frozen andRootpostchecked. GlobalHostidentity/productadmission unchanged.",
+  "runner": {
+    "status": "PASS",
+    "case": "actual public 10MiB PNG requires transformation consent and reports original budget for one byte over",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public 10MiB PNG requires transformation consent and reports original budget for one byte over$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-image-original-budget-v3-20261117-aylwmjrz",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-image-original-budget-v3-20261117-aylwmjrz",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-image-original-budget-v3-20261117-aylwmjrz",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T15:20:05.357817+00:00",
+    "startedMonotonicNs": 197687231305342,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "evidenceDirectory": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq",
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "runnerScript": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/public-retainer.py",
+      "bytes": 9959,
+      "sha256": "5c96805a1f2afd4155746f4d84d04eca138cead89d78987e1b3012f848c03dda"
+    },
+    "runnerPid": 650794,
+    "runnerWaitStatus": 0,
+    "originalWaitObserved": true,
+    "originalReaderJoinsObserved": true,
+    "originalStreamEofObserved": true,
+    "finishedAt": "2026-11-17T15:20:13.807904+00:00",
+    "finishedMonotonicNs": 197695681400620,
+    "stdoutStderrFilesClosedAfterOriginalWaitAndBothReaderJoins": true,
+    "capture": {
+      "stdout": {
+        "observedBytes": 621,
+        "observedSha256": "39e4f5798975c7d01f62e0b4c1bc7669f02a7f1224acda03b1eae6282bc604c7",
+        "capturedBytes": 621,
+        "captureLimitBytes": 1048576,
+        "streamEof": true,
+        "overflow": false,
+        "readError": null,
+        "writeError": null,
+        "flushError": null,
+        "diskError": false,
+        "pass": true,
+        "file": {
+          "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/stdout.txt",
+          "bytes": 621,
+          "sha256": "39e4f5798975c7d01f62e0b4c1bc7669f02a7f1224acda03b1eae6282bc604c7"
+        },
+        "savedFileSizeMatchesConfirmedWrites": true,
+        "accepted": true
+      },
+      "stderr": {
+        "observedBytes": 247,
+        "observedSha256": "0dd6b3a4ac668436bcad87a57388ee7d297d9deec4e600859bf5b9533682a49a",
+        "capturedBytes": 247,
+        "captureLimitBytes": 1048576,
+        "streamEof": true,
+        "overflow": false,
+        "readError": null,
+        "writeError": null,
+        "flushError": null,
+        "diskError": false,
+        "pass": true,
+        "file": {
+          "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/stderr.txt",
+          "bytes": 247,
+          "sha256": "0dd6b3a4ac668436bcad87a57388ee7d297d9deec4e600859bf5b9533682a49a"
+        },
+        "savedFileSizeMatchesConfirmedWrites": true,
+        "accepted": true
+      }
+    },
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "publicPreflightAudit": {
+      "report": {
+        "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT",
+        "candidate": "image-original-budget-v2",
+        "processId": 650807,
+        "actual": {
+          "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+          "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+          "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+          "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+        },
+        "runtime": {
+          "name": "bun",
+          "version": "1.4.4",
+          "platform": "linux",
+          "arch": "x64"
+        }
+      },
+      "drain": {
+        "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT_DRAIN",
+        "drain": {
+          "code": 0,
+          "forced": false,
+          "stderrBytes": 0
+        }
+      },
+      "meaning": "Public compiledpreflight report plus original narrowtransport drain, not physicalgenerated9 equivalence or descendant proof."
+    },
+    "topSyntheticHomeRetained": "/tmp/attachment-runtime-image-original-budget-v3-20261117-aylwmjrz"
+  },
+  "preAndPost": {
+    "precheck": {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/precheck.json",
+      "bytes": 2892,
+      "sha256": "645072b86e1135b87770815800641b382d08d7b83d51fb77ec39600ac3cb680a"
+    },
+    "postcheck": {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/postcheck.json",
+      "bytes": 2844,
+      "sha256": "34419e9a9fbc16bcacbae5bc22e6f27cd9f67fcde2a7277b2e26996caabf6e4e"
+    },
+    "currentSourceRecords": 978,
+    "baseSourceRecords": 920,
+    "sourceOverrides": 2,
+    "nativeFiles": 10715,
+    "nativeIndex": {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+      "bytes": 1271154,
+      "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+    },
+    "allOldCompilerFailPassPreserved": true,
+    "perCaseHomesBefore": [],
+    "perCaseHomesAfter": [],
+    "perCaseHomesUnchanged": true,
+    "postRawStatus": "PASS_FRESH_SOURCE_METADATA_NATIVE_RUNTIME_NOT_RUN",
+    "postStatusMeaning": "The suffixNATIVE_RUNTIME_NOT_RUN belongs to this metadata-onlychecker; it does NOT negate the actualcontrolledNativeexecution above. Immutable rawlabel/limits describe checkeractions only."
+  },
+  "sourceLiteralExpectations": {
+    "record": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/png-ten-mib-boundary.json",
+      "bytes": 4274,
+      "sha256": "b6885123a73dc0232eb72bbdc7a8bf7829e869e4709b44299410e414ce35ccfa"
+    },
+    "labels": "ImmutableprerunSource labels andoldgenericexpectation remainhistorical; actualupdatedpublicassertions earnedcurrentstablecode only.",
+    "original": {
+      "bytes": 10485760,
+      "sha256": "77924f168b5bef101d0ac293965b1f8a7aecaecfd1b7335bc4cac0ff812db5b1",
+      "ancillaryChunks": 160,
+      "fullChunks": 159,
+      "lastChunkDataBytes": 63548
+    },
+    "over": {
+      "bytes": 10485761,
+      "sha256": "ba7976fc44daa4f000c1f7dd68d8ea6d14275fa100fc9a543b2391a58967a780",
+      "ancillaryChunks": 160,
+      "fullChunks": 159,
+      "lastChunkDataBytes": 63549
+    },
+    "expectedPrepared": {
+      "status": "SOURCE_EXPECTATION_UNEXECUTED",
+      "mimeType": "image/png",
+      "width": 200,
+      "height": 200,
+      "bytes": 590,
+      "representationSha256": "d39598a3d443533997fb6f9bdb856a1f7d05912f78753c9653391dae5b8942ff",
+      "degradations": [
+        "image_transformed"
+      ],
+      "facts": {
+        "sourceWidth": 1,
+        "sourceHeight": 1,
+        "frames": 1,
+        "decodedBytes": 4
+      },
+      "opaqueWhiteRgba": {
+        "bytes": 160000,
+        "sha256": "cdbf6c0880cfbeebfa8480444fef83685e70091bf1f23a5e8a71564d1f8be33a"
+      },
+      "basis": "UnchangedresizeImage neverfastpaths1x1 (floor200), so both old68B PNG and padded10MiB use same200x200 decode/encode path. Ancillaryunknown chunks and repairedCRC do not change decodedpixels; exact590B/d395 pin is historical known-output regression, not a new codec prediction. Pure zlib/filter/CRC witness independently requires every prepared pixel RGBAwhite; noNative codec imported.",
+      "encodedByteSha256": "UNPREDICTED/not separately retained in priorproof; provider bytehash consistency only, bounded by fixed known representationSHA and independent whitepixel witness. Wholemodel layout unclaimed."
+    }
+  },
+  "originalTools": {
+    "preRun": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-public-v3-root-tool.json",
+      "bytes": 7861,
+      "sha256": "4acba895cf0e54840fe65d48fbae4e556cdf01142ad6760bbc8626af277e9d33"
+    },
+    "post": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-public-v3-root-post-tool.json",
+      "bytes": 3094,
+      "sha256": "6eb79792d5c9560f2d90551fd90236a459a27f26f62c7f1a45a1bb8b7aba3d4d"
+    },
+    "pre": {
+      "initialChunk": "f2202f",
+      "session": 52183,
+      "completionChunk": "e08f16",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "af7a68",
+      "session": 81365,
+      "completionChunk": "bf1ac5",
+      "exitCode": 0
+    },
+    "postcheck": {
+      "initialChunk": "00dd36",
+      "session": 84253,
+      "completionChunk": "27e9bd",
+      "exitCode": 0
+    }
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/precheck.json",
+      "bytes": 2892,
+      "sha256": "645072b86e1135b87770815800641b382d08d7b83d51fb77ec39600ac3cb680a"
+    },
+    {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/postcheck.json",
+      "bytes": 2844,
+      "sha256": "34419e9a9fbc16bcacbae5bc22e6f27cd9f67fcde2a7277b2e26996caabf6e4e"
+    },
+    {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/runner.json",
+      "bytes": 4523,
+      "sha256": "c9383193cbb849e5ffa9cba36ec86c19aef88209436ae0d4b8c5bfaea754bdd8"
+    },
+    {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/start.json",
+      "bytes": 1621,
+      "sha256": "fc387e22aa3be31d55b33814f94d0e94c2efb7fc4072da09ebb7be87ec881a8c"
+    },
+    {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/used-once.json",
+      "bytes": 104,
+      "sha256": "c47894ea44b9dc7bcdf99113e06d85425d93c09a3c909f8d4db76e9cb65e6139"
+    },
+    {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/stdout.txt",
+      "bytes": 621,
+      "sha256": "39e4f5798975c7d01f62e0b4c1bc7669f02a7f1224acda03b1eae6282bc604c7"
+    },
+    {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/stderr.txt",
+      "bytes": 247,
+      "sha256": "0dd6b3a4ac668436bcad87a57388ee7d297d9deec4e600859bf5b9533682a49a"
+    },
+    {
+      "path": "/tmp/ticket-38-public-image-original-budget-v3-20261117-c9_8ldpq/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-public-v3-root-tool.json",
+      "bytes": 7861,
+      "sha256": "4acba895cf0e54840fe65d48fbae4e556cdf01142ad6760bbc8626af277e9d33"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-public-v3-root-post-tool.json",
+      "bytes": 3094,
+      "sha256": "6eb79792d5c9560f2d90551fd90236a459a27f26f62c7f1a45a1bb8b7aba3d4d"
+    }
+  ],
+  "retainedEvidencepack": {
+    "archive": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-evidencepack-20261117/raw.tar.gz",
+      "bytes": 5370,
+      "sha256": "7a92b78d94f41a00c6cc1ad737c8b428e4b03c977e33f4a5e380b3b1761a72af"
+    },
+    "manifest": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-evidencepack-20261117/manifest.json",
+      "bytes": 3650,
+      "sha256": "b518d4a26e2d3fb01d2dc51fc826ca05687ded8de3ea66f6113b6ac919cfb9e5"
+    },
+    "memberCount": 11,
+    "uncompressedBytes": 27525,
+    "readback": "Orderedregularnames/sizes/SHA/fullbytes exact without extraction."
+  },
+  "drainLimits": "ToporiginalBun650794wait0/bothreaders/actualEOF andfull621+247B captures; publicPFactual650807cleantransport only. Otherworker/catalog/serializer/converter exactPID/wait/forced results notseparatelyexported. No P_ALL/ECHILD/descendant extinction. TopsyntheticHOME retained; percasehomes empty/unchanged isfilesystemmetadata only.",
+  "oracleLimits": "Dynamicreceipt/entry/preparedIDs andfullprovider/RPCpayloads were asserted butnotseparatelyexported. No NativeSession/historyfiles read/copied during retention; no inventedencodedNativebyteSHA or completeproviderlayout proof.",
+  "previousCompilerFailAndPass": {
+    "proof": {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-compiler-evidence.json",
+      "bytes": 8303,
+      "sha256": "b0e9cb8771b478600e02666d4e0db13682dbe853c5ddc09141f5c3063dec4c07"
+    },
+    "firstFailPack": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-fail-preserve-20261117/raw.tar.gz",
+      "bytes": 609265,
+      "sha256": "d939e3be40e14198c9993b6363aa69f25bb9adc533c0875c748fee7f28df955b"
+    },
+    "compilerPassPack": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-v2-evidencepack-20261117/raw.tar.gz",
+      "bytes": 61993,
+      "sha256": "86030b3cb81ea6664792056058fe8b0c20699a2108a0bef34ab29982666f23a1"
+    }
+  },
+  "limitations": [
+    "Oneanchoredpubliccase only;12others filtered andearlierformat/count/textproofs keepindividualscopes.",
+    "Malformedbase64/unsupportedtypes/formatmismatch/corruptimages andstale/expiry/cancel-late/replay/restart publicmatrices notearnedbythiscase. Failedreceipt cancellation andterminalquery repetition are notthose proofs.",
+    "Guard0dispatch/0denied isinstrumentedevidence, notgeneralsyscallnetworkproof.",
+    "No Host/browser/originalstorage/durabledraft/global/private/product admission. Whole29/38/53/54 open."
+  ],
+  "evidenceOnlyActions": "Capturedraw/tool/sourceassertion reads, allowlistpack/readback andnewproof/usage/note only. No consumedpre/run/post/absencechecker/retest, Native/index/schema/code/build/generator/global/sourcebehavior change, actor/Host/browser/kernel/GH/merge/push."
+}

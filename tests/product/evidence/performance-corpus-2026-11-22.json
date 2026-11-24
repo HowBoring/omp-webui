@@ -1,0 +1,42 @@
+{
+  "kind": "S5-native-performance-corpus-record",
+  "corpus": "vendor/performance-fixture/corpus.json",
+  "privateData": false,
+  "generated": "2026-11-22",
+  "command": "bun scripts/create-performance-corpus.ts",
+  "seed": "omp-webui-s5-performance-v1",
+  "generator": {
+    "path": "scripts/create-performance-corpus.ts",
+    "sha256": "ff7e8663ce9b046a67a415720547827b3c015641f3d1f14f463997dbab43eae6"
+  },
+  "reproducible": "cross-checkout: the catalog and the history pin every session cwd to <corpus>/project and record the canonical digests with that token, so two generations in different directories (vendor/performance-fixture and /tmp/corpus-alt) produced identical generator, catalog canonical and history canonical digests; ids and timestamps are assigned deterministically and createdAt is the only varying field",
+  "limits": {
+    "catalogSessions": 1000,
+    "historyEntries": 10000,
+    "historyBytes": 104857600
+  },
+  "catalog": {
+    "sessions": 1000,
+    "idsSha256": "697dbe016ff2d86a65747a56cbedc0c8c78bfacdf1fdb32d71845f75f07d04f6",
+    "canonicalFilesSha256": "88143d4635a41abb61fcb68417ecc86f9d219acccab8e9fcc7289301eb35063b"
+  },
+  "history": {
+    "entries": 10000,
+    "bytes": 112923783,
+    "sha256": "ca817c61140ff5d852e2e9d22e2beb6e6137de017d074ad8166f63922f90d8a1",
+    "canonicalBytes": 112923723,
+    "canonicalSha256": "55f7bca15c702068b0fbab3874b3837e735710bd2362f4fa095f0f283fc54dcd"
+  },
+  "superseded": [
+    {
+      "generated": "2026-11-22",
+      "reason": "pre-canonical corpus whose digests embedded the authoring checkout path",
+      "catalog": "0a3ee7365c493cb7aeb866f697a29acdace78b9fc81d16002c9ec48c4edd0a6b",
+      "history": "a8a5d98a4e1ea89df4f3a0b334f814b1d7eccb70611635bd70f62bab544213d5"
+    }
+  ],
+  "canonicalization": {
+    "token": "<corpus>/project",
+    "note": "Canonical fields replace the corpus project path (every Session's cwd) with <corpus>/project and are the reproducible identity. Raw bytes/sha256 are the payload as written in this checkout, because the gate grants the corpus project directory and the product lists only granted directories."
+  }
+}

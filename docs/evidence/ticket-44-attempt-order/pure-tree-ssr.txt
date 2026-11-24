@@ -1,0 +1,11 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/tree/remote.test.ts:
+(pass) public Tree component folds retained segments and selection leaves current position unchanged [199.88ms]
+(pass) a larger synthetic tree remains reachable through native pages and renders bounded node windows [308.00ms]
+
+ 2 pass
+ 20 filtered out
+ 0 fail
+ 13 expect() calls
+Ran 2 tests across 1 file. [856.00ms]

@@ -1,0 +1,104 @@
+{
+  "kind": "ticket-63-real-provider-restart",
+  "recordedAt": "2026-11-23T16:57:18Z",
+  "base": "b69d21cff4a4173bc9f770b2f864457fb25abe37",
+  "scope": "Fresh real-provider acceptance on the maintainer's own Host (127.0.0.1:3180, real ~/.omp provider configuration, kimi-code/k3.1-pro) after the stock Sessions overlay was changed to read every Host catalog page by nextCursor. No evidence is reused from the controlled-provider restart record in ticket-63-restart-auth.json.",
+  "identity": {
+    "installationManifestSha256": "2c571fab479c512e40c1fe6f67e89c8d2aec12497751a6676634395c304ef022",
+    "enrollmentAssets": 152,
+    "worktree": "/home/howboring/Projects/omp-webui-review-stock",
+    "branch": "mvp/spec-29"
+  },
+  "defect": "The stock Sessions overlay requested only catalog page 1 (pageSize 32). With 87 catalog rows the admitted Session was on page 3, so the row rendered with Open disabled and 'not discovered now'.",
+  "changes": [
+    "apps/chat/src/session-catalog.js reads pageSize-32 catalog pages until nextCursor is absent/empty, stops on a repeated cursor and deduplicates selectionId, with a liveness guard.",
+    "apps/chat/src/product-enrollment.js lists Sessions through readSessionCatalog, so manual Open stays bound to a selectionId the Host actually listed.",
+    "tests/product/session-catalog.test.ts proves the page-2 row becomes selectable only when listed; tests/product/restart-flow.py seeds 40 older native Sessions and proves the admitted row survives page 1."
+  ],
+  "native": {
+    "nativeSessionId": "01a20394-7c96-7299-b1ed-efbbadbd1d79",
+    "sha256Before": "4de949ce684eee67f09fb35eca8be8b02c3c767aec2882b08d5b33bb00495f5d",
+    "sha256AfterOpen": "4de949ce684eee67f09fb35eca8be8b02c3c767aec2882b08d5b33bb00495f5d",
+    "sha256AfterTurn": "f7d177360e24987362c7d76ef829f62240e4a86493bece02ab038e91469cce84",
+    "recordsAppendedByTurn": 4
+  },
+  "checks": {
+    "attemptBefore": {
+      "state": "outcome_unknown",
+      "code": "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED"
+    },
+    "workersBeforePageLoad": [],
+    "noAutoOpen": {
+      "oldReply": false,
+      "oldPrompt": false,
+      "workers": [],
+      "shellState": "session-tree"
+    },
+    "sessionsOverlay": {
+      "rowText": "01a20394-7c96-7299-b1ed-efbbadbd1d79 · /home/howboring/Projects/omp-webui · last attempt outcome_unknown · SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED | Open Session",
+      "catalogRows": 87,
+      "openEnabled": true,
+      "catalogRequests": [
+        {
+          "pageSize": 32
+        },
+        {
+          "pageSize": 32,
+          "cursor": "snap:32"
+        },
+        {
+          "pageSize": 32,
+          "cursor": "snap:64"
+        },
+        {
+          "pageSize": 32
+        },
+        {
+          "pageSize": 32,
+          "cursor": "snap:32"
+        },
+        {
+          "pageSize": 32,
+          "cursor": "snap:64"
+        }
+      ],
+      "catalogCursors": [
+        null,
+        "snap:32",
+        "snap:64"
+      ]
+    },
+    "openClick": {
+      "workers": [
+        3000897
+      ],
+      "historyRetained": true,
+      "retainedCounts": {
+        "oldPrompt": 1,
+        "oldReplyText": 2,
+        "assistantLeaves": 1
+      },
+      "nativeUnchanged": true
+    },
+    "postRecoveryTurn": {
+      "replyCount": 2,
+      "userTurn": true
+    },
+    "attemptAfter": {
+      "state": "open"
+    },
+    "consoleErrors": [],
+    "workersFinal": [
+      3000897
+    ]
+  },
+  "artifacts": "/tmp/t63-final-accept/final/{acceptance.json,01-after-restart.png,02-sessions-marker.png,03-opened.png,04-history.png,05-real-turn.png}; run log /tmp/t63-final-accept/final7.log",
+  "gates": {
+    "focused": "bun test tests/product/session-catalog.test.ts tests/product/enrollment.test.ts -> 4 pass",
+    "restartFlow": "tests/product/restart-flow.py PASS with 40 seeded older Sessions (41 rows, admitted row enabled)",
+    "realProvider": "this record",
+    "fullCheck": "bun run check PASS (lint, typecheck, full bun test suite, build, performance self-check)",
+    "productFreeze": "bun test tests/product/freeze.test.ts -> 10 pass after re-recording docs/evidence/ticket-63-freeze.json; frozen product digest 5a5e36b8a14bcc3d40b074a7a5f73627de65bc58e9b370b2589c3d945b3ec8fa, source tree f5cc084f803a001930f8d1c6fa1abba5bd78e08f",
+    "performance": "tests/product/performance.py --class product --samples 30 under systemd-run --user --scope -p MemoryMax=8G + taskset -c 0-3: first-page P95 1815.8 ms (limit 3000), old-page P95 553.6 ms (limit 1000), Host peak RSS 238.1 MiB (limit 512), reachability 49 steps / 12783 nodes, BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]"
+  }
+}

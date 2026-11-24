@@ -3,9 +3,9 @@
   "reviewedAt": "2026-11-15",
   "omp": {
     "repository": "https://github.com/can1357/oh-my-pi",
-    "ref": "main",
-    "commit": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-    "version": "18.20.2",
+    "ref": "v19.0.0",
+    "commit": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+    "version": "19.0.0",
     "rpc": {
       "targetProtocolVersion": 2,
       "supportedProtocolVersions": [
@@ -16,12 +16,12 @@
       "reference": "docs/rpc.md"
     },
     "release": {
-      "tag": "v18.20.2",
-      "url": "https://github.com/can1357/oh-my-pi/releases/tag/v18.20.2"
+      "tag": "v19.0.0",
+      "url": "https://github.com/can1357/oh-my-pi/releases/tag/v19.0.0"
     },
     "npm": {
       "package": "@oh-my-pi/pi-coding-agent",
-      "latest": "18.20.2"
+      "latest": "19.0.0"
     }
   },
   "dsh": {

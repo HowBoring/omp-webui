@@ -1,0 +1,212 @@
+{
+  "generatedAt": "2026-11-23T15:07:07Z",
+  "productMeasurement": "measured: product Host apps/host/src/main.ts over the enrolled installation (289e94d2542f47f493e806288351626814f4f60b31bc10257ebe3e8162f649d4) serving the 1000-Session corpus and the 10000-entry/100MiB history through the real catalog and session worker",
+  "admission": "admitted: product Host verified the enrolled installation and served the measured session",
+  "reference": {
+    "cpus": 4,
+    "memoryMiB": 8192,
+    "storage": "SSD",
+    "note": "Declared acceptance profile; actual runner recorded by the harness."
+  },
+  "actual": {
+    "cpus": 4,
+    "machineCpus": 20,
+    "cpuAffinityEmulation": "4 of 20 processors by affinity (taskset); not 4-vCPU hardware",
+    "memoryMiB": 19844,
+    "memoryLimitMiB": 8192,
+    "kernel": "Linux version 6.18.58.1-microsoft-standard-WSL2 (root@6869314ecc53) (gcc (GCC) 13.2.0, GNU ld (GNU Binutils) 2.41) #1 SMP PREEMPT_DYNAMIC Tue Oct 27 00:24:11 UTC 2026",
+    "filesystem": "ext4",
+    "browser": "Google Chrome 157.0.8103.38",
+    "controlledProvider": "config.yml extension compatibility/omp/fixtures/live-provider.ts with modelRoles.default s0-controlled/deterministic-live; deterministic fixture, not real model inference",
+    "runtime": "see corpus.json"
+  },
+  "corpus": {
+    "seed": "omp-webui-s5-performance-v1",
+    "generator": "ff7e8663ce9b046a67a415720547827b3c015641f3d1f14f463997dbab43eae6",
+    "limits": {
+      "catalogSessions": 1000,
+      "historyEntries": 10000,
+      "historyBytes": 104857600
+    },
+    "canonicalization": {
+      "token": "<corpus>/project",
+      "note": "Canonical fields replace the corpus project path (every Session's cwd) with <corpus>/project and are the reproducible identity. Raw bytes/sha256 are the payload as written in this checkout, because the gate grants the corpus project directory and the product lists only granted directories."
+    },
+    "catalog": {
+      "sessions": 1000,
+      "idsSha256": "697dbe016ff2d86a65747a56cbedc0c8c78bfacdf1fdb32d71845f75f07d04f6",
+      "canonicalFilesSha256": "88143d4635a41abb61fcb68417ecc86f9d219acccab8e9fcc7289301eb35063b"
+    },
+    "history": {
+      "entries": 10000,
+      "bytes": 112923789,
+      "sha256": "1e56c3f97cb5275fa6fb79d9eeadaf1e95751a9e8deb1a7de58655d8b80db475",
+      "canonicalBytes": 112923723,
+      "canonicalSha256": "55f7bca15c702068b0fbab3874b3837e735710bd2362f4fa095f0f283fc54dcd",
+      "typeDistribution": {
+        "message": 8980,
+        "message:user": 3100,
+        "message:assistant": 3880,
+        "toolCall": 1000,
+        "message:toolResult": 1000,
+        "branch": 100,
+        "message:fileMention": 1000,
+        "custom": 1000,
+        "custom:s5.performance-marker": 1000,
+        "reset_boundary": 10,
+        "compaction": 10
+      }
+    }
+  },
+  "protocol": {
+    "warmups": 2,
+    "samples": 30,
+    "nearestRankP95": "sorted[ceil(0.95*N)-1]",
+    "rssSamplingMs": 45.0,
+    "rssSource": "/proc/<pid>/status VmRSS + VmHWM",
+    "chatJournalLimitBytes": 201326592
+  },
+  "limits": {
+    "firstPageP95Ms": 3000.0,
+    "oldPageP95Ms": 1000.0,
+    "hostPeakMiB": 512.0
+  },
+  "installation": {
+    "manifestSha256": "289e94d2542f47f493e806288351626814f4f60b31bc10257ebe3e8162f649d4",
+    "freeze": "docs/evidence/ticket-63-freeze.json"
+  },
+  "classes": [
+    {
+      "class": "product",
+      "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+      "historyRows": 45,
+      "reachability": {
+        "nodes": 12783,
+        "steps": 49,
+        "more": false,
+        "firstNode": "Entry 0 \u6570\u636e \ud83d\udcdc xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "allNativeReachable": true,
+        "duplicatePresent": {
+          "nodesBefore": 12783,
+          "nodesAfter": 12783,
+          "preserved": true
+        },
+        "reset": null,
+        "reason": null,
+        "elapsedMs": 266283.7
+      },
+      "coldOpenMs": 15949.3,
+      "firstPage": {
+        "class": "product-first-page",
+        "samples": 31,
+        "all": [
+          899.9765329936054,
+          945.7344490219839,
+          679.6575690095779,
+          624.5488629792817,
+          917.2841460094787,
+          606.0641510121059,
+          987.2663330170326,
+          988.0198600003496,
+          647.5649019994307,
+          932.1361960028298,
+          929.0172809851356,
+          591.8206869973801,
+          995.9870089951437,
+          606.5251300169621,
+          862.9074580094311,
+          614.0932770213112,
+          604.8363669833634,
+          972.4357319937553,
+          907.3509900190402,
+          613.8763760100119,
+          642.4688730039634,
+          610.5534640082624,
+          603.8792809995357,
+          618.7125370197464,
+          597.3460790119134,
+          648.7259340065066,
+          910.710049996851,
+          935.7763279986102,
+          896.8750920030288,
+          925.1047110010404,
+          15949.3
+        ],
+        "maxMs": 15949.3,
+        "medianMs": 862.9074580094311,
+        "p95Ms": 995.9870089951437,
+        "limitMs": 3000.0,
+        "hostPeakMiB": 248.359375,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": true
+      },
+      "oldPage": {
+        "class": "product-old-page",
+        "samples": 30,
+        "all": [
+          295.4088620026596,
+          264.5091959857382,
+          294.04623902519234,
+          237.18304498470388,
+          357.4731720145792,
+          259.0330059756525,
+          296.64566298015416,
+          228.5476609831676,
+          249.00593698839657,
+          242.95227500260808,
+          355.175018979935,
+          360.3664169786498,
+          285.2989839739166,
+          348.6722460074816,
+          232.54204299882986,
+          336.1168960109353,
+          256.5876030130312,
+          352.24211297463626,
+          345.9310659964103,
+          274.38959301798604,
+          343.7458820117172,
+          335.9489219728857,
+          233.59194400836714,
+          247.88180500036106,
+          340.76824999647215,
+          334.53640301013365,
+          266.6126459953375,
+          345.5192430119496,
+          235.16845400445163,
+          246.24896098976023
+        ],
+        "maxMs": 360.3664169786498,
+        "medianMs": 289.6726114995545,
+        "p95Ms": 357.4731720145792,
+        "limitMs": 1000.0,
+        "hostPeakMiB": 248.359375,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": true
+      },
+      "rss": {
+        "hostSampledPeakMiB": 248.359375,
+        "hostOsPeakMiB": 248.0859375,
+        "hostPeakMiB": 248.359375,
+        "ompPeakMiB": 2263.77734375,
+        "browserPeakMiB": 5037.59765625,
+        "toolsPeakMiB": 60.48828125,
+        "samples": 7887
+      },
+      "teardownConsoleErrors": [],
+      "productAdmission": {
+        "stage": "product",
+        "sessionAdmission": "admitted",
+        "origin": "http://127.0.0.1:3193",
+        "runtime": {
+          "name": "bun",
+          "version": "1.4.4",
+          "platform": "linux",
+          "arch": "x64"
+        },
+        "installation": "289e94d2542f47f493e806288351626814f4f60b31bc10257ebe3e8162f649d4"
+      }
+    }
+  ]
+}

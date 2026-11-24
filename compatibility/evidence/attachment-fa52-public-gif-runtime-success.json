@@ -1,0 +1,337 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_PUBLIC_ANIMATED_GIF_CASE_ONLY",
+  "hostHead": "b24d0592688ee1ca0c353fab6b657778650f9f8a",
+  "hostTree": "64e79c3635c6dce186a71ef086c6816cc8f4dc75",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "rootAuthorization": "Root granted exactly ONE guarded anchored GIF actual attempt on clean b24d059 / READY b7ad706c / freeze db04b246, sole active top OMP window. Window used once and RELEASED immediately after actual outcome and original exec drain, before read-only postcheck/proof work. No further runtime authority.",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-gif-source-ready.json",
+    "bytes": 34747,
+    "sha256": "b7ad706c99fdf4daee866289b4881e8c8ee98a70ec216aac9969e908219937fc"
+  },
+  "frozenInputs": {
+    "path": "/tmp/ticket38-gif-source/final-inputs.json",
+    "bytes": 152404,
+    "sha256": "db04b24635f825396d2316c3b977110a2eb89545c7bb441e0f39d48caccd4d09"
+  },
+  "runner": {
+    "status": "PASS",
+    "case": "actual public animated GIF requires exact loss consent before indexed saved image and provider delivery",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public animated GIF requires exact loss consent before indexed saved image and provider delivery$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-gif-4zx9fe88",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-gif-4zx9fe88",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-gif-4zx9fe88",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T05:14:15.322378+00:00",
+    "startedMonotonicNs": 161337195864060,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "evidenceDirectory": "/tmp/ticket-38-public-gif-hirh7yk0",
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "runnerScript": {
+      "path": "/tmp/ticket38-gif-runtime.py",
+      "bytes": 7806,
+      "sha256": "b5e336e12004f8b00cd70a177d3e4a332d31a40f3db2116c70bef68d4a3c4305"
+    },
+    "runnerPid": 549029,
+    "runnerWaitStatus": 0,
+    "finishedAt": "2026-11-17T05:14:19.642336+00:00",
+    "finishedMonotonicNs": 161341515835315,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "stdoutBytes": 28,
+    "stdoutSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+    "stderrBytes": 248,
+    "stderrSha256": "8dcd5cdb918036d34af6ee7d11cf0241ef097b4b01ff596077d2d58781a6b04e",
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "topProfileRemoved": true
+  },
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 5,
+    "assertions": 55,
+    "durationReported": "4.32s",
+    "caseDurationMs": 4246.12,
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "earnedPublicBehavior": [
+    "Independent2263B two-frame200x200 GIF originalSHA9fc83392f6ac16f708340fc43181bdb9469390402bf7054c8e2d46f26289051b and ORIGINAL-carrier compact representationSHA7f011bc0cc9aae1cdea6ce39accaaf28164362331282f3c4ded6f137f6e87df5 match before preparation. Independent Pillow pins every RGB pixel in both original frames; carrier hash is not Native prepared-output prediction.",
+    "Actual public Native preparation returns exactly one ready PNG-or-JPEG image200x200, imageCapable bindingtrue, degradations exactly image_transformed and animation_first_frame_only. Actual prepared byte count1..512000, changed carrier byteSHA and canonical public representation digest consistency. Facts exactly originalBytes2263/source200x200/frames2/decodedBytes320000 and actual preparedBytes. Converter-specific MIME/count/hash scalar values not separately retained.",
+    "Preparation changes neither public entries nor provider effects. Missing all consent and transformation-only consent each refuse ATTACHMENT_DEGRADATION_CONSENT_REQUIRED before reservation/admission/effects. The same clientSubmissionId gif-success remains absent/unresolved/unknown with no relations and nextOffsetnull; entries/effects unchanged after both refusals.",
+    "Explicit acceptance of exactly image_transformed plus animation_first_frame_only for the returned receiptId/resultDigest/draftRevision/authorityGeneration succeeds. ONE terminal public query confirms found/succeeded/generated, committed reservation and persistence, exact selected target, origin clientSubmissionId gif-success and receipt consent binding.",
+    "Only returned public relation.entryId and actual entryPart content/index locate exactly one saved user image. Indexed saved part equals actual returned prepared MIME/data and full original/prepared link matches receipt. Same public entryId history rows require the same origin, input role and full link; no text/hash/order joins.",
+    "Exactly one new controlled input/model attempt/dispatch/request and one image contains actual prepared MIME, byte count and byteSHA. ToolCalls/blockedPayloads unchanged; no known prepared-document span. This witnesses prepared-byte provider delivery, not history causality or pixel fidelity.",
+    "Second terminal public query exactly equals first and adds no controlled provider effects."
+  ],
+  "identityDiscipline": "Only public relation.entryId and actual saved part kind/index supply causal history joins. Hashes witness bytes/contract consistency; text/hash/order never identifies history. No new private Native runtime imports or Native Session-file parsing.",
+  "contentOracleLimits": "Pillow independently reopens/loads BOTH authored original frames and pins full200x200 RGB pixels, frame count/geometry/durations/disposal. Prepared output pixels, first-frame fidelity and prepared frame count were NOT independently decoded/evaluated. animation_first_frame_only was actual required Native receipt declaration, not independent proof of retained pixels/frames. Encoder bytes/hash deliberately unpredicted. Receipt/indexed saved part/provider capture prove consistent prepared delivery only.",
+  "drain": {
+    "originalTool": "Original network-enabled exec fec81b/session48182 reached original poll1f3bbd actual exit0. No ongoing tool from this attempt; IDs are assistant-transcribed rather than independent tool archive.",
+    "originalPopen": "Original Python Popen retained Bun549029; child.wait returned0 before stdout/stderr files closed and final runner JSON. No added signals, outer timeout, recovery or fallback.",
+    "worker": "Unchanged withWorker awaited strictWorker.close and asserted actual code0. Close awaits original stdout reader and stderr; finally awaited original child.exited before owned home removal. Exact individual worker PID/drain object/stderr not separately retained.",
+    "catalog": "Unchanged selectedDescriptor awaited CatalogTransport.close in finally. Helper discards exact PID/DrainResult/exitcode/forced metadata; NOT CAPTURED. No invented exact catalog exitcode/zero-forced or descendant-extinction claim.",
+    "serializer": "Unchanged canonical title helper c4e684 preloads child no-provider BEFORE pure Native serializer import. Original stdout/stderr/exit awaits and code0+empty stderr assertion completed before worker startup. Exact child PID not separately retained.",
+    "converter": "Unchanged prepareAttachmentIsolated owns original converter handle and readers, awaits child.exited before ready and again in finally before owned synthetic profile removal. Successful ready traversed this implementation. Exact PID/individual wait/forced metadata not separately retained.",
+    "profiles": "Top synthetic profile removed and before/after per-case attachment-public homes both empty. Neither profile absence nor returned parent exit establishes descendant extinction."
+  },
+  "preAndPost": {
+    "status": "PASS",
+    "currentFrozenInputs": 505,
+    "matchedBuildToolRecords": 290,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "priorPreservedReferencesUnchanged": 475,
+    "prior437VerifiedBeforeSourceAnd415OlderRecordsPreserved": true,
+    "priorJPEGDOCXWebPPNGTextMixedProofsReadiesAndRawVerified": true,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "hostHeadTreeIndexExactBeforeAndAfterRuntime": true,
+    "hostIndexBeforeAndAfterRuntimeSha256": "789acc4feb4e8528952da00768784c92a0d5819ec94e48d4ec877772aeb1ee24",
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "sourceChangedDuringRuntime": false,
+    "perCaseAttachmentHomesBefore": [],
+    "perCaseAttachmentHomesAfter": [],
+    "limit": "Existing enrollment/saved references, not exhaustive runtime/dependency closure. Historical already-absent build references remain explicitly recorded in unchanged source READY."
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/original-tool-metadata.json",
+      "bytes": 840,
+      "sha256": "dc5535b379465146cb7ad5aadfd782081d967e546952de1bd10b61306cf05429"
+    },
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/postcheck.json",
+      "bytes": 2152,
+      "sha256": "1da0b0fff91bae534963a0e46960a4dce3223583a63e4481a3472cbb492b6ce9"
+    },
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/precheck.json",
+      "bytes": 2170,
+      "sha256": "be22e35813074a61e0e644d235354ae53602a3efb476cc5781dfc0c5cdd42a2f"
+    },
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/runner.json",
+      "bytes": 1959,
+      "sha256": "0034152e80df1e9ee760fe24a4f676f3a53cb66f649c7c61eedb786b23d80a55"
+    },
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/start.json",
+      "bytes": 1415,
+      "sha256": "1e474200976a5caeaa52e48e060833d0b0ccf92be22932c0fcab8489b52848e9"
+    },
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/stderr.txt",
+      "bytes": 248,
+      "sha256": "8dcd5cdb918036d34af6ee7d11cf0241ef097b4b01ff596077d2d58781a6b04e"
+    },
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-gif-hirh7yk0/used-once.json",
+      "bytes": 104,
+      "sha256": "0437a8726af0ad08e11e93911e4307b34ed3e14ae645d4303435f376f531c641"
+    },
+    {
+      "path": "/tmp/ticket38-gif-runtime.py",
+      "bytes": 7806,
+      "sha256": "b5e336e12004f8b00cd70a177d3e4a332d31a40f3db2116c70bef68d4a3c4305"
+    }
+  ],
+  "preservedEvidence": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-a640-e957-matched-build.json",
+      "bytes": 64977,
+      "sha256": "b0351acf4de7a0cb3e828dc5727ff07ed15ca6f13af79ed7a9d462195b4cd72e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-checkpoint.json",
+      "bytes": 2880,
+      "sha256": "4cb81180da56ce943d7a3dbc2491bd7cfd1e8f60717150bc3f896dc7113160be"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-consumption-checkpoint.json",
+      "bytes": 2628,
+      "sha256": "cba0725a9911750924683196be1e1f9c211f76d0c69d02f7bff2533c0f27323e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-first-runtime-failure.json",
+      "bytes": 6939,
+      "sha256": "0e96ce1ca487f2399ab3c5a205bab882cbf7adedf2b13d84d66337c456f78539"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-matched-build.json",
+      "bytes": 67109,
+      "sha256": "4bfe49cdeed1096629bd8fa5d740af5a5a66317071703163ccf962d537a639a2"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-public-mixed-refusal-runtime.json",
+      "bytes": 10748,
+      "sha256": "37f3b034dd38fa6a65453c29b90927d26dc910952e1ef8b86fae3bc17af783cc"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-public-text-runtime-success.json",
+      "bytes": 9662,
+      "sha256": "c6953a89135e1fb7a6b0311a5ee7595632486fb5f64901171099f217966e1b77"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-runtime-readiness.json",
+      "bytes": 13820,
+      "sha256": "3c1425c6bb0ec12ba807a4f4a3483980500a18a39680213be29bac7477ae2003"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-transform-runtime-failure.json",
+      "bytes": 7806,
+      "sha256": "38fe2bee042802285e27ad8491286038277a57b3f7049cbd594682884a2d57a9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-expansion-checkpoint.json",
+      "bytes": 4047,
+      "sha256": "b11cf0231d5b8e8d33809924d6ff817bd9fa9b807fedd35dbe7e243af3f7c3af"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-docx-source-ready.json",
+      "bytes": 20464,
+      "sha256": "5a75f38765ad622abb1691c10b9b4b909c5982099f53db2bb51da83a56270779"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-docx-window-usage.json",
+      "bytes": 1911,
+      "sha256": "6b7729563807666b69e481d3343f791f16d8fa93c6e37cc4f98e6aa74ebe8790"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-format-source-plan.json",
+      "bytes": 10845,
+      "sha256": "4cceb31574b6583088671af3bf4bff252bb6b7f290e2ee0f4520ac970e6ee463"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-jpeg-source-ready.json",
+      "bytes": 14221,
+      "sha256": "8d3d373ad6cd1199bae2397dca71495074a8e17326c0fc67478b2505a936f6d4"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-jpeg-window-usage.json",
+      "bytes": 1338,
+      "sha256": "1f3b553f107eb745c13377d8e72f91f1443ae3ed9f87f39e40fd9fda1930725a"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+      "bytes": 79268,
+      "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-mixed-refusal-window-usage.json",
+      "bytes": 2644,
+      "sha256": "d165f364c4e11a6592a4e7b3f6491a37bc2662349bd20d2a9c342341a6f608d9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-png-text-window-usage.json",
+      "bytes": 2634,
+      "sha256": "8f9705e251fb530a48d4c5dbe20e4af9e12d7cb4e8a41917d57251468e49ecdb"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-docx-runtime-success.json",
+      "bytes": 11423,
+      "sha256": "ab19813b2ecf5c74b511ffe798abe03d21adaeffc2105ffa2fc96b06a40a4367"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-jpeg-runtime-success.json",
+      "bytes": 11243,
+      "sha256": "6751ff3d5b2bb58b5c358ff9acbd844f5780c0b46554fe3b7d8a3c5713e0b865"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-mixed-refusal-runtime-success.json",
+      "bytes": 18176,
+      "sha256": "9df1958eceb6e742110a119612465a205514e15a439e2acb32e022e1430a9303"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-png-text-runtime-success.json",
+      "bytes": 19443,
+      "sha256": "165045594bcf16fe5fa0a0e37125a6c6388c7d2e09f524efde0178e4231d23a9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-webp-runtime-success.json",
+      "bytes": 14127,
+      "sha256": "bd5113489b9b63278cb108b8092b832abd619f328974646bab35426481d95353"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-webp-source-ready.json",
+      "bytes": 21160,
+      "sha256": "5324d8ef98817f712e43c551a6da5e03a3862d314e2d78aeeb3a64e9ce1a1cab"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-webp-window-usage.json",
+      "bytes": 2224,
+      "sha256": "97bd7a03ec1c42e2dfe823fc1724ab1a50ec4dbe811fca9b58c5aa5263c2b3e7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-provider-checkpoint.json",
+      "bytes": 3472,
+      "sha256": "f0f928da57493001695ec098c91ad59de7ec31356f57562526a973d8431bf9c2"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-source-carrier-checkpoint.json",
+      "bytes": 2469,
+      "sha256": "fbf700d11ca7829c562e49d4b2411fd8cf647143a4937d7b9bf446e1d404aeb6"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-source-recovery-checkpoint.json",
+      "bytes": 4611,
+      "sha256": "86d4dc4c685d307ce7da7be8d98eb6d9df4ecf6e1e00907d53850f21648d713b"
+    }
+  ],
+  "limitations": [
+    "Runtime receipt/entry IDs, prepared MIME/count/hash scalar values and per-case provider-effects JSON were asserted but not separately retained after fixture cleanup; do not invent them. Raw runner output retained.",
+    "Instrumented guard audit0dispatch/0denied is not general syscall/network proof.",
+    "Individual Native/catalog/converter/serializer identities/wait/forced metadata uncaptured; no descendant-extinction claim.",
+    "Prior isolated current Native9f33 JPEG33/DOCX45/WebP49/PNG-text47/mixed-refusal13 assertion passes remain earned only on their exact recorded inputs.",
+    "PDF/PPTX/XLSX/EPUB and remaining selected-format/refusal, budgets/lifecycle/stale/cancel/expiry/locator/restart/history/copy/branch/restore/persistence/fault/native data/TUI/provider, actual DSH/browser/full coherent1-10/reviews/whole38/MVP remain OPEN. Linux now; WindowsChrome/WSL2 owner-deferred; global path unselected."
+  ],
+  "noOtherActions": "No retry, source/product/API/schema fix, other case/format, rebuild/dependency mutation, Host/FFI/browser, GitHub/push/merge/closure, process census/PIDfallback/groupkill/fence/orphan444480 action.",
+  "admission": "ONE isolated public animated GIF case earned only. Runtime window RELEASED before read-only postcheck/proof; no further runtime authority. Private/global/product admission blocked; whole38/MVP OPEN."
+}

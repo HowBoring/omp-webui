@@ -1,0 +1,578 @@
+{
+  "status": "CURRENT_C_EXTERNAL_BACKPRESSURE_PASS_DRAINED",
+  "issue": "https://github.com/HowBoring/omp-webui/issues/41",
+  "scope": "ONE_R18_FIXED_SYNTHETIC_BROKER_FAKE_DISPATCHER_CURRENT_C_BACKPRESSURE_WINDOW",
+  "source": {
+    "productionBaseCommit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
+    "fixtureSourceCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+    "evidenceParentCommit": "8c91bbb442a144b71f9061fb598333f25afaa316",
+    "productionChanges": false,
+    "originalEightSourceAdditions": "BYTE_IDENTICAL",
+    "originalEightSourceSha256": {
+      "docs/evidence/ticket-41-current-backpressure-source.md": "14d6a5eaf7aed646f1946c5e232a98232a7ca07322f31229285e8dad750c09c2",
+      "docs/evidence/ticket-41-current-backpressure-source.json": "a77981867d0d534becc36a9c90eec19f9cf0fc15f9e245c788f1db0c5e9ae9d3",
+      "tests/supervision/fixtures/external-backpressure-root.c": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+      "tests/supervision/fixtures/external_backpressure.py": "9b7786bc2f47dc250a9b88047cfe725ff4d37cbe4960bd1971794e4d951e2239",
+      "tests/supervision/fixtures/external_backpressure_io.py": "4376f52c4b12b970fc58e339575f97669e4dddbb97fdbe6d8a4b831cd165499e",
+      "tests/supervision/fixtures/external_backpressure_policy.py": "203ea55963d9cfdf5fce2c9d62f6e0af7424e21b8a2ca44c31ef13f02a773d32",
+      "tests/supervision/fixtures/external_backpressure_policy_test.py": "0e57a8a23509ef441a1c3430e9b74da33548df3503504a7245f950658b261500",
+      "tests/supervision/fixtures/external_backpressure_stage.py": "03286c6b50bbc48c331a9cfebe2b8b45639c80631bb1cd82c74f0de4415f9e7e"
+    },
+    "fourProductionCInputs": "BYTE_IDENTICAL_TO_ROOT602",
+    "fixedSyntheticRoot": "BYTE_IDENTICAL_TO_B38",
+    "sourcePlanSha256": "ec3a99da023046e9b974ecf159dbd2e39a894347db27aefb2396bdff1d68046b",
+    "packetChecksumsSha256": "14072f5aa6b0acad72e1eab711d78f18df3dde78e58dcc6df549faeaf279ec5c",
+    "historicalSealedLabels": "SOURCE_READY_RUNTIME_NOT_RUN / READY_NOT_RUN / NOT_RUN preserved as sealing-time labels"
+  },
+  "window": {
+    "stage": "/tmp/omp-external-current-backpressure-r18-20261117",
+    "marker": "external-current-602f498-backpressure-r18-v1",
+    "generation": "c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382",
+    "installation": "b8dd747db3ae19ab705f78dc6de60ba249f5f822efbf35a8552d0e72227a3b54",
+    "manifestSha256": "df31ccdbe3760b7bfa0a85f75fe2e2654b8c7d5cd8700831fa3926f3b76d84a6",
+    "oneUse": "CONSUMED_PASS_DO_NOT_RERUN",
+    "authorization": "Persisted isolated Linux synthetic acceptance; paired Source GO, separate compilation, paired exact unsigned-artifact GO and Root literal ONE clearance",
+    "rootSourceReviewPaths": [
+      "reviews/ticket41-r18-current-backpressure-source-spec.md",
+      "reviews/ticket41-r18-current-backpressure-source-standards.md"
+    ],
+    "rootArtifactReviewPaths": [
+      "reviews/ticket41-r18-final-artifact-spec.md",
+      "reviews/ticket41-r18-final-artifact-standards.md"
+    ]
+  },
+  "preparationTools": [
+    {
+      "role": "source-prepare",
+      "chunk": "da1c48",
+      "exitCode": 0
+    },
+    {
+      "role": "root-compiler",
+      "chunk": "f48d6a",
+      "exitCode": 0
+    },
+    {
+      "role": "protector-compiler",
+      "chunk": "6b542d",
+      "exitCode": 0
+    },
+    {
+      "role": "unsigned-seal",
+      "chunk": "9553dc",
+      "exitCode": 0
+    }
+  ],
+  "beforeStart": {
+    "proofReceipt": "recovery/restore17-r18-before-start-inspection.json",
+    "proofToolChunk": "021679",
+    "controllerPid": 683813,
+    "guardianPid": 683817,
+    "fixedBrokerPid": 683818,
+    "guardianStartTicks": "21628773",
+    "originalGuardianHeldFd": 16,
+    "originalGuardianPidfs": [
+      5,
+      693410
+    ],
+    "businessStarted": false,
+    "artifactPinsUnchanged": 22,
+    "exactOriginalStdinCommand": "ROOT_START_ORIGINAL 683817 16 5 693410 3c2d06fb0adb5bf3c3b228949f100f555670d01da8f779b4",
+    "freshOriginalProofBeforeSTART": true
+  },
+  "actual": {
+    "initialChunk": "6be000",
+    "originalToolSession": 41136,
+    "finalChunk": "164822",
+    "originalToolEOF": true,
+    "originalToolExitCode": 0,
+    "fullToolResultsEqualIndividualObjects": true,
+    "actualEAGAIN": {
+      "event": "ACTUAL_FD3_EAGAIN",
+      "monotonic": 216387.52469767,
+      "filledBytes": 8128,
+      "errno": 11,
+      "chunkBytes": 4096
+    },
+    "heldObservation": {
+      "event": "HELD_250MS",
+      "monotonic": 216387.780808514,
+      "observations": 23,
+      "interval": 0.25418936801725067
+    },
+    "heldProtection": {
+      "sameFenceHex": "6f6d702d65787465726e616c2d696e636f6d706c6574652f312063396533343138383562653639333966303864623864396431333336333531616633663133366134666434666364373638363166613335383066613131333832203638333831370a",
+      "exclusiveLock": "DENIED",
+      "originalGuardianWaitable": "LIVE",
+      "reportedLoopObservations": 23,
+      "additionalFinalHeldCheck": true,
+      "note": "23 loop observations plus final check after ACK; separate pre-fill check also retained"
+    },
+    "rawControlAndDispatcherFrames": [
+      "{\"version\":\"omp-execution-external/1\",\"id\":\"93620445b7527f20982c9c6372754f2f51a6cc8be56a6f8c7c006ce0b8bf4ec3\",\"installation\":\"b8dd747db3ae19ab705f78dc6de60ba249f5f822efbf35a8552d0e72227a3b54\",\"operation\":{\"op\":\"register_external\",\"generation\":\"c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382\"}}\n",
+      "HELLO c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382 683817 21628773 683818 21628773\n",
+      "STATE c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382 waiting\n",
+      "STATE c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382 running\n",
+      "ROOT_EXIT c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382 0 0\n",
+      "{\"version\":\"omp-execution-external/1\",\"id\":\"f2f2308a6f80cde42b15b197fb83d4b49a16b25323cca8bbe333b2dc89d5b82b\",\"installation\":\"b8dd747db3ae19ab705f78dc6de60ba249f5f822efbf35a8552d0e72227a3b54\",\"operation\":{\"op\":\"complete_external\",\"generation\":\"c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382\"}}\n",
+      "COMPLETE c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382\n"
+    ],
+    "fakeAckFrames": [
+      "{\"version\":\"omp-execution-external/1\",\"id\":\"93620445b7527f20982c9c6372754f2f51a6cc8be56a6f8c7c006ce0b8bf4ec3\",\"ok\":true,\"operation\":\"register_external\",\"generation\":\"c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382\"}\n",
+      "{\"version\":\"omp-execution-external/1\",\"id\":\"f2f2308a6f80cde42b15b197fb83d4b49a16b25323cca8bbe333b2dc89d5b82b\",\"ok\":true,\"operation\":\"complete_external\",\"generation\":\"c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382\"}\n"
+    ],
+    "sentControl": {
+      "START": "START c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382\n",
+      "fixedBrokerByte": "X",
+      "basis": "Pinned adapter plus START_INTENT, running frame, FIXED_BROKER_X_INTENT and natural ROOT_EXIT 0 0; sent bytes not separately raw-logged"
+    },
+    "drainage": {
+      "fillerBytes": 8128,
+      "fillerByte": "!",
+      "exactFillerThenCompleteThenEmptyEOF": "CHECKED_BY_PINNED_ADAPTER_BEFORE_PASS",
+      "rawFillerReadTranscript": "NOT_SEPARATELY_LOGGED",
+      "originalGuardianWait": 0,
+      "originalControllerWait": 0,
+      "allFourReadersEOFAndJoined": true,
+      "controllerAndOuterDirectChildDomainsECHILD": true,
+      "finalFenceAbsent": true,
+      "exclusiveMaintenanceLeaseFree": true,
+      "manualRecovery": false,
+      "generalDescendantExtinctionClaim": false
+    }
+  },
+  "bounds": {
+    "fillerChunkBytes": 4096,
+    "fillerStrictUpperBytes": 1048576,
+    "requiredHeldSeconds": 0.25,
+    "ioBudgetSeconds": 5,
+    "frameLimitBytes": 512,
+    "readerRetainedLimitBytes": 65536,
+    "sampledOuterSecondsAfterBusiness": 20,
+    "observedHeldSeconds": 0.25418936801725067
+  },
+  "preservation": {
+    "rootPostToolChunk": "e4f722",
+    "rootPostToolExitCode": 0,
+    "manifestMembersUnchanged": 22,
+    "native137HeadStatusIndexStagedWorktree": "UNCHANGED_REHASHED_BY_ROOT_POST_RECEIPT",
+    "nativeMeasurementDuringThisEvidenceWork": "NONE",
+    "evidenceReadback": "All 22 manifest hashes and Root-clearance stat identities, 14 SourcePlan pins, packet checksum inventory, journal hashes and all listed provenance hashes independently matched",
+    "stageWritesDuringEvidenceWork": false,
+    "runtimeSourceOrPacketWritesDuringEvidenceWork": false,
+    "uniqueAllowedInputsAndProvenanceRehashedDuringEvidenceWork": 53
+  },
+  "sourceExport": {
+    "patch": "ticket-41-current-backpressure-r18-source.patch",
+    "patchSha256": "a1c3e333df3eab2ae31cec67d3765d7a4917e3a113a8cf539dd90bb78e51e15a",
+    "purpose": "PUBLIC_SOURCE_REFERENCE_ONLY_NOT_APPLIED_NOT_AUTORUNNABLE",
+    "pathConvention": "a/ original b38 repository path; b/ outside packet path relative to /workspace/work/mvp-implementation; /dev/null for new public packet members",
+    "mapping": [
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/README.md",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/README.md",
+        "originalCommit": null,
+        "originalPath": null,
+        "originalSha256": null,
+        "exportSha256": "8e9af7a00ba80b3d19fc5c037e7cfff57ac20eef1f491652400d106b136712a5",
+        "bytes": 5841,
+        "delta": "ADDED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/SHA256SUMS",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/SHA256SUMS",
+        "originalCommit": null,
+        "originalPath": null,
+        "originalSha256": null,
+        "exportSha256": "14072f5aa6b0acad72e1eab711d78f18df3dde78e58dcc6df549faeaf279ec5c",
+        "bytes": 1084,
+        "delta": "ADDED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/SourcePlan.json",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/SourcePlan.json",
+        "originalCommit": null,
+        "originalPath": null,
+        "originalSha256": null,
+        "exportSha256": "ec3a99da023046e9b974ecf159dbd2e39a894347db27aefb2396bdff1d68046b",
+        "bytes": 4389,
+        "delta": "ADDED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/SourcePublicCaps.json",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/SourcePublicCaps.json",
+        "originalCommit": null,
+        "originalPath": null,
+        "originalSha256": null,
+        "exportSha256": "c3930df41fba5b9121b44a537014b8e5f43e861e89686fe3af7efec34615f0cf",
+        "bytes": 1396,
+        "delta": "ADDED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/external-backpressure-root.c",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external-backpressure-root.c",
+        "originalCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+        "originalPath": "tests/supervision/fixtures/external-backpressure-root.c",
+        "originalSha256": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+        "exportSha256": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+        "bytes": 321,
+        "delta": "UNCHANGED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/external_backpressure.py",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure.py",
+        "originalCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+        "originalPath": "tests/supervision/fixtures/external_backpressure.py",
+        "originalSha256": "9b7786bc2f47dc250a9b88047cfe725ff4d37cbe4960bd1971794e4d951e2239",
+        "exportSha256": "02a82a0548ba3345e48775e882c7be207af8be7f27718bbcc394dde0f8d4065f",
+        "bytes": 24056,
+        "delta": "MODIFIED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/external_backpressure_io.py",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_io.py",
+        "originalCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+        "originalPath": "tests/supervision/fixtures/external_backpressure_io.py",
+        "originalSha256": "4376f52c4b12b970fc58e339575f97669e4dddbb97fdbe6d8a4b831cd165499e",
+        "exportSha256": "7bad0702da02ad28570641c154de8c5ec113e5255ed45443d136fb87a312866c",
+        "bytes": 9828,
+        "delta": "MODIFIED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/external_backpressure_policy.py",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_policy.py",
+        "originalCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+        "originalPath": "tests/supervision/fixtures/external_backpressure_policy.py",
+        "originalSha256": "203ea55963d9cfdf5fce2c9d62f6e0af7424e21b8a2ca44c31ef13f02a773d32",
+        "exportSha256": "49f2786e48f224afe84d25e5f6323522620d12fd3c9f7839070ce106cfdfb176",
+        "bytes": 3568,
+        "delta": "MODIFIED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/external_backpressure_policy_test.py",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_policy_test.py",
+        "originalCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+        "originalPath": "tests/supervision/fixtures/external_backpressure_policy_test.py",
+        "originalSha256": "0e57a8a23509ef441a1c3430e9b74da33548df3503504a7245f950658b261500",
+        "exportSha256": "3e2e349a28bc669e478a3ad25e11b169822b038f8217d4ee047e458d7191290a",
+        "bytes": 17647,
+        "delta": "MODIFIED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py",
+        "originalCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+        "originalPath": "tests/supervision/fixtures/external_backpressure_stage.py",
+        "originalSha256": "03286c6b50bbc48c331a9cfebe2b8b45639c80631bb1cd82c74f0de4415f9e7e",
+        "exportSha256": "643ba9585e11e99ce59c7cead0e8c44c465084681eeb6302dd321f765646e512",
+        "bytes": 6616,
+        "delta": "MODIFIED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/source-validation.json",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/source-validation.json",
+        "originalCommit": null,
+        "originalPath": null,
+        "originalSha256": null,
+        "exportSha256": "70db18270e264965afb1d2dfeaedba9adf0b2aeded09bece7e55ef9549246a61",
+        "bytes": 676,
+        "delta": "ADDED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/startup74-proof.json",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/startup74-proof.json",
+        "originalCommit": null,
+        "originalPath": null,
+        "originalSha256": null,
+        "exportSha256": "32d0f03abc1d19a264697409e1cf0b0068d11b1bc56196f8ee1977ed194cdf9a",
+        "bytes": 1923,
+        "delta": "ADDED"
+      },
+      {
+        "sourceReferencePath": "recovery/r18-current-backpressure-source-v1/startup74_test.py",
+        "actualSourcePath": "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/startup74_test.py",
+        "originalCommit": null,
+        "originalPath": null,
+        "originalSha256": null,
+        "exportSha256": "3a63f89a29df835ef90fda3bf7253dc292596f4b593d20f73d9e2be6923905dd",
+        "bytes": 7105,
+        "delta": "ADDED"
+      }
+    ],
+    "runtimeDelta": "Three existing runtime Python modules: fd3 constructor metadata, scrubbed HOLD codes, sticky pre-HELLO byte/original terminal observation, exact startup74 failure drainage and reader joins; outer original wait/EOF/joins/ECHILD before explicit failure3",
+    "supportDelta": "R18 stager/path/identity/proof closure; pure-test adaptation and startup74 tests; frozen README/plan/caps/proof/validation/checksum metadata",
+    "alreadyConsumedScope": "Hardcoded ROOT, stage, generation and marker are historical; future reproduction needs fresh reviewed generation/path/artifacts and separate Root authorization",
+    "executionEntryPointAdded": false,
+    "independentReadback": {
+      "membersReconstructedFromPatchAndB38InMemory": 13,
+      "exactExportHashesAndOutsideBytesMatched": true,
+      "patchApplied": false,
+      "runtimeFilesCopied": false
+    },
+    "format": "UNIFIED_ZERO_CONTEXT; exact reconstruction checked in memory against b38 and outside packet bytes"
+  },
+  "limits": {
+    "sourcePureTests": 31,
+    "sourcePureTestsRunDuringEvidenceWork": false,
+    "actualStartup74RefusalCase": "NOT_RUN_SOURCE_TESTS_ONLY",
+    "startup74Status3": "FAILURE_NEVER_PASS",
+    "historicalR17": "FAIL_PRESTART74_MANUAL_KERNEL_TERMINALS_ONLY_NOT_RELABELLED",
+    "historicalR17Cause": "UNRESOLVED",
+    "selfExecAndExactPopenDiagnostics": "PREREQUISITES_ONLY_NOT_CAUSE_OR_FIX",
+    "externalEPIPE": "NOT_IMPLEMENTED_NOT_RUN",
+    "nativeAuthentication": "NOT_ESTABLISHED",
+    "realService": "NOT_ESTABLISHED",
+    "publicHostFFI": "NOT_ESTABLISHED",
+    "productionBuilderProvenance": "NOT_ESTABLISHED",
+    "globalAdmission": "BLOCKED",
+    "productPrivateSession": "BLOCKED",
+    "issue41": "OPEN",
+    "issue29": "OPEN"
+  },
+  "manifestMemberIdentity": {
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/README.md": {
+      "sha256": "8e9af7a00ba80b3d19fc5c037e7cfff57ac20eef1f491652400d106b136712a5",
+      "device": 27,
+      "inode": 202786,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 5841
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/SourcePublicCaps.json": {
+      "sha256": "c3930df41fba5b9121b44a537014b8e5f43e861e89686fe3af7efec34615f0cf",
+      "device": 27,
+      "inode": 202787,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 1396
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external-backpressure-root.c": {
+      "sha256": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+      "device": 27,
+      "inode": 202782,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 321
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure.py": {
+      "sha256": "02a82a0548ba3345e48775e882c7be207af8be7f27718bbcc394dde0f8d4065f",
+      "device": 27,
+      "inode": 202779,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 24056
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_io.py": {
+      "sha256": "7bad0702da02ad28570641c154de8c5ec113e5255ed45443d136fb87a312866c",
+      "device": 27,
+      "inode": 202781,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 9828
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_policy.py": {
+      "sha256": "49f2786e48f224afe84d25e5f6323522620d12fd3c9f7839070ce106cfdfb176",
+      "device": 27,
+      "inode": 202780,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 3568
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_policy_test.py": {
+      "sha256": "3e2e349a28bc669e478a3ad25e11b169822b038f8217d4ee047e458d7191290a",
+      "device": 27,
+      "inode": 202777,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 17647
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py": {
+      "sha256": "643ba9585e11e99ce59c7cead0e8c44c465084681eeb6302dd321f765646e512",
+      "device": 27,
+      "inode": 202778,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 6616
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/startup74-proof.json": {
+      "sha256": "32d0f03abc1d19a264697409e1cf0b0068d11b1bc56196f8ee1977ed194cdf9a",
+      "device": 27,
+      "inode": 202785,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 1923
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/startup74_test.py": {
+      "sha256": "3a63f89a29df835ef90fda3bf7253dc292596f4b593d20f73d9e2be6923905dd",
+      "device": 27,
+      "inode": 202783,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 7105
+    },
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/launcher/control.h": {
+      "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+      "device": 27,
+      "inode": 374374,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 872
+    },
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/candidates.h": {
+      "sha256": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+      "device": 27,
+      "inode": 374376,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 7788
+    },
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/external-protector.c": {
+      "sha256": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+      "device": 27,
+      "inode": 374377,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 249
+    },
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/private-helper.c": {
+      "sha256": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+      "device": 27,
+      "inode": 374378,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 34437
+    },
+    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/SourcePlan.json": {
+      "sha256": "ec3a99da023046e9b974ecf159dbd2e39a894347db27aefb2396bdff1d68046b",
+      "device": 27,
+      "inode": 202788,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 4389
+    },
+    "/tmp/omp-external-current-backpressure-r18-20261117/root.c": {
+      "sha256": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+      "device": 27,
+      "inode": 1940518,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 321
+    },
+    "/tmp/omp-external-current-backpressure-r18-20261117/configuration.h": {
+      "sha256": "addd208f341f33e60f8ab5a2872675f8d3cea2a91f9e0874a559f63e35838acb",
+      "device": 27,
+      "inode": 1940517,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 631
+    },
+    "/tmp/omp-external-current-backpressure-r18-20261117/root-marker": {
+      "sha256": "f0db0e7f0860a410d842985383183e8c18e6eedbcec52cddac95060df34176cd",
+      "device": 27,
+      "inode": 1940519,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 45
+    },
+    "/tmp/omp-external-current-backpressure-r18-20261117/raw-input.json": {
+      "sha256": "66076ec4721fcd9f137d581cd92b55358bd5fce4777f67fe38f2931770b9da61",
+      "device": 27,
+      "inode": 1940521,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 1045
+    },
+    "/tmp/omp-external-current-backpressure-r18-20261117/compiler-recipe.json": {
+      "sha256": "8ee01c52618f5dcb158f045269926b09bd2a117004006bb330cdda1d288e55f2",
+      "device": 27,
+      "inode": 1940520,
+      "uid": 1000,
+      "mode": 33152,
+      "nlink": 1,
+      "bytes": 959
+    },
+    "/tmp/omp-external-current-backpressure-r18-20261117/release/bin/omp": {
+      "sha256": "711f111265066d05e0b656c031d5345e3e61e897a3f3a0ca07b3bdfc4fd3fda0",
+      "device": 27,
+      "inode": 1940527,
+      "uid": 1000,
+      "mode": 33216,
+      "nlink": 1,
+      "bytes": 754232
+    },
+    "/tmp/omp-external-current-backpressure-r18-20261117/release/bin/omp-external-protector": {
+      "sha256": "aa42c556bbd88e82602ea6142b7af25eddbf986beab4b20011455799c982a281",
+      "device": 27,
+      "inode": 1940533,
+      "uid": 1000,
+      "mode": 33216,
+      "nlink": 1,
+      "bytes": 793312
+    }
+  },
+  "provenance": {
+    "root": "/workspace/work/mvp-implementation",
+    "capture": "PUBLIC_HASHES_AND_SELECTED_PROTOCOL_FRAMES_ONLY_NO_RAW_LOGS_BINARY_OR_PRIVATE_BYTES",
+    "sha256": {
+      "recovery/restore17-r18-root-source-clearance.json": "674cbd2b667165ec543b4f97061085ce8bc5d1a6ccaeb6273c85790f05c6aac7",
+      "recovery/restore17-r18-prepare-tool.json": "21215763623772cbd3da6b9ea5b9f793baaedaec07fc5caa2bc702e4bf167394",
+      "recovery/restore17-r18-compiler-root-tool.json": "9aceabd37d9a75e92265b461e8ad3269b5474369830831d0d0cd8a31924c83d9",
+      "recovery/restore17-r18-compiler-protector-initial-tool.json": "1d8995d9e7ffa29f2905f15cd50bc5f8013da90125e3785f9a534c92ec0d1ba5",
+      "recovery/restore17-r18-seal-tool.json": "8f40f5758f6b7f18d6857447f21137db9c181208dea071ac58cfe5367748801e",
+      "recovery/restore17-r18-root-one-run-clearance.json": "6a61ce58b3941c581f1d6b0d7d8c19398bea77af92f4759e52973e008f6373b3",
+      "recovery/restore17-r18-before-start-inspection.json": "8e7b80c3c866fa011bf3f8f14d5b17eb3122f8d61ebf5ddeff5ac358770cc360",
+      "recovery/restore17-r18-before-start-inspection-tool.json": "2dd54196e8d81dc764c7296b8f085c19260236f47f648ffbc4238bca996a53ef",
+      "recovery/restore17-r18-actual-initial-tool.json": "e69dd592700ba1bbd356016992c4db8bae42b40713af24211eeec89d5fae901f",
+      "recovery/restore17-r18-actual-start-tool.json": "6b2cc39cbf486b8dd17d90066d22d21c863488e51fc9825dc6919ef043004c8e",
+      "recovery/restore17-r18-actual-full-tool-results.json": "862fcfc080bff375f5b6d1b33d47610a203f365324e8d193f2da82dcb2fafc11",
+      "recovery/restore17-r18-post-preservation.json": "fe35863cc84fd4cec3c667f44c6aa85be39f285accaf7e22385defd3eed1c1e1",
+      "recovery/restore17-r18-post-preservation-tool.json": "1b552fe2e214ebbab09b052145cc0a6e73d05455cd25222c38b045ec72ed2096",
+      "reviews/ticket41-r18-current-backpressure-source-spec.md": "59dcdd5554392542543329f60ce0c6d0bef6fa6aa99abe87c6442efd006fc3a9",
+      "reviews/ticket41-r18-current-backpressure-source-standards.md": "df1e9a3e1cfa53cb6bf55b725eaa1dac65d8fe41cbd410d7690ffd1aa90dbd4f",
+      "reviews/ticket41-r18-final-artifact-spec.md": "dadae5543a606f3e4808d1368fcdcb34866a8b079897245afe5400b1bea0e7f7",
+      "reviews/ticket41-r18-final-artifact-standards.md": "f937e30b590c4a028217013c5be12d93f51da2c1469e166db7f4d6b1d6a80000",
+      "recovery/r18-current-backpressure-source-v1/README.md": "8e9af7a00ba80b3d19fc5c037e7cfff57ac20eef1f491652400d106b136712a5",
+      "recovery/r18-current-backpressure-source-v1/SHA256SUMS": "14072f5aa6b0acad72e1eab711d78f18df3dde78e58dcc6df549faeaf279ec5c",
+      "recovery/r18-current-backpressure-source-v1/SourcePlan.json": "ec3a99da023046e9b974ecf159dbd2e39a894347db27aefb2396bdff1d68046b",
+      "recovery/r18-current-backpressure-source-v1/SourcePublicCaps.json": "c3930df41fba5b9121b44a537014b8e5f43e861e89686fe3af7efec34615f0cf",
+      "recovery/r18-current-backpressure-source-v1/external-backpressure-root.c": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+      "recovery/r18-current-backpressure-source-v1/external_backpressure.py": "02a82a0548ba3345e48775e882c7be207af8be7f27718bbcc394dde0f8d4065f",
+      "recovery/r18-current-backpressure-source-v1/external_backpressure_io.py": "7bad0702da02ad28570641c154de8c5ec113e5255ed45443d136fb87a312866c",
+      "recovery/r18-current-backpressure-source-v1/external_backpressure_policy.py": "49f2786e48f224afe84d25e5f6323522620d12fd3c9f7839070ce106cfdfb176",
+      "recovery/r18-current-backpressure-source-v1/external_backpressure_policy_test.py": "3e2e349a28bc669e478a3ad25e11b169822b038f8217d4ee047e458d7191290a",
+      "recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py": "643ba9585e11e99ce59c7cead0e8c44c465084681eeb6302dd321f765646e512",
+      "recovery/r18-current-backpressure-source-v1/source-validation.json": "70db18270e264965afb1d2dfeaedba9adf0b2aeded09bece7e55ef9549246a61",
+      "recovery/r18-current-backpressure-source-v1/startup74-proof.json": "32d0f03abc1d19a264697409e1cf0b0068d11b1bc56196f8ee1977ed194cdf9a",
+      "recovery/r18-current-backpressure-source-v1/startup74_test.py": "3a63f89a29df835ef90fda3bf7253dc292596f4b593d20f73d9e2be6923905dd"
+    },
+    "publicStageJournalSha256": {
+      "/tmp/omp-external-current-backpressure-r18-20261117/controller.jsonl": "df107d205b64097ca892c76a38bf06d7b4028eeff00e5fdabe0c9ce95f987718",
+      "/tmp/omp-external-current-backpressure-r18-20261117/used-once.jsonl": "3474ae20479239903a45d79b1363b10b83e880bcfa3d1486eccb03bb84e4d82a",
+      "/tmp/omp-external-current-backpressure-r18-20261117/business-started.jsonl": "ed83370b902bf1c792400524bd2b30d8be5de073c86355d855acca74ea2b34c7"
+    }
+  },
+  "evidenceWork": {
+    "scope": "THREE_DOCUMENT_ARTIFACTS_ONLY",
+    "testsBuildCompilerRuntimeNativeProcPidfdSignalsActorsStagerImportsKeysBunNodeOldToolControl": false,
+    "pushMergeGitHub": false
+  }
+}

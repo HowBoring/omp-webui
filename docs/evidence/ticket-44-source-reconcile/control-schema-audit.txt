@@ -1,0 +1,3 @@
+embedded definitions equal integration Host wire: True
+embedded definitions: 345 integration: 345
+commands: ['abort', 'abort_and_restore_queue', 'get_state', 'abort_retry', 'abort_bash', 'abort_branch_summary']

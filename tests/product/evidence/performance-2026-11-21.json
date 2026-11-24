@@ -1,0 +1,132 @@
+{
+ "generatedAt": "2026-11-21T03:08:00Z",
+ "class": "chat-component",
+ "status": "aborted-before-rss-report",
+ "note": "2 warmups + 30 samples of reload/reopen and old-page clicks completed; reachability aborted after a UI event-window reset. RSS report was not emitted because the harness aborted. Raw stage log kept as performance-2026-11-21-chat.log.",
+ "protocol": {
+  "warmups": 2,
+  "samples": 30,
+  "journalLimitBytes": 201326592
+ },
+ "firstPage": {
+  "samples": 30,
+  "all": [
+   2311,
+   2742,
+   2487,
+   4097,
+   2876,
+   2712,
+   3728,
+   2537,
+   3700,
+   2389,
+   2797,
+   3442,
+   2608,
+   2323,
+   3194,
+   2598,
+   2682,
+   2500,
+   2742,
+   2563,
+   2805,
+   2748,
+   4160,
+   2573,
+   2485,
+   2943,
+   2604,
+   4244,
+   2492,
+   4306
+  ],
+  "coldOpenMs": 9240,
+  "p95Ms": 4306,
+  "limitMs": 3000,
+  "pass": false
+ },
+ "oldPage": {
+  "samples": 30,
+  "all": [
+   131,
+   151,
+   127,
+   142,
+   129,
+   136,
+   151,
+   129,
+   146,
+   113,
+   124,
+   122,
+   146,
+   121,
+   163,
+   149,
+   150,
+   141,
+   157,
+   129,
+   145,
+   166,
+   140,
+   86,
+   134,
+   132,
+   148,
+   146,
+   156,
+   135
+  ],
+  "p95Ms": 163,
+  "limitMs": 1000,
+  "pass": true
+ },
+ "reachability": {
+  "isolatedRun": {
+   "nodes": 7880,
+   "steps": 30,
+   "allNativeReachable": true,
+   "firstSeqBefore": "1000444",
+   "firstSeqAfter": "978851",
+   "elapsedMs": 155137,
+   "pass": true
+  },
+  "fullRun": {
+   "steps": [
+    {
+     "step": 0,
+     "nodes": 24,
+     "firstSeq": 1000444,
+     "more": true
+    },
+    {
+     "step": 1,
+     "nodes": 86,
+     "firstSeq": 1000274,
+     "more": true
+    }
+   ],
+   "timeout": [
+    {
+     "step": 1,
+     "status": "idle",
+     "nodes": 24,
+     "firstSeq": 1000444,
+     "more": false
+    }
+   ],
+   "pass": false,
+   "minimalFailure": "after 32 reload/reopen cycles the DSH conversation window reset to its initial tail (nodes 24, firstSeq 1000444) between loadOlder calls; historyLoadStatus idle"
+  }
+ },
+ "rss": {
+  "hostPeakMiB": null,
+  "limitMiB": 512,
+  "available": false
+ },
+ "pass": false
+}

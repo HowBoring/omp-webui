@@ -1,0 +1,118 @@
+{
+  "status": "SOURCE/PURE/TYPES ONLY; fresh independent paired review pending; no whole-ticket admission",
+  "sourceBase": {
+    "path": "/workspace/work/omp-webui-ticket-41-external-review-fix5",
+    "head": "285eeb8ee9badf7964dd3a3867815791bba59131",
+    "tree": "f51c8e1bd9320fa914a41b69771fc828d4228415",
+    "status": ""
+  },
+  "seam": "Existing authorized public ExternalProtectorController process/socket adapter; controlled fake child and raw-close callback only",
+  "defect": "Raw close callback remained installed after a throw; repeated disconnects and completion rejection invoked the same numeric fd again.",
+  "fix": "Invalidate callback before one close attempt; retain sticky failure and the original child reap; never retry uncertain close.",
+  "tdd": {
+    "red": {
+      "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test tests/supervision/external/controller.test.ts",
+      "toolChunk": "c0eff1",
+      "exitCode": 1,
+      "pass": 37,
+      "fail": 1,
+      "assertions": 196,
+      "observedRawCloseAttempts": 5,
+      "requiredRawCloseAttempts": 1,
+      "sourceSha256": "8dbc09732684f926f0247a639337da6b46b73d5141c348cace0c2038fa40a2b9"
+    },
+    "green": {
+      "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test tests/supervision/external/controller.test.ts",
+      "toolChunk": "7123b6",
+      "exitCode": 0,
+      "pass": 38,
+      "fail": 0,
+      "assertions": 196,
+      "observedRawCloseAttempts": 1
+    }
+  },
+  "checks": {
+    "pure": {
+      "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test tests/supervision/control.test.ts tests/supervision/controller.test.ts tests/supervision/session.test.ts tests/supervision/external/controller.test.ts tests/supervision/external/launch.test.ts",
+      "toolChunk": "17b2b0",
+      "exitCode": 0,
+      "files": 5,
+      "pass": 58,
+      "fail": 0,
+      "assertions": 277
+    },
+    "strongPublicP": {
+      "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test /workspace/work/omp-webui-ticket-41-controlio-public-adapter/tests/supervision/controller.test.ts /workspace/work/omp-webui-ticket-41-controlio-public-adapter/tests/supervision/owned-control-io.test.ts",
+      "toolChunk": "ef8a0b",
+      "exitCode": 0,
+      "files": 2,
+      "pass": 23,
+      "fail": 0,
+      "assertions": 96
+    },
+    "fullTypeScript": {
+      "command": "PATH=/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:$PATH bun run typecheck",
+      "initialToolChunk": "8e2a53",
+      "sessionId": 37463,
+      "finalToolChunk": "23d115",
+      "exitCode": 0
+    }
+  },
+  "sourceDigests": {
+    "packages/supervision/external.ts": "038322e975069037d4bf5139e47c5afe79cf677de4d494c12b4663d8afc2a282",
+    "packages/supervision/EXTERNAL.md": "22c9425ca4462c642af1fd5ae145d2a7b5dbbdcdb622fad4735677f0fdf201dd",
+    "tests/supervision/external/controller.test.ts": "ab2c3b849c1ce0fddc54df682228616a6205b648f85e9d733aa766e37792850f"
+  },
+  "unchangedCBuildFixtureDigests": {
+    "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+    "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+    "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+    "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+    "scripts/supervisor-build.ts": "771bd378484e72456e827f16dbf669b49da1e5fb0a6cd8b8aad2d74226802155",
+    "scripts/build-private-helper.ts": "66843711293853df170e53a388cc7e6e96a20a7a43b38edc803e3ae7f083e170",
+    "scripts/build-external-protector.ts": "c51e43347aca29f1053a48ad7de29f2e007067e5e7f151501a2e4dedf483ecdb",
+    "scripts/check-external-protector-static.py": "c8f4596858d8b58d791c21983017798ebc9f0db9d353d7c9bb84ca10501bb3bb",
+    "tests/supervision/fixtures/external-write-fault.py": "0b0e557dcc574cb690c273f9f11b13cb772c004feeff408b676b26697c2e40dc"
+  },
+  "unchangedPublicP": {
+    "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter",
+    "head": "a259d6cfcffbcb967124d57a733fbff07305e765",
+    "tree": "4550fc1b87981f1d89bcfc2f603e112b4d9bfd38",
+    "status": ""
+  },
+  "unchangedLeadH": {
+    "path": "/workspace/work/omp-webui-ticket-41",
+    "head": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+    "tree": "d22d5ffd170bdb28905114e5a8b57710fd6d44ce",
+    "status": ""
+  },
+  "unchangedSource109": {
+    "path": "/tmp/native-helper-drain-r9-20261117/source-inputs.json",
+    "sha256": "4cd814d541bf19f22092d0647a5c3ba69f8b69a80bdee7fc181242a2b99e25d7",
+    "count": 109,
+    "allFrozenInputHashesMatchedBeforeAndAfter": true,
+    "operatorPrivateKeyFilesRead": false
+  },
+  "retainedEvidence": {
+    "originalExecutionObjects": {
+      "path": "/tmp/ticket-41-external-raw-close-tool-results.json",
+      "sha256": "0cac9bb30b6cf1348c36fc756f91ada4cd2b2bd34526fe5157e24e9648e8d77e"
+    },
+    "preservationBefore": {
+      "path": "/tmp/ticket-41-external-raw-close-preservation-before.json",
+      "sha256": "f54e58887a55709db59a62f6927681054b2fc46dbebcf23622d7d56a211320af"
+    },
+    "preservationAfter": {
+      "path": "/tmp/ticket-41-external-raw-close-preservation-after.json",
+      "sha256": "9f15a0528790b5c3144acad98164c316d50a11b8eeee8a04294afa56f53b154b"
+    }
+  },
+  "verificationNote": "Initial preservation guard rejected the source filename server-key.ts before hashing inputs; no operator key file was read. The corrected guard rejects operator key paths and all 109 explicit input hashes then matched.",
+  "limits": [
+    "No reset, integration ancestry import, P/H source modification, staging modification, merge, push or ticket closure.",
+    "No actual Native/OMP/SDK/FFI, child/thread/socket/C fixture/browser/provider, build/emitted ELF, key/fence/probe/signal activity.",
+    "No builder tests or OS execution. Only controlled fake-adapter tests and no-emit TypeScript checking.",
+    "Existing clean-EOF paired review covers the previous source only; fresh paired review must cover this delta.",
+    "External source normalization HOLD remains: coherent current H/public control-I/O/private-helper composition requires separate review; whole #41/#61 and private/product admission remain blocked."
+  ]
+}

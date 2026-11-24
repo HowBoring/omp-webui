@@ -1,0 +1,57 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "b24d0592688ee1ca0c353fab6b657778650f9f8a",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-gif-source-ready.json",
+    "bytes": 34747,
+    "sha256": "b7ad706c99fdf4daee866289b4881e8c8ee98a70ec216aac9969e908219937fc"
+  },
+  "frozenInputs": {
+    "path": "/tmp/ticket38-gif-source/final-inputs.json",
+    "bytes": 152404,
+    "sha256": "db04b24635f825396d2316c3b977110a2eb89545c7bb441e0f39d48caccd4d09"
+  },
+  "case": "actual public animated GIF requires exact loss consent before indexed saved image and provider delivery",
+  "attempts": 1,
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-gif-runtime-success.json",
+    "bytes": 19966,
+    "sha256": "fa24c95ddb7b517acc28caa7477f5f6ab3eb68216f82ca5b96b09f0b4891631f"
+  },
+  "originalTool": {
+    "provenance": "Assistant-transcribed original tool return metadata, not an independent tool archive.",
+    "initialChunkId": "fec81b",
+    "sessionId": 48182,
+    "initialToolReportedWallTimeSeconds": 1.001324699,
+    "initialToolReturnedOriginalSession": true,
+    "finalChunkId": "1f3bbd",
+    "finalToolReportedWallTimeSeconds": 0.855879021,
+    "exitCode": 0,
+    "networkEnabled": true,
+    "sandboxPermissions": "with_additional_permissions",
+    "initialYieldMs": 1000,
+    "outerTimeout": false,
+    "retry": "NONE",
+    "originalPopenPid": 549029,
+    "originalPopenActualWaitStatus": 0,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "precheckChunkId": "cbd281",
+    "postcheckChunkId": "5af66e",
+    "limits": "Original Popen wait/stream metadata is independently retained in runner.json; tool IDs here are a transcription from this conversation."
+  },
+  "actualRunnerPid": 549029,
+  "actualRunnerWaitStatus": 0,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-gif-hirh7yk0/postcheck.json",
+    "bytes": 2152,
+    "sha256": "1da0b0fff91bae534963a0e46960a4dce3223583a63e4481a3472cbb492b6ce9"
+  },
+  "window": "RELEASED immediately after actual outcome and original owned exec drain; before read-only postcheck/proof. No further Native execution authorized/performed.",
+  "limitations": "Prepared output pixels/first-frame fidelity/frame count not independently evaluated. Encoder bytes/hash unpredicted and scalar values not separately retained. Individual process PID/wait/forced metadata and receipt/entry IDs uncaptured. No extinction/global/product/full38 claim."
+}

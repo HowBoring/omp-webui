@@ -1,0 +1,97 @@
+chat-stage: 367ms host-ready
+chat-stage: 1238ms page-loaded
+chat-stage: 1544ms granted
+chat-stage: 4240ms catalog-1000
+chat-stage: 4295ms open-clicked
+chat-stage: 10121ms session-present
+chat-stage: 10136ms first-node
+chat-stage: 10136ms cold-open:9240ms
+chat-stage: 12669ms first-page-0:2533ms
+chat-stage: 15440ms first-page-1:2771ms
+chat-stage: 17751ms first-page-2:2311ms
+chat-stage: 20493ms first-page-3:2742ms
+chat-stage: 22980ms first-page-4:2487ms
+chat-stage: 27077ms first-page-5:4097ms
+chat-stage: 29953ms first-page-6:2876ms
+chat-stage: 32665ms first-page-7:2712ms
+chat-stage: 36393ms first-page-8:3728ms
+chat-stage: 38930ms first-page-9:2537ms
+chat-stage: 42629ms first-page-10:3700ms
+chat-stage: 45018ms first-page-11:2389ms
+chat-stage: 47815ms first-page-12:2797ms
+chat-stage: 51257ms first-page-13:3442ms
+chat-stage: 53866ms first-page-14:2608ms
+chat-stage: 56189ms first-page-15:2323ms
+chat-stage: 59383ms first-page-16:3194ms
+chat-stage: 61981ms first-page-17:2598ms
+chat-stage: 64663ms first-page-18:2682ms
+chat-stage: 67164ms first-page-19:2500ms
+chat-stage: 69905ms first-page-20:2742ms
+chat-stage: 72468ms first-page-21:2563ms
+chat-stage: 75273ms first-page-22:2805ms
+chat-stage: 78020ms first-page-23:2748ms
+chat-stage: 82180ms first-page-24:4160ms
+chat-stage: 84753ms first-page-25:2573ms
+chat-stage: 87238ms first-page-26:2485ms
+chat-stage: 90181ms first-page-27:2943ms
+chat-stage: 92785ms first-page-28:2604ms
+chat-stage: 97029ms first-page-29:4244ms
+chat-stage: 99521ms first-page-30:2492ms
+chat-stage: 103826ms first-page-31:4306ms
+chat-stage: 103836ms history-nodes=24 more=True first-seq=1000444
+chat-stage: 103975ms old-page-0:133ms
+chat-stage: 108294ms old-page-1:142ms
+chat-stage: 110737ms old-page-2:131ms
+chat-stage: 113611ms old-page-3:151ms
+chat-stage: 116386ms old-page-4:127ms
+chat-stage: 119252ms old-page-5:142ms
+chat-stage: 122000ms old-page-6:129ms
+chat-stage: 125767ms old-page-7:136ms
+chat-stage: 129294ms old-page-8:151ms
+chat-stage: 131750ms old-page-9:129ms
+chat-stage: 134559ms old-page-10:146ms
+chat-stage: 137353ms old-page-11:113ms
+chat-stage: 140881ms old-page-12:124ms
+chat-stage: 143690ms old-page-13:122ms
+chat-stage: 146201ms old-page-14:146ms
+chat-stage: 149014ms old-page-15:121ms
+chat-stage: 152660ms old-page-16:163ms
+chat-stage: 155422ms old-page-17:149ms
+chat-stage: 158241ms old-page-18:150ms
+chat-stage: 160977ms old-page-19:141ms
+chat-stage: 163798ms old-page-20:157ms
+chat-stage: 166514ms old-page-21:129ms
+chat-stage: 169462ms old-page-22:145ms
+chat-stage: 172598ms old-page-23:166ms
+chat-stage: 175881ms old-page-24:140ms
+chat-stage: 178372ms old-page-25:86ms
+chat-stage: 181289ms old-page-26:134ms
+chat-stage: 183699ms old-page-27:132ms
+chat-stage: 186660ms old-page-28:148ms
+chat-stage: 189244ms old-page-29:146ms
+chat-stage: 193386ms old-page-30:156ms
+chat-stage: 197322ms old-page-31:135ms
+chat-stage: 199920ms reach-0:nodes=24:seq=1000444:more=True
+chat-stage: 200062ms reach-1:nodes=86:seq=1000274:more=True
+chat-stage: 500155ms reach-1-timeout:status=idle:nodes=24:seq=1000444:more=true:errors=[]
+Traceback (most recent call last):
+  File "/home/howboring/Projects/omp-webui-ticket-60/tests/product/performance.py", line 513, in <module>
+    raise SystemExit(asyncio.run(main()))
+                     ^^^^^^^^^^^^^^^^^^^
+  File "/home/howboring/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/home/howboring/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/howboring/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/howboring/Projects/omp-webui-ticket-60/tests/product/performance.py", line 501, in main
+    evidence["classes"].append(await chat_run(["--no-sandbox"]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/howboring/Projects/omp-webui-ticket-60/tests/product/performance.py", line 421, in chat_run
+    await wait_until(lambda: advanced(), CHAT_TIMEOUT_MS)
+  File "/home/howboring/Projects/omp-webui-ticket-60/tests/product/performance.py", line 207, in wait_until
+    raise TimeoutError("condition not met before timeout")
+TimeoutError: condition not met before timeout

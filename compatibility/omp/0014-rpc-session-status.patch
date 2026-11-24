@@ -1,0 +1,130 @@
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+index 23a8a829..85612fdd 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -127,6 +127,7 @@ import type {
+ 	RpcRemoveQueuedMessageResult,
+ 	RpcResponse,
+ 	RpcSessionState,
++	RpcSessionStatus,
+ 	RpcSubagentSubscriptionLevel,
+ } from "./rpc-types";
+ 
+@@ -1903,7 +1904,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	const refusedDuringNavigation = new WeakSet<object>();
+ 	const pendingUserInputs = new Set<object>();
+ 	const allowedDuringNavigation = (type: string): boolean => ["navigation_query", "navigation_inspect", "submission_query", "abort",
+-		"abort_branch_summary", "get_state", "get_tree", "get_entries", "history_observation_poll"].includes(type);
++		"abort_branch_summary", "get_state", "get_status", "get_tree", "get_entries", "history_observation_poll"].includes(type);
+ 	const inputGate = new RpcUserInputGate();
+ 	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
+ 	type OrderedInputOutcome = "local" | "local-failed" | "local-unknown" | "cancelled" | "admitted" | "builtin-agent";
+@@ -2470,6 +2471,22 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 				return success(id, "get_state", state);
+ 			}
+ 
++			case "get_status": {
++				// Membership and settlement only: never scan the transcript, build tool schemas or compute usage.
++				const queued = session.getQueuedMessages();
++				const status: RpcSessionStatus = {
++					sessionId: session.sessionId,
++					isStreaming: session.isStreaming,
++					isCompacting: session.isCompacting,
++					isSettled: isSessionSettled(session, goalTurnScheduled),
++					hasPendingAsyncWork: session.wakeSources !== undefined,
++					queuedMessageCount: session.queuedMessageCount,
++					steeringCount: queued.steering.length,
++					followUpCount: queued.followUp.length,
++				};
++				return success(id, "get_status", status);
++			}
++
+ 			case "set_fast_mode": {
+ 				const supported = session.setFastMode(command.enabled);
+ 				if (command.enabled && !supported) {
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+index 137c8aef..f7693400 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+@@ -84,6 +84,7 @@ export type RpcCommand =
+ 
+ 	// State
+ 	| { id?: string; type: "get_state" }
++	| { id?: string; type: "get_status" }
+   | { id?: string; type: "get_strict_state" }
+   | { id?: string; type: "cancel_strict_start" }
+   | { id?: string; type: "strict_start"; intent: "new" | "continue"; expectedCwd: string; reference?: string }
+@@ -194,6 +195,18 @@ export type RpcCommand =
+ // RPC State
+ // ============================================================================
+ 
++/** Settlement and membership inputs only; `get_status` answers a catalog read without scanning the transcript. */
++export interface RpcSessionStatus {
++	sessionId: string;
++	isStreaming: boolean;
++	isCompacting: boolean;
++	isSettled: boolean;
++	hasPendingAsyncWork: boolean;
++	queuedMessageCount: number;
++	steeringCount: number;
++	followUpCount: number;
++}
++
+ export interface RpcSessionState {
+ 	model?: Model;
+ 	thinkingLevel: ThinkingLevel | undefined;
+@@ -503,6 +516,7 @@ export type RpcResponse =
+ 
+ 	// State
+ 	| { id?: string; type: "response"; command: "get_state"; success: true; data: RpcSessionState }
++	| { id?: string; type: "response"; command: "get_status"; success: true; data: RpcSessionStatus }
+   | { id?: string; type: "response"; command: "strict_start" | "get_strict_state" | "cancel_strict_start"; success: true; data: StrictStartState }
+ 	| {
+ 			id?: string;
+diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+index dcd682c1..d45d7a64 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+@@ -104,6 +104,11 @@ export const rpcCommands: readonly RpcCommandSpec[] = [
+ 	},
+ 
+ 	{ name: "get_state", doc: "Snapshot the session state.", result: "SessionState" },
++	{
++		name: "get_status",
++		doc: "Snapshot only the settlement and membership inputs of the session, without transcript scans.",
++		result: "SessionStatus",
++	},
+ 	{
+ 		name: "set_fast_mode",
+ 		doc: "Enable or disable fast mode for the session.",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/state.ts b/packages/coding-agent/src/modes/rpc/wire/state.ts
+index 7c29c12b..4f50b249 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/state.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/state.ts
+@@ -147,6 +147,26 @@ export const stateDefs = {
+ 		goal: absentAs(doc("GoalModeState | null", "Current goal mode; null when the session has no goal."), null),
+ 	},
+ 
++	SessionStatus: {
++		sessionId: "string",
++		isStreaming: absentAs("boolean", false),
++		isCompacting: absentAs("boolean", false),
++		isSettled: absentAs(
++			doc("boolean", "Idle with nothing queued or pending; same predicate as `session_settled`."),
++			false,
++		),
++		hasPendingAsyncWork: absentAs(
++			doc(
++				"boolean",
++				"Background jobs, their deliveries, child agents or queued peer messages can still wake the session.",
++			),
++			false,
++		),
++		queuedMessageCount: absentAs("number.integer", 0),
++		steeringCount: absentAs(doc("number.integer", "Queued steering messages."), 0),
++		followUpCount: absentAs(doc("number.integer", "Queued follow-up messages."), 0),
++	},
++
+ 	BashResult: {
+ 		output: "string",
+ 		"exitCode?": "number.integer",

@@ -1,0 +1,11 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/supervisor.test.ts:
+(pass) logout during admitted native startup withdraws that browser while another browser can finish the same worker [7362.93ms]
+(pass) root revocation cancels genuine unbound startup UI and retains an honest unpublished open outcome [4789.25ms]
+
+ 2 pass
+ 15 filtered out
+ 0 fail
+ 10 expect() calls
+Ran 2 tests across 1 file. [12.66s]
