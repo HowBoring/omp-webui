@@ -180,8 +180,11 @@ export class AttachmentSubmissionGate {
     const flow = this.#flows.get(requestId);
     if (!flow) return;
     if (flow.nativeStarted) {
-      // Only a matched terminal reservation is safe to forget; unresolved Native work stays queryable.
-      if (flow.phase === "submitted") this.#flows.delete(requestId);
+      // A matched reservation is not a settled outcome. Forget only a flow whose public recovery is
+      // terminal success; unresolved Native work stays queryable and keeps consuming the ceiling.
+      if (this.#recovery(flow) === "unresolved") return;
+      this.#epoch++;
+      this.#flows.delete(requestId);
       return;
     }
     await this.#cancel(flow);

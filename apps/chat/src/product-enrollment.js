@@ -420,7 +420,14 @@ function apply(ctx, require) {
     useEffect(() => {
       let live = true;
       const tick = async () => {
-        if (!remote?.ompAttachments || selected === undefined) return;
+        // `ompAttachments/pending` is authorized by the attached Chat View; before attach (or after a
+        // lost view) it answers 401 and the browser logs a failed request. Poll only while it can work.
+        if (!remote?.ompAttachments || selected === undefined || attached === undefined
+          || generation === undefined || attached.projection.getSnapshot().phase !== "ready") return;
+        // Only a staged file can produce a receipt, and the stock composer renders a remove control
+        // for each staged attachment. Without one, stay silent: the endpoint needs chat authority that
+        // a restarted/unattached Host refuses, which would log a failed request on every page.
+        if (!document.querySelector('[aria-label^="Remove image"], [aria-label^="Remove file"]')) return;
         try {
           const value = unwrap(await remote.ompAttachments.pending());
           const next = value?.pending && value.pending.selection.session === selected ? value.pending : undefined;

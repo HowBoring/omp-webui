@@ -11,6 +11,7 @@ function fixture() {
   let revision = "1", owner = true, prepares = 0, submits = 0;
   let preparedMessage = "", submittedMessage = "";
   let failSubmit = false, noInput = false, mismatchOrigin = false, mismatchTarget = false, missingPart = false, unavailablePart = false;
+  let pendingPersistence = false;
   let degraded = true;
   let terminal = true; let deferred: PromiseWithResolvers<void> | undefined;
   let operationOutcome: "succeeded" | "failed" | "cancelled" | "unknown" = "unknown";
@@ -33,7 +34,7 @@ function fixture() {
     return { version: "durable-submission-v1", clientSubmissionId: input.clientSubmissionId,
       target: mismatchTarget ? { ...target, nativeSessionId: "another-session" } : target, found: true, duplicate: false,
       admission: "local", reservation: "committed", inputOutcome: noInput ? "no_input" : "generated", operationOutcome,
-      persistence: "committed", terminal, nextOffset: null,
+      persistence: pendingPersistence ? "pending" : "committed", terminal, nextOffset: null,
       origin: { ...target, clientSubmissionId: mismatchOrigin ? "another-attempt" : input.clientSubmissionId },
       relations: [...(noInput ? [] : [{ relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" }]),
         { relationId: "entry:prepared", role: "prepared", status: "observed", persistence: "committed", entryId: "prepared", attachments: [{
@@ -47,6 +48,7 @@ function fixture() {
     handledWithoutInput: (outcome: typeof operationOutcome = "unknown", settled = true) => { noInput = true; operationOutcome = outcome; terminal = settled; },
     mismatchOrigin: () => { mismatchOrigin = true; }, mismatchTarget: () => { mismatchTarget = true; }, missingPart: () => { missingPart = true; },
     unavailablePart: () => { unavailablePart = true; }, noDegradations: () => { degraded = false; },
+    pendingPersistence: () => { pendingPersistence = true; },
     deferSubmit: () => { deferred = Promise.withResolvers<void>(); return () => { deferred?.resolve(); deferred = undefined; }; } };
 }
 async function awaiting(gate: AttachmentSubmissionGate) {
