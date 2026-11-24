@@ -21,10 +21,10 @@ function fixture() {
       objects: [{ originalId: "original", format: "utf8", data: "aGk=", sha256: "c".repeat(64) }] };
   } }, () => ({ async prepare(input) {
     prepares++; preparedMessage = input.message;
-    return { version: "attachment-preparation-v1", budgetVersion: "attachment-budgets-v1", receiptId: "receipt", preparationId: input.preparationId,
+    return { version: "attachment-preparation-v1", budgetVersion: "attachment-budgets-v1", receiptId: `receipt-${prepares}`, preparationId: input.preparationId,
       draftId: "draft", draftRevision: "1", authorityGeneration: "grant", draftFingerprint: "d".repeat(64),
       binding: { ...target, contextId: "e".repeat(64), modelFingerprint: "f".repeat(64), imageCapable: true }, expiresAt: Date.now() + 60_000,
-      status: "ready", resultDigest: "d".repeat(64), items: [{ originalId: "original", originalSha256: "c".repeat(64),
+      status: "ready", resultDigest: String(prepares).padStart(64, "0"), items: [{ originalId: "original", originalSha256: "c".repeat(64),
         preparedId: "prepared", preparedSha256: "e".repeat(64), status: "ready", representation: { kind: "text", text: "processed original" },
         degradations: degraded ? ["text_truncated"] : [] }] } satisfies AttachmentReceipt;
   }, async cancel() { return { cancelled: true }; }, async submit(input: RpcWireCommands["submission_submit"]["params"]) {
@@ -306,6 +306,33 @@ test("settled stock attempts release the two-attempt ceiling for the next send",
   await f.gate.begin({ ...attempt, requestId: "request-3", submissionId: "attempt-3" });
   await f.gate.stockPrepare("request-3", "three", new AbortController().signal);
   expect((await f.gate.pending())?.requestId).toBe("request-3");
+});
+
+test("a request id cannot authorize another attempt's receipt for the same Selection", async () => {
+  const f = fixture();
+  const second = { ...attempt, requestId: "request-2", submissionId: "attempt-2" };
+  await f.gate.begin(attempt); await f.gate.begin(second);
+  const signal = new AbortController().signal;
+  await f.gate.stockPrepare("request", "one", signal);
+  await f.gate.stockPrepare("request-2", "two", signal);
+  const first = await f.gate.status("request"), other = await f.gate.status("request-2");
+  expect(first.phase).toBe("awaiting-consent"); expect(other.phase).toBe("awaiting-consent");
+  expect(first.receipt!.receiptId).not.toBe(other.receipt!.receiptId);
+  await expect(f.gate.consent({ selection, requestId: "request", receiptId: other.receipt!.receiptId,
+    resultDigest: other.receipt!.resultDigest, acceptedDegradations: ["text_truncated"] }))
+    .rejects.toThrow("ATTACHMENT_CONSENT_STALE");
+  await expect(f.gate.consent({ selection, requestId: "request", receiptId: first.receipt!.receiptId,
+    resultDigest: other.receipt!.resultDigest, acceptedDegradations: ["text_truncated"] }))
+    .rejects.toThrow("ATTACHMENT_CONSENT_STALE");
+  expect(f.counts().submits).toBe(0);
+  expect((await f.gate.status("request")).phase).toBe("awaiting-consent");
+  expect((await f.gate.status("request-2")).phase).toBe("awaiting-consent");
+  await f.gate.consent({ selection, requestId: "request", receiptId: first.receipt!.receiptId,
+    resultDigest: first.receipt!.resultDigest, acceptedDegradations: ["text_truncated"] });
+  for (let i = 0; i < 40 && f.counts().submits === 0; i++) await Promise.resolve();
+  expect(f.counts().submits).toBe(1);
+  await f.gate.cancel("request-2");
+  expect((await f.gate.status("request-2")).phase).toBe("cancelled");
 });
 
 test("stockRelease keeps an unresolved native attempt queryable for manual recovery", async () => {

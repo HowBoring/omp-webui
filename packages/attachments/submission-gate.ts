@@ -132,6 +132,11 @@ export class AttachmentSubmissionGate {
     const flow = this.#flow(request.requestId); await this.authorizeAttempt(flow.attempt);
     if (flow.phase !== "awaiting-consent" || !flow.receipt || flow.abort.signal.aborted) throw Error("ATTACHMENT_CONSENT_STALE");
     if (JSON.stringify(request.selection) !== JSON.stringify(flow.attempt.selection)) throw Error("ATTACHMENT_DRAFT_CHANGED");
+    // The bridge resolves a receipt globally, so the request id alone must never authorize another
+    // attempt's receipt: bind the approval to this flow's exact receipt and result before any bridge call.
+    if (request.receiptId !== flow.receipt.receiptId || request.resultDigest !== flow.receipt.resultDigest) {
+      throw Error("ATTACHMENT_CONSENT_STALE");
+    }
     const { requestId: _requestId, ...consent } = request;
     const accepted = await this.bridge.consent(consent);
     await this.authorizeAttempt(flow.attempt); flow.abort.signal.throwIfAborted();

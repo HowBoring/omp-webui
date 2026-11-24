@@ -122,6 +122,13 @@
     "testTabsClosed": "left the single test tab open with the wedged session on screen; no maintainer tab was closed",
     "artifacts": "/tmp/t63-accept/fh*.png"
   },
+  "rerunOnFixedHead": {
+    "head": "1063120a32",
+    "status": "BLOCKED",
+    "observation": "The Windows console was on 'Windows Default Lock Screen' (GetForegroundWindow; quser session 2 Active), so real Ctrl+C/clipboard paste, Explorer text+200x200 PNG drop and IME first-Enter/second-Enter could not be produced on this head.",
+    "notClaimed": "No PASS is claimed for Windows real OS input on 1063120a32. The results above remain the c5949a6 record.",
+    "stockConsent": "The typed refusal and consented transform paths were separately observed through Chrome automation on this head; see docs/evidence/ticket-63-consent-attachments-worker-loss.json."
+  },
   "limitations": [
     "attachment send failure is a product-side worker-loss/unconfirmed-outcome defect at the final head; the maintainer Host was left untouched and will need a restart to clear SESSION_WORKER_DRAINING",
     "the image attachment path could not be distinguished from a duplicate-chip/removal race because the Host stopped accepting explicit session actions",

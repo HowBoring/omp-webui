@@ -1,0 +1,117 @@
+{
+  "kind": "final-head-stock-consent-attachments-worker-loss",
+  "ticket": 63,
+  "head": "1063120a32",
+  "parent": "c21e394f4899f371747fb9670a699bc89050147d",
+  "recordedAt": "2026-11-24T05:55:00Z",
+  "host": {
+    "repository": "HowBoring/omp-webui",
+    "worktree": "/home/howboring/Projects/omp-webui-worker-loss",
+    "branch": "mvp/worker-loss",
+    "origin": "http://127.0.0.1:3252",
+    "dataDir": "/tmp/t63-final/data",
+    "manifest": "vendor/product/installation.json",
+    "manifestSha256": "6b634a192680d6863bfd92be0be5970e34b67b1334baaa8e7d9708bd9325dc0a",
+    "installationAssets": 152,
+    "runtime": "bun 1.4.4",
+    "dsh": {
+      "base": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "sourceTree": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f",
+      "sourceSha256": "ea64f5c189d66fb482246f345cf6731a938a9613c6aa37bb6d6a3dac57f34347"
+    },
+    "omp": {
+      "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+      "sourceSha256": "fbe8188cb6d7fc55680dd7c41f3f456122169d7c7a652df335cb11c14dcd86ae",
+      "patchSha256": "ec7bb9c8b255725fbc628664f807376dfd3c172bd75fa515928f9e1c817f83d1",
+      "schemaSha256": "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2"
+    },
+    "note": "The build initially failed strict start because this worktree lacked vendor/omp-runtime, so the candidate resolved ajv/pi-utils from the main checkout through the symlinked node_modules. Copying the pinned runtime and rebuilding reproduced the frozen source/patch/schema identities and strict start succeeded; no product code change was needed."
+  },
+  "consent": {
+    "refusal": {
+      "session": "01a20c0a-ace4-76d0-8e4a-b01180093b29",
+      "input": "C:\\t63-drop\\small.png",
+      "inputNote": "100x100 RGB PNG, 218 bytes, sha256 8a745d6a46c76cc4e4b38262fb98309e8151b1d0fe0d3d78cf1fd89ab304d283; native preparation upsizes below-200px images and reports image_transformed",
+      "overlay": "stock shell [data-product-attachment-consent-modal]: 'Native preparation changed the files below. Review exactly what the model will receive; nothing has been sent yet.' + 'Image size or encoding changed' + exact prepared prompt + 'Accept these changes and send' / 'Do not send'",
+      "action": "real CDP mouse click on 'Do not send'",
+      "result": "overlay closed, draft text and file chip retained, no role=alert and no 'unresolved' text, native journal contains only title/session/model_change/thinking_level_change - no user input, no assistant, no omp.native-control/submission-v1",
+      "status": "PASS"
+    },
+    "accept": {
+      "session": "01a20c0a-ace4-76d0-8e4a-b01180093b29",
+      "action": "same Send attempt reopened the overlay, real click on 'Accept these changes and send'",
+      "native": "user text plus image/png 593 bytes decoding to 200x200 (upscaled from 100x100), assistant text exactly 'A solid red square.', terminal omp.native-control/submission-v1 with inputOutcome 'generated'",
+      "status": "PASS"
+    }
+  },
+  "exactAttachmentTurn": {
+    "session": "01a20c0f-966c-71f7-9f75-73abe5b16653",
+    "provider": "kimi-code",
+    "model": "k3.1-pro",
+    "api": "anthropic-messages",
+    "usageTotalTokens": 16164,
+    "files": [
+      {
+        "path": "C:\\t63-drop\\drop.txt",
+        "bytes": 22,
+        "sha256": "a327c3e84b7a32a07b8c1cf3c1ab7437abae08b191b4ad54265fff88b5a88dc9",
+        "native": "prepared fileMention attachment-prepared://73740c4e... with content 'hello attachment drop'"
+      },
+      {
+        "path": "C:\\t63-drop\\pixel.png",
+        "bytes": 426,
+        "sha256": "233460d9ceabd422e2ac1b974e6ed9fef756e7a9f344e4fa83c596f9f283c86a",
+        "native": "image/png user content, 200x200, no degradation and no consent overlay; byte-identical to product-flow PNG_200"
+      }
+    ],
+    "assistant": "ATTACH T63 OK",
+    "terminalControl": "omp.native-control/submission-v1 with inputOutcome 'generated'",
+    "status": "PASS"
+  },
+  "workerLoss": {
+    "release": "c21e394 releases the worker slot once the root handle is gone; reader EOF is only the clean-exit label",
+    "firstKill": {
+      "workerPid": 31695,
+      "session": "01a20c0f-966c-71f7-9f75-73abe5b16653",
+      "index": { "state": "outcome_unknown", "code": "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED" },
+      "reload": "Failed to load history: No native worker is open for this Session. Explicitly Open it to continue; nothing is replayed. (SESSION_MANUAL_OPEN_REQUIRED)",
+      "autoOpen": false
+    },
+    "timedCreateAfterSecondKill": {
+      "killedPid": 48737,
+      "killedAt": "2026-11-24T05:52:26.564Z",
+      "lostSession": "01a20c1c-9e5e-726f-b8f4-c8b4a093db19",
+      "lostSessionIndex": { "state": "outcome_unknown", "code": "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED" },
+      "created": [
+        { "session": "01a20c1c-d99d-774a-9b1f-c837be28afc7", "nativeFile": "2026-11-24T05:52:27.037Z", "registeredAt": "2026-11-24T05:52:29.043Z" },
+        { "session": "01a20c1c-e408-75ec-a193-1899591d6505", "registeredAt": "2026-11-24T05:52:31.928Z" },
+        { "session": "01a20c1c-ef5a-7742-8616-8b3010c2ca9f", "registeredAt": "2026-11-24T05:52:34.508Z" }
+      ],
+      "path": "same-origin product RPC session/create {request:{cwd}} - the handler the stock New Session action invokes - in the same surviving browser credential",
+      "elapsed": "the first native session file appeared 0.47 s after the kill; the previous EOF-waiting build kept SESSION_WORKER_DRAINING for >15 minutes",
+      "status": "PASS"
+    },
+    "shellNote": "The stock sidebar New Session buttons produced no create while the manual-open-required session view stayed selected (no request, no alert); the product create RPC succeeded immediately from that same credential. This is not counted as a stock-button PASS.",
+    "historyEvidence": "docs/evidence/worker-loss-2026-11-24/ (sanitized: no bootstrap token, cookie, CSRF value or session auth). dmesg was unreadable and no journal OOM entry exists; the worker log has no 'Session exit recorded' line, so the abrupt exit cause of the earlier real-provider run is not deterministically recoverable. The stdio policy retains only stderr byte counts, and no public worker-exit RPC exists."
+  },
+  "windowsRealInput": {
+    "status": "BLOCKED",
+    "head": "1063120a32",
+    "observed": "GetForegroundWindow = 'Windows Default Lock Screen'; quser shows console session 2 Active on 2026-11-24 13:05",
+    "consequence": "real Ctrl+C/paste, Explorer text+200x200 PNG drop and IME first-Enter/second-Enter were not rerun on this head; no PASS is claimed",
+    "previousHead": "c5949a6 has the stored FAIL/PARTIAL results in docs/evidence/ticket-63-windows-input.json"
+  },
+  "gates": {
+    "focused": "bun test tests/chat/gateway.test.ts tests/attachments/submission-gate.test.ts tests/product/enrollment.test.ts: 61 pass 0 fail",
+    "affected": "bun test tests/attachments tests/chat tests/product/enrollment.test.ts tests/product/client-policy.test.ts tests/sessions: 375 pass 0 fail, 2754 expect() calls, 252.05s",
+    "typecheck": "tsc --noEmit both configs clean",
+    "product": "product:build / product:verify (136 files) / product:enroll before this evidence",
+    "freeze": "docs/evidence/ticket-63-freeze.json regenerated from the same bytes after this file was written; see that file for the recorded digests"
+  },
+  "limitations": [
+    "maintainer operational acceptance remains NOT RUN",
+    "Windows real OS input on this head is BLOCKED by the lock screen, not passed",
+    "the stock New Session button itself was not observed to create; the product create RPC was",
+    "no public worker-exit diagnostics expose the real external exit cause"
+  ]
+}

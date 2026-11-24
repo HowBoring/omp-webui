@@ -83,7 +83,15 @@ different machine, and it is only valid for the recorded corpus identity in
   Chrome over CDP against the superseded custom-shell tuple. The final-head rerun is in
   `ticket-63-windows-input.json`: real OS clipboard copy/paste, real Enter and Explorer-originated drags
   of `drop.txt` and `pixel.png` were observed, but the attachment send lost its worker
-  (`SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED`, unresolved submission) and the Host then rejected new or
+  `SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED`, unresolved submission) and the Host then rejected new or
   reopened sessions with `SESSION_WORKER_DRAINING`. That turn has no confirmed fileMention/provider
-  outcome, so #63 acceptance cannot treat the Windows attachment path as passed; a Host restart and a
-  clean rerun are required, and maintainer manual acceptance remains NOT RUN.
+  outcome, so #63 acceptance cannot treat the Windows attachment path as passed.
+
+The fixed candidate is head `1063120a32` (parent `c21e394`): a lost root releases the reservation
+immediately (a new Session was created 0.47 s after the kill in the same browser credential, while the
+old unresolved Session stays `SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED` and never auto-opens), and the
+stock shell now requires explicit degradation consent instead of silently transforming attachments.
+A real-provider exact attachment turn passed (`drop.txt` prepared fileMention, `pixel.png` native image,
+assistant reply, terminal `generated`). Windows real OS input was not rerun on this head because the
+console was locked, and is recorded as **BLOCKED**; maintainer manual acceptance remains NOT RUN.
+Evidence: `docs/evidence/ticket-63-consent-attachments-worker-loss.json`.

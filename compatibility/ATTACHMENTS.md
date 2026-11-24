@@ -123,6 +123,14 @@ build/generation/`--check`, TypeScript and pure-suite checks (51 tests/160 asser
 Its previous “runtime NOT RUN” statement belongs to that historical tuple; it does not describe the
 current9f33 sample runs above.
 
+The stock product shell now consumes the same receipt: a prepared request with any degradation is
+returned to the browser as an exact pending review (`ompAttachments/pending`) and the product plugin
+renders it in a shell overlay with the actual prepared input and the listed losses. Only an explicit
+accept continues the frozen attempt; "Do not send" cancels it with the draft and files intact, and the
+public failure is a typed pre-dispatch refusal, never an unresolved outcome. Settled stock attempts are
+released so the two-attempt gate cannot wedge later sends. See
+[ticket-63 consent, attachment and worker-loss evidence](../docs/evidence/ticket-63-consent-attachments-worker-loss.json).
+
 Current-tree status: the rooted Bun suite (`tests/attachments`, 95 tests), the native fixture matrix
 (14 files, 49 tests), strict authored-native TypeScript, root `tsc` and `compat:build` all pass on the
 tuple above, and [the isolated browser page](../docs/evidence/ticket-38-browser.json) drives

@@ -149,5 +149,12 @@ Windows 最终 head `c5949a6` 的真实 OS 输入已部分复测：真实 Ctrl+C
 发送与 Explorer 拖入 `drop.txt` 和可见的 `pixel.png` 均观察到；但该附件发送丢失 worker
 （`SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED`，提交结果未确认），随后 Host 以
 `SESSION_WORKER_DRAINING` 拒绝新会话/重开会话，因此附件回合的 fileMention/provider 未获确认，
-Windows 附件路径不能记为通过，需重启 Host 后干净重跑；证据见
-`docs/evidence/ticket-63-windows-input.json`。
+Windows 附件路径不能记为通过；证据见 `docs/evidence/ticket-63-windows-input.json`。
+
+修复后的候选 head `1063120a32`（父 `c21e394`）已在同版本组合上验证：
+worker 根退出后 0.47 s 即可在同一浏览器凭据内创建新原生 Session，旧未决 Session 保持
+`SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED` 且刷新不自动打开；stock 附件降级必须显式接受，
+拒绝时不发送、不产生 native control，接受后发送准备好的 200×200 图像；真实 provider 精确附件回合
+（`drop.txt` fileMention + `pixel.png` 原生 image + assistant + terminal generated）通过。
+Windows 真实 OS 输入在该 head 上因控制台处于锁屏而未重跑，记为 **BLOCKED**，不得折算通过；
+维护者操作验收仍未执行，见 `docs/evidence/ticket-63-consent-attachments-worker-loss.json`。
