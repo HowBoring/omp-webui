@@ -1,8 +1,8 @@
 {
   "kind": "final-head-stock-consent-attachments-worker-loss",
   "ticket": 63,
-  "head": "1063120a32",
-  "parent": "c21e394f4899f371747fb9670a699bc89050147d",
+  "head": "6af33ca3e9",
+  "parent": "1063120a32",
   "recordedAt": "2026-11-24T05:55:00Z",
   "host": {
     "repository": "HowBoring/omp-webui",
@@ -73,7 +73,10 @@
     "firstKill": {
       "workerPid": 31695,
       "session": "01a20c0f-966c-71f7-9f75-73abe5b16653",
-      "index": { "state": "outcome_unknown", "code": "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED" },
+      "index": {
+        "state": "outcome_unknown",
+        "code": "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED"
+      },
       "reload": "Failed to load history: No native worker is open for this Session. Explicitly Open it to continue; nothing is replayed. (SESSION_MANUAL_OPEN_REQUIRED)",
       "autoOpen": false
     },
@@ -81,11 +84,24 @@
       "killedPid": 48737,
       "killedAt": "2026-11-24T05:52:26.564Z",
       "lostSession": "01a20c1c-9e5e-726f-b8f4-c8b4a093db19",
-      "lostSessionIndex": { "state": "outcome_unknown", "code": "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED" },
+      "lostSessionIndex": {
+        "state": "outcome_unknown",
+        "code": "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED"
+      },
       "created": [
-        { "session": "01a20c1c-d99d-774a-9b1f-c837be28afc7", "nativeFile": "2026-11-24T05:52:27.037Z", "registeredAt": "2026-11-24T05:52:29.043Z" },
-        { "session": "01a20c1c-e408-75ec-a193-1899591d6505", "registeredAt": "2026-11-24T05:52:31.928Z" },
-        { "session": "01a20c1c-ef5a-7742-8616-8b3010c2ca9f", "registeredAt": "2026-11-24T05:52:34.508Z" }
+        {
+          "session": "01a20c1c-d99d-774a-9b1f-c837be28afc7",
+          "nativeFile": "2026-11-24T05:52:27.037Z",
+          "registeredAt": "2026-11-24T05:52:29.043Z"
+        },
+        {
+          "session": "01a20c1c-e408-75ec-a193-1899591d6505",
+          "registeredAt": "2026-11-24T05:52:31.928Z"
+        },
+        {
+          "session": "01a20c1c-ef5a-7742-8616-8b3010c2ca9f",
+          "registeredAt": "2026-11-24T05:52:34.508Z"
+        }
       ],
       "path": "same-origin product RPC session/create {request:{cwd}} - the handler the stock New Session action invokes - in the same surviving browser credential",
       "elapsed": "the first native session file appeared 0.47 s after the kill; the previous EOF-waiting build kept SESSION_WORKER_DRAINING for >15 minutes",
@@ -96,7 +112,7 @@
   },
   "windowsRealInput": {
     "status": "BLOCKED",
-    "head": "1063120a32",
+    "head": "6af33ca3e9",
     "observed": "GetForegroundWindow = 'Windows Default Lock Screen'; quser shows console session 2 Active on 2026-11-24 13:05",
     "consequence": "real Ctrl+C/paste, Explorer text+200x200 PNG drop and IME first-Enter/second-Enter were not rerun on this head; no PASS is claimed",
     "previousHead": "c5949a6 has the stored FAIL/PARTIAL results in docs/evidence/ticket-63-windows-input.json"
@@ -106,12 +122,19 @@
     "affected": "bun test tests/attachments tests/chat tests/product/enrollment.test.ts tests/product/client-policy.test.ts tests/sessions: 375 pass 0 fail, 2754 expect() calls, 252.05s",
     "typecheck": "tsc --noEmit both configs clean",
     "product": "product:build / product:verify (136 files) / product:enroll before this evidence",
-    "freeze": "docs/evidence/ticket-63-freeze.json regenerated from the same bytes after this file was written; see that file for the recorded digests"
+    "freeze": "docs/evidence/ticket-63-freeze.json regenerated from the same bytes after this file was written; see that file for the recorded digests",
+    "restart": "tests/product/restart-flow.py: PASS, consoleErrors [], 3 restart transport resets, evidence docs/evidence/ticket-63-restart-flow.json",
+    "stockReleaseInvariant": "unresolved native work stays queryable and counted; only recovered accepted/completed-without-input flows are forgotten"
   },
   "limitations": [
     "maintainer operational acceptance remains NOT RUN",
     "Windows real OS input on this head is BLOCKED by the lock screen, not passed",
     "the stock New Session button itself was not observed to create; the product create RPC was",
     "no public worker-exit diagnostics expose the real external exit cause"
+  ],
+  "commits": [
+    "1063120a32 fix(attachments): require explicit stock consent and release settled attempts",
+    "fb1f246790 fix(attachments): bind consent to the attempt's exact receipt",
+    "6af33ca3e9 fix(attachments): keep unresolved stock attempts and silence unattached polling"
   ]
 }

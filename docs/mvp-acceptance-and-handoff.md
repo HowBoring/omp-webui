@@ -151,7 +151,7 @@ Windows 最终 head `c5949a6` 的真实 OS 输入已部分复测：真实 Ctrl+C
 `SESSION_WORKER_DRAINING` 拒绝新会话/重开会话，因此附件回合的 fileMention/provider 未获确认，
 Windows 附件路径不能记为通过；证据见 `docs/evidence/ticket-63-windows-input.json`。
 
-修复后的候选 head `1063120a32`（父 `c21e394`）已在同版本组合上验证：
+修复后的候选 head `fb1f246790`（父 `c21e394`）已在同版本组合上验证：
 worker 根退出后 0.47 s 即可在同一浏览器凭据内创建新原生 Session，旧未决 Session 保持
 `SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED` 且刷新不自动打开；stock 附件降级必须显式接受，
 拒绝时不发送、不产生 native control，接受后发送准备好的 200×200 图像；真实 provider 精确附件回合

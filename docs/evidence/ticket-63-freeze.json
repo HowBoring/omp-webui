@@ -2,12 +2,12 @@
   "ticket": 63,
   "kind": "final-combination-freeze",
   "spec": 29,
-  "recordedAt": "2026-11-23T17:47:23.509Z",
+  "recordedAt": "2026-11-24T06:02:00.730Z",
   "host": {
     "repository": "HowBoring/omp-webui",
-    "worktree": "/home/howboring/Projects/omp-webui-review-stock",
-    "branch": "mvp/spec-29-review-stock",
-    "commit": "c5949a6882e94c718bbb60392623af0b33ed0fae",
+    "worktree": "/home/howboring/Projects/omp-webui-worker-loss",
+    "branch": "mvp/worker-loss",
+    "commit": "6af33ca3e9532ee043f43bc92f37c85fe92567f8",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
@@ -45,26 +45,26 @@
     },
     "installationManifest": {
       "path": "vendor/product/installation.json",
-      "sha256": "2aa07e036c262ef3c35cba054a21f5944681a3f521b52fe0cf48e9ba4551f122",
+      "sha256": "ae2661298b48d2193c4356e07dcb12df200cf77f10b8ce5b26333039752f40c0",
       "canonicalization": "checkout-relative asset paths; runtime path tokenized; system dependency paths reduced to basename with content identity and bytes retained"
     },
     "installationAssets": [
       {
         "path": "vendor/omp-candidate",
         "kind": "directory",
-        "identity": "f1add6400c4a27e6ec787a7558158c8deb02e895e3856a3e1deefaf8ca0be9b6",
+        "identity": "66dff4063c1ca6550b1f91b538ddc38ec9cdcedc4c93be7ba06048a659a9f171",
         "mode": 493
       },
       {
-        "path": "vendor/omp-candidate/chunk-t0tbxthm.js",
+        "path": "vendor/omp-candidate/chunk-gmmc8tga.js",
         "kind": "file",
-        "identity": "a6f05baba23170d1b3c3259c98165d8057a268e988be1bc74e5c0dfa0315d087",
+        "identity": "991170a9f7a3e675b304a7a3ac2f84a57266fcc22664baff17305b7bab95489f",
         "mode": 420
       },
       {
         "path": "vendor/omp-candidate/cli.js",
         "kind": "file",
-        "identity": "4b20dd09cbd4be0e82d21c7e081e626a44814007cdde4cd5268c9947807f5bde",
+        "identity": "5e3fd5804e68049b5cce407cbd3687d973060647de2dc2600fa8bc692766ee5e",
         "mode": 493
       },
       {
@@ -634,7 +634,7 @@
       {
         "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
         "kind": "file",
-        "identity": "d6d48df50582d935d61eb75e5c436a99cebc8f35ea5769605ede57298237b6a3",
+        "identity": "a2ca918ebafa552a91c026c1aa553ddeb6c602aa24a802a5262ac3daaba4053c",
         "mode": 420
       },
       {
@@ -688,7 +688,7 @@
       {
         "path": "vendor/dsh-product/index.html",
         "kind": "file",
-        "identity": "86db04601d6fd067dfaa3d74a8e866ac5f3c2d6650b3e7bb7235c52401c6384c",
+        "identity": "18a809c9979a1869ae7e2f5a7b9e2c23f7358a6205eb8cac01e373b589c82d9b",
         "mode": 420
       },
       {
@@ -742,13 +742,13 @@
       {
         "path": "vendor/dsh-product/plugins/batches/1.js",
         "kind": "file",
-        "identity": "752f331c1d04ae74be97df68e2ef184b696eb4497509e18192b81d81d172eb59",
+        "identity": "5c218776529d925a93f6475020cfa364b8f9878ff4efede5a126c2f0010aff80",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/routes.json",
         "kind": "file",
-        "identity": "4942aadbf8ffcfdf332baa221307626f974b5edc36c06c831c1624a783171760",
+        "identity": "e47bc2f2e84fce5fea57ab83be199e02c684ed8e04b9960c2e5ab4987f51d1c7",
         "mode": 420
       },
       {
@@ -922,7 +922,7 @@
       {
         "path": "vendor/dsh-product/plugins/singles/33.js",
         "kind": "file",
-        "identity": "ece9d1ae39168959529e0ffaedf6e2258fb085c0f01d5aec231f9856374ca093",
+        "identity": "09493f68b07b3391bc92ca7932703850d2a15e6bf2bfcb45a5bae78701bffca6",
         "mode": 420
       },
       {
@@ -1302,16 +1302,16 @@
     "product": {
       "path": "vendor/dsh-product",
       "files": 136,
-      "sha256": "5a5e36b8a14bcc3d40b074a7a5f73627de65bc58e9b370b2589c3d945b3ec8fa"
+      "sha256": "6ab863f71e20b4c67b0262e502c80ca6de55969767ca7c14a076be4f8890f68e"
     },
     "routes": {
       "path": "vendor/dsh-product/plugins/routes.json",
-      "sha256": "4942aadbf8ffcfdf332baa221307626f974b5edc36c06c831c1624a783171760"
+      "sha256": "e47bc2f2e84fce5fea57ab83be199e02c684ed8e04b9960c2e5ab4987f51d1c7"
     },
     "graph": {
       "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
-      "sha256": "d6d48df50582d935d61eb75e5c436a99cebc8f35ea5769605ede57298237b6a3",
-      "rev": "d291d78fb811",
+      "sha256": "a2ca918ebafa552a91c026c1aa553ddeb6c602aa24a802a5262ac3daaba4053c",
+      "rev": "23abc51e474a",
       "release": {
         "version": "0.1.0",
         "commit": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f"
@@ -1668,7 +1668,7 @@
       },
       {
         "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
-        "sha256": "d6d48df50582d935d61eb75e5c436a99cebc8f35ea5769605ede57298237b6a3"
+        "sha256": "a2ca918ebafa552a91c026c1aa553ddeb6c602aa24a802a5262ac3daaba4053c"
       },
       {
         "path": "vendor/dsh-product/boot/injection-0.js",
@@ -1704,7 +1704,7 @@
       },
       {
         "path": "vendor/dsh-product/index.html",
-        "sha256": "86db04601d6fd067dfaa3d74a8e866ac5f3c2d6650b3e7bb7235c52401c6384c"
+        "sha256": "18a809c9979a1869ae7e2f5a7b9e2c23f7358a6205eb8cac01e373b589c82d9b"
       },
       {
         "path": "vendor/dsh-product/manifest.webmanifest",
@@ -1720,11 +1720,11 @@
       },
       {
         "path": "vendor/dsh-product/plugins/batches/1.js",
-        "sha256": "752f331c1d04ae74be97df68e2ef184b696eb4497509e18192b81d81d172eb59"
+        "sha256": "5c218776529d925a93f6475020cfa364b8f9878ff4efede5a126c2f0010aff80"
       },
       {
         "path": "vendor/dsh-product/plugins/routes.json",
-        "sha256": "4942aadbf8ffcfdf332baa221307626f974b5edc36c06c831c1624a783171760"
+        "sha256": "e47bc2f2e84fce5fea57ab83be199e02c684ed8e04b9960c2e5ab4987f51d1c7"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/0.js",
@@ -1836,7 +1836,7 @@
       },
       {
         "path": "vendor/dsh-product/plugins/singles/33.js",
-        "sha256": "ece9d1ae39168959529e0ffaedf6e2258fb085c0f01d5aec231f9856374ca093"
+        "sha256": "09493f68b07b3391bc92ca7932703850d2a15e6bf2bfcb45a5bae78701bffca6"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/4.js",
@@ -1890,6 +1890,7 @@
     "docs/evidence/ticket-61-windows-input.json": "7155af9bee9a90a9df57258c81a78fb9101bf509f32d025d5bf2dc979a7bfc84",
     "docs/evidence/ticket-61-windows-input.png": "246ea246e9853c5465a394457deba2c32f9894bd05b0c5220d1183adc53afe40",
     "docs/evidence/ticket-63-product-flow.json": "cdcbd39f6ce497057c09e6c20c2c63ac20cf3ef86f4e2b72aaf4073eaf002836",
+    "docs/evidence/ticket-63-windows-input.json": "8597c9fcf66d44263f32fcf82bed357e7c0abce17af569b9cbf7ebc7571c8d29",
     "tests/product/evidence/performance-2026-11-22-product.json": "e0e71f465aed39179dc26b3b764c0ea1100b144e2d048c38d37e2370c1258652",
     "tests/product/evidence/performance-2026-11-23-product.json": "3ef793729abc824b066e92fbea05e600048a24b964f8068d0ad615cb16b1f8cb"
   },

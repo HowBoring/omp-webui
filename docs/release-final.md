@@ -87,11 +87,15 @@ different machine, and it is only valid for the recorded corpus identity in
   reopened sessions with `SESSION_WORKER_DRAINING`. That turn has no confirmed fileMention/provider
   outcome, so #63 acceptance cannot treat the Windows attachment path as passed.
 
-The fixed candidate is head `1063120a32` (parent `c21e394`): a lost root releases the reservation
+The fixed candidate is head `6af33ca3e9` (parent `1063120a32`): a lost root releases the reservation
 immediately (a new Session was created 0.47 s after the kill in the same browser credential, while the
 old unresolved Session stays `SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED` and never auto-opens), and the
 stock shell now requires explicit degradation consent instead of silently transforming attachments.
 A real-provider exact attachment turn passed (`drop.txt` prepared fileMention, `pixel.png` native image,
-assistant reply, terminal `generated`). Windows real OS input was not rerun on this head because the
+assistant reply, terminal `generated`). The stock restart flow also passes on this head (no auto-open,
+typed manual-open marker, explicit Open with retained history, Sessions past the first catalog page,
+zero non-transport console errors; `docs/evidence/ticket-63-restart-flow.json`). Consent is bound to the
+attempt's own receipt, and an unresolved native attempt stays queryable and keeps the two-attempt
+ceiling until public facts settle it. Windows real OS input was not rerun on this head because the
 console was locked, and is recorded as **BLOCKED**; maintainer manual acceptance remains NOT RUN.
 Evidence: `docs/evidence/ticket-63-consent-attachments-worker-loss.json`.

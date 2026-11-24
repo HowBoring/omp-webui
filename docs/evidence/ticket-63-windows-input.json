@@ -123,10 +123,10 @@
     "artifacts": "/tmp/t63-accept/fh*.png"
   },
   "rerunOnFixedHead": {
-    "head": "1063120a32",
+    "head": "6af33ca3e9",
     "status": "BLOCKED",
     "observation": "The Windows console was on 'Windows Default Lock Screen' (GetForegroundWindow; quser session 2 Active), so real Ctrl+C/clipboard paste, Explorer text+200x200 PNG drop and IME first-Enter/second-Enter could not be produced on this head.",
-    "notClaimed": "No PASS is claimed for Windows real OS input on 1063120a32. The results above remain the c5949a6 record.",
+    "notClaimed": "No PASS is claimed for Windows real OS input on 6af33ca3e9. The results above remain the c5949a6 record.",
     "stockConsent": "The typed refusal and consented transform paths were separately observed through Chrome automation on this head; see docs/evidence/ticket-63-consent-attachments-worker-loss.json."
   },
   "limitations": [
