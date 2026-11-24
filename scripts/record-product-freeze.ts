@@ -92,6 +92,7 @@ const evidencePaths = [
   "docs/evidence/ticket-63-windows-input.json",
   "tests/product/evidence/performance-2026-11-22-product.json",
   "tests/product/evidence/performance-2026-11-23-product.json",
+  "tests/product/evidence/performance-2026-11-24-product.json",
 ];
 const evidence: Record<string, string> = {};
 for (const path of evidencePaths) {

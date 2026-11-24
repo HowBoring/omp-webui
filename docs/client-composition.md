@@ -3,7 +3,7 @@
 Status: 用户已确认组合方向和产品范围；公开接缝隔离实验已通过。stock 产品外壳已服务并由真实浏览器验证
 （grant/New Session/发送/停止/继续/历史恢复/多视图/model+thinking/偏好/stock 斜杠菜单，见
 `docs/evidence/ticket-63-freeze.json`、`docs/evidence/ticket-63-product-flow.json` 与
-`tests/product/evidence/performance-2026-11-23-product.json`）。
+`tests/product/evidence/performance-2026-11-24-product.json`）。
 stock 斜杠菜单直接读取 Native command catalog；冻结客户端自身拥有的 `/model` 从 Host face
 排除，其余 Native 命令（例如 `/context`）按 `command-v1`/`no_input` 由 Native 执行，
 未知命令和非斜杠文本不提交。

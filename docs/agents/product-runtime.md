@@ -74,7 +74,7 @@ bun test tests/product/freeze.test.ts      # fails when the enrolled installatio
 The freeze gate hashes the enrolled manifest with checkout-relative asset paths and a tokenized runtime
 path. System dependency paths are reduced to their basename, but each dependency keeps its content
 identity and size, so a foreign glibc with the same library names cannot pass. The canonical digest is
-`a0a06db5b1f02f1822f42b62b687bad07ddd535bf01d9310ad515597f7a4c040`; every checkout that enrolls the
+`ae2661298b48d2193c4356e07dcb12df200cf77f10b8ce5b26333039752f40c0`; every checkout that enrolls the
 same closure produces it, while source/patch/schema and each asset identity stay pinned individually.
 The raw `vendor/product/installation.json` bytes still contain the concrete checkout paths that
 admission executes.
@@ -96,7 +96,7 @@ Host environment: `OMP_WEB_MANIFEST`, `OMP_WEB_LAUNCHER`, `OMP_WEB_MANIFEST_SHA2
 
 Product-flow harness: `tests/product/product-flow.py` (real Chromium, controlled provider). Operator
 runbook: `docs/operations.md`. Stock product-flow and performance evidence:
-`docs/evidence/ticket-63-product-flow.json` and `tests/product/evidence/performance-2026-11-23-product.json`.
+`docs/evidence/ticket-63-product-flow.json` and `tests/product/evidence/performance-2026-11-24-product.json`.
 Platform and native-data evidence from the superseded custom-shell tuple remains under
 `docs/evidence/ticket-61-*.json`. The #63 Windows stock-shell rerun against the final head is
 recorded in `docs/evidence/ticket-63-windows-input.json`: real Win32 Ctrl+C copy, external
