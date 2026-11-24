@@ -1,8 +1,8 @@
 {
   "kind": "final-head-stock-consent-attachments-worker-loss",
   "ticket": 63,
-  "head": "6af33ca3e9",
-  "parent": "1063120a32",
+  "head": "ae0ddb9bf9",
+  "parent": "6af33ca3e9",
   "recordedAt": "2026-11-24T05:55:00Z",
   "host": {
     "repository": "HowBoring/omp-webui",
@@ -124,7 +124,7 @@
     "product": "product:build / product:verify (136 files) / product:enroll before this evidence",
     "freeze": "docs/evidence/ticket-63-freeze.json regenerated from the same bytes after this file was written; see that file for the recorded digests",
     "restart": "tests/product/restart-flow.py: PASS, consoleErrors [], 3 restart transport resets, evidence docs/evidence/ticket-63-restart-flow.json",
-    "stockReleaseInvariant": "unresolved native work stays queryable and counted; only recovered accepted/completed-without-input flows are forgotten"
+    "stockReleaseInvariant": "an attempt is forgotten only after a terminal publication: terminal accepted or terminal completed-without-input; matched committed but terminal:false stays queryable and counted"
   },
   "limitations": [
     "maintainer operational acceptance remains NOT RUN",
@@ -135,6 +135,7 @@
   "commits": [
     "1063120a32 fix(attachments): require explicit stock consent and release settled attempts",
     "fb1f246790 fix(attachments): bind consent to the attempt's exact receipt",
-    "6af33ca3e9 fix(attachments): keep unresolved stock attempts and silence unattached polling"
+    "6af33ca3e9 fix(attachments): keep unresolved stock attempts and silence unattached polling",
+    "ae0ddb9bf9 fix(attachments): forget a stock attempt only after a terminal publication"
   ]
 }

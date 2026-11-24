@@ -87,7 +87,7 @@ different machine, and it is only valid for the recorded corpus identity in
   reopened sessions with `SESSION_WORKER_DRAINING`. That turn has no confirmed fileMention/provider
   outcome, so #63 acceptance cannot treat the Windows attachment path as passed.
 
-The fixed candidate is head `6af33ca3e9` (parent `1063120a32`): a lost root releases the reservation
+The fixed candidate is head `ae0ddb9bf9` (parent `6af33ca3e9`): a lost root releases the reservation
 immediately (a new Session was created 0.47 s after the kill in the same browser credential, while the
 old unresolved Session stays `SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED` and never auto-opens), and the
 stock shell now requires explicit degradation consent instead of silently transforming attachments.

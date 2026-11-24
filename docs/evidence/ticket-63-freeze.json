@@ -2,12 +2,12 @@
   "ticket": 63,
   "kind": "final-combination-freeze",
   "spec": 29,
-  "recordedAt": "2026-11-24T06:02:00.730Z",
+  "recordedAt": "2026-11-24T07:11:10.412Z",
   "host": {
     "repository": "HowBoring/omp-webui",
     "worktree": "/home/howboring/Projects/omp-webui-worker-loss",
     "branch": "mvp/worker-loss",
-    "commit": "6af33ca3e9532ee043f43bc92f37c85fe92567f8",
+    "commit": "ae0ddb9bf93d7a55d8ea58aa2cfb37c1d7c77699",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
@@ -1890,7 +1890,7 @@
     "docs/evidence/ticket-61-windows-input.json": "7155af9bee9a90a9df57258c81a78fb9101bf509f32d025d5bf2dc979a7bfc84",
     "docs/evidence/ticket-61-windows-input.png": "246ea246e9853c5465a394457deba2c32f9894bd05b0c5220d1183adc53afe40",
     "docs/evidence/ticket-63-product-flow.json": "cdcbd39f6ce497057c09e6c20c2c63ac20cf3ef86f4e2b72aaf4073eaf002836",
-    "docs/evidence/ticket-63-windows-input.json": "8597c9fcf66d44263f32fcf82bed357e7c0abce17af569b9cbf7ebc7571c8d29",
+    "docs/evidence/ticket-63-windows-input.json": "4e6276f738cb22a13a6af59b420f5ae707537b5aef41ef255b2d9bb14c9fd228",
     "tests/product/evidence/performance-2026-11-22-product.json": "e0e71f465aed39179dc26b3b764c0ea1100b144e2d048c38d37e2370c1258652",
     "tests/product/evidence/performance-2026-11-23-product.json": "3ef793729abc824b066e92fbea05e600048a24b964f8068d0ad615cb16b1f8cb"
   },
